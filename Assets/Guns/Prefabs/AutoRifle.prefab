@@ -413,7 +413,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AutoRifle
   m_firePoint: {fileID: 8767712475449620509}
   m_bulletPrefab: {fileID: 6211711623356127772, guid: aed5230033a75194090f2d7da5618fc6, type: 3}
-  m_fireRate: 5
+  m_fireRate: 10
+  recoilKickback: 0.1
+  recoilSpeed: 10
+  returnSpeed: 6
   m_debugDraw: 1
   m_debugRange: 100
 --- !u!1 &4341109386158054337
@@ -441,7 +444,7 @@ Transform:
   m_GameObject: {fileID: 4341109386158054337}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.056, z: -0.345}
+  m_LocalPosition: {x: 0, y: 0.056, z: -1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
