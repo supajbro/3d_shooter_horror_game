@@ -6,6 +6,9 @@ public abstract class BaseGunController : MonoBehaviour
     [SerializeField] protected Transform  m_firePoint;          // <- Where bullets spawn
     [SerializeField] protected Bullet     m_bulletPrefab;
 
+    [Header("Animation References")]
+    [SerializeField] protected Animator m_reloadAnim;
+
     [Header("Gun Settings")]
     [SerializeField] protected float m_fireRate = 5f;           // <- Bullets per second
 
@@ -21,6 +24,7 @@ public abstract class BaseGunController : MonoBehaviour
     [Header("Reload")]
     [SerializeField] protected float m_reloadSpeed  = 1.0f;     // <- How long it takes to reload
     protected float m_reloadTimer                   = 0f;       // <- Runtime of how long time has elapsed since starting reload
+    private bool m_startedReloading                 = false;
 
     private Vector3 m_initialLocalPos;
     private Vector3 m_targetLocalPos;
@@ -142,11 +146,24 @@ public abstract class BaseGunController : MonoBehaviour
     #region - RELOAD -
     protected virtual void Reloading()
     {
+        if(m_reloadAnim == null)
+        {
+            Debug.LogError("No reload animation set, reload will not start.");
+            return;
+        }
+
+        if(!m_startedReloading)
+        {
+            m_startedReloading = true;
+            m_reloadAnim.SetTrigger("Reload");
+        }
+
         m_reloadTimer += Time.deltaTime;
         if (m_reloadTimer >= m_reloadSpeed)
         {
             m_currentAmmo = m_maxAmmo;
             m_reloadTimer = 0f;
+            m_startedReloading = false;
         }
     }
     #endregion
