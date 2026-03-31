@@ -21,8 +21,8 @@ public class Shotgun : BaseGunController
             bullet.Init(direction);
 
             ApplyRecoil();
-            OnShoot(bullet, direction);
         }
+        OnShoot();
 
         m_nextTimeToFire = Time.time + (1f / m_fireRate);
     }

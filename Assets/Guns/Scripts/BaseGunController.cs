@@ -14,6 +14,14 @@ public abstract class BaseGunController : MonoBehaviour
     [SerializeField] protected float recoilSpeed    = 10f;      // <- How fast it goes back
     [SerializeField] protected float returnSpeed    = 6f;       // <- How fast it returns
 
+    [Header("Ammo")]
+    [SerializeField] protected int m_maxAmmo    = -1;           // <- Max ammo this weapon can hold
+    protected int m_currentAmmo                 = 0;
+
+    [Header("Reload")]
+    [SerializeField] protected float m_reloadSpeed  = 1.0f;     // <- How long it takes to reload
+    protected float m_reloadTimer                   = 0f;       // <- Runtime of how long time has elapsed since starting reload
+
     private Vector3 m_initialLocalPos;
     private Vector3 m_targetLocalPos;
 
@@ -25,8 +33,9 @@ public abstract class BaseGunController : MonoBehaviour
 
     public void Init()
     {
-        m_initialLocalPos = transform.localPosition;
-        m_targetLocalPos = m_initialLocalPos;
+        m_initialLocalPos   = transform.localPosition;
+        m_targetLocalPos    = m_initialLocalPos;
+        m_currentAmmo       = m_maxAmmo;
     }
 
     protected virtual void Update()
@@ -38,6 +47,12 @@ public abstract class BaseGunController : MonoBehaviour
 
     protected virtual void HandleInput()
     {
+        if(IsReloading())
+        {
+            Reloading();
+            return;
+        }
+
         if (CanFire() && IsFiring())
         {
             Shoot();
@@ -45,6 +60,7 @@ public abstract class BaseGunController : MonoBehaviour
         }
     }
 
+    #region - HELPERS -
     protected virtual bool IsFiring()
     {
         // Default: left mouse
@@ -53,9 +69,16 @@ public abstract class BaseGunController : MonoBehaviour
 
     protected virtual bool CanFire()
     {
-        return Time.time >= m_nextTimeToFire;
+        return (Time.time >= m_nextTimeToFire) && (m_currentAmmo > 0);
     }
 
+    protected virtual bool IsReloading()
+    {
+        return m_currentAmmo <= 0;
+    }
+    #endregion
+
+    #region - SHOOTING -
     protected virtual void Shoot()
     {
         if (m_bulletPrefab == null || m_firePoint == null)
@@ -88,20 +111,18 @@ public abstract class BaseGunController : MonoBehaviour
         return transform.forward;
     }
 
+    protected virtual void OnShoot()
+    {
+        m_currentAmmo--;
+    }
+
     protected virtual void OnShoot(Bullet bullet, Vector3 direction)
     {
-        // For subclasses (spread, recoil, etc.)
+        m_currentAmmo--;
     }
+    #endregion
 
-    protected virtual void DrawDebug()
-    {
-        if (!m_debugDraw || m_firePoint == null) return;
-
-        Vector3 direction = GetShootDirection();
-
-        Debug.DrawRay(m_firePoint.position, direction * m_debugRange, Color.red);
-    }
-
+    #region - RECOIL -
     protected void ApplyRecoil()
     {
         // move backwards in local space
@@ -115,5 +136,27 @@ public abstract class BaseGunController : MonoBehaviour
 
         // return target back to original position
         m_targetLocalPos = Vector3.Lerp(m_targetLocalPos, m_initialLocalPos, Time.deltaTime * returnSpeed);
+    }
+    #endregion
+
+    #region - RELOAD -
+    protected virtual void Reloading()
+    {
+        m_reloadTimer += Time.deltaTime;
+        if (m_reloadTimer >= m_reloadSpeed)
+        {
+            m_currentAmmo = m_maxAmmo;
+            m_reloadTimer = 0f;
+        }
+    }
+    #endregion
+
+    protected virtual void DrawDebug()
+    {
+        if (!m_debugDraw || m_firePoint == null) return;
+
+        Vector3 direction = GetShootDirection();
+
+        Debug.DrawRay(m_firePoint.position, direction * m_debugRange, Color.red);
     }
 }

@@ -8,6 +8,7 @@ public class GunPickup : PickupItem
     {
         // Spawn gun
         BaseGunController gunInstance = Instantiate(m_gunPrefab);
+        gunInstance.Init();
 
         // Equip it
         player.EquipGun(gunInstance);

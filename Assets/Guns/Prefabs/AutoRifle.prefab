@@ -417,6 +417,8 @@ MonoBehaviour:
   recoilKickback: 0.1
   recoilSpeed: 10
   returnSpeed: 6
+  m_maxAmmo: 30
+  m_reloadSpeed: 1
   m_debugDraw: 1
   m_debugRange: 100
 --- !u!1 &4341109386158054337
