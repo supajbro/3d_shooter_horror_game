@@ -191,6 +191,7 @@ GameObject:
   - component: {fileID: 6593637677876869952}
   - component: {fileID: 6246781498845574785}
   - component: {fileID: 8469240660014996744}
+  - component: {fileID: 8863120374846939288}
   m_Layer: 0
   m_Name: M4_8
   m_TagString: Untagged
@@ -276,6 +277,28 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!95 &8863120374846939288
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2137124587514015023}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: cde7430934cfa0b42afb595de2737db7, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &2295052638016688411
 GameObject:
   m_ObjectHideFlags: 0
@@ -413,12 +436,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AutoRifle
   m_firePoint: {fileID: 8767712475449620509}
   m_bulletPrefab: {fileID: 6211711623356127772, guid: aed5230033a75194090f2d7da5618fc6, type: 3}
-  m_fireRate: 10
-  recoilKickback: 0.1
-  recoilSpeed: 10
+  m_reloadAnim: {fileID: 8863120374846939288}
+  m_fireRate: 20
+  recoilKickback: 0.06
+  recoilSpeed: 2.5
   returnSpeed: 6
   m_maxAmmo: 30
-  m_reloadSpeed: 1
+  m_reloadSpeed: 1.5
   m_debugDraw: 1
   m_debugRange: 100
 --- !u!1 &4341109386158054337
@@ -446,7 +470,7 @@ Transform:
   m_GameObject: {fileID: 4341109386158054337}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.056, z: -1}
+  m_LocalPosition: {x: 0, y: 0.056, z: -0.8}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
