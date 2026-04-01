@@ -213,7 +213,12 @@ namespace StarterAssets
 			_controller.Move(inputDirection.normalized * (_speed * Time.deltaTime) + new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
 		}
 
-		private void JumpAndGravity()
+		public void SetVerticalVelocity(float val)
+		{
+			_verticalVelocity += val;
+        }
+
+        private void JumpAndGravity()
 		{
 			if (Grounded)
 			{
