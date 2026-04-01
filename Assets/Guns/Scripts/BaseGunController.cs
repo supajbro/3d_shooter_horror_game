@@ -25,6 +25,7 @@ public abstract class BaseGunController : MonoBehaviour
     [SerializeField] protected float m_reloadSpeed  = 1.0f;     // <- How long it takes to reload
     protected float m_reloadTimer                   = 0f;       // <- Runtime of how long time has elapsed since starting reload
     private bool m_startedReloading                 = false;
+    private bool m_manualReload                     = false;    // <- Player manually started a reload
 
     private Vector3 m_initialLocalPos;
     private Vector3 m_targetLocalPos;
@@ -51,6 +52,7 @@ public abstract class BaseGunController : MonoBehaviour
 
     protected virtual void HandleInput()
     {
+        CheckManualReload();
         if(IsReloading())
         {
             Reloading();
@@ -78,7 +80,7 @@ public abstract class BaseGunController : MonoBehaviour
 
     protected virtual bool IsReloading()
     {
-        return m_currentAmmo <= 0;
+        return (m_currentAmmo <= 0) || m_manualReload;
     }
     #endregion
 
@@ -164,6 +166,22 @@ public abstract class BaseGunController : MonoBehaviour
             m_currentAmmo = m_maxAmmo;
             m_reloadTimer = 0f;
             m_startedReloading = false;
+            m_manualReload = false;
+        }
+    }
+
+    // TODO: when using the new input registers, register this to the reload button
+    //       hardcoding not tuff.
+    protected virtual void CheckManualReload()
+    {
+        if(m_currentAmmo >= m_maxAmmo)
+        {
+            return;
+        }
+
+        if(Input.GetKeyDown(KeyCode.R))
+        {
+            m_manualReload = true;
         }
     }
     #endregion
