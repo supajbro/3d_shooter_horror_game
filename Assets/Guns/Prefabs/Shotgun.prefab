@@ -169,10 +169,10 @@ MonoBehaviour:
   m_firePoint: {fileID: 6888693400712273412}
   m_bulletPrefab: {fileID: 6211711623356127772, guid: 6b1a031a245e38945a90b792394bc552, type: 3}
   m_reloadAnim: {fileID: 7107086866669667074}
-  m_fireRate: 2
-  recoilKickback: 0.1
+  m_fireRate: 1.5
+  recoilKickback: 0.15
   recoilSpeed: 10
-  returnSpeed: 6
+  returnSpeed: 4
   m_maxAmmo: 2
   m_reloadSpeed: 1.1
   m_debugDraw: 1
