@@ -108,7 +108,27 @@ namespace StarterAssets
 
 			_health = gameObject.AddComponent<PlayerHealth>();
 			_health.Init();
-		}
+
+            DebugManager.Instance.RegisterFloat(
+				new DebugFloat(
+					"Player Speed",
+					1f,
+					100f,
+					() => MoveSpeed,
+					(v) => MoveSpeed = v
+				)
+			);
+
+            DebugManager.Instance.RegisterFloat(
+				new DebugFloat(
+					"Acceleration",
+					1f,
+					100f,
+					() => SpeedChangeRate,
+					(v) => SpeedChangeRate = v
+				)
+			);
+        }
 
 		private void Start()
 		{
