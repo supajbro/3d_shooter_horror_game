@@ -72,7 +72,19 @@ namespace StarterAssets
 		private StarterAssetsInputs _input;
 		private GameObject _mainCamera;
 
+		private PlayerHealth _health;
+
 		private const float _threshold = 0.01f;
+
+		public PlayerHealth GetHealth()
+		{
+			if(_health == null)
+			{
+				Debug.LogError("Missing health reference to player.");
+				return null;
+			}
+			return _health;
+		}
 
 		private bool IsCurrentDeviceMouse
 		{
@@ -93,6 +105,9 @@ namespace StarterAssets
 			{
 				_mainCamera = GameObject.FindGameObjectWithTag("MainCamera");
 			}
+
+			_health = gameObject.AddComponent<PlayerHealth>();
+			_health.Init();
 		}
 
 		private void Start()

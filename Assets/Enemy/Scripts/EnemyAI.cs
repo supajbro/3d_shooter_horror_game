@@ -13,10 +13,21 @@ public class EnemyAI : MonoBehaviour
 
     private float lastAttackTime;
 
+    private EnemyHealth m_health;
+    private EnemyUtils m_utils;
+
+    [SerializeField] private bool m_debug = false;
+
     void Start()
     {
         player = GameObject.FindGameObjectWithTag("Player").transform;
         agent = GetComponent<NavMeshAgent>();
+
+        m_health = gameObject.AddComponent<EnemyHealth>();
+        m_health.Init();
+
+        m_utils = GetComponent<EnemyUtils>();
+        m_utils.InitDebug(m_debug, m_health);
     }
 
     void Update()
@@ -79,5 +90,15 @@ public class EnemyAI : MonoBehaviour
         }
 
         return false;
+    }
+
+    public EnemyHealth GetHealth()
+    {
+        if (m_health == null)
+        {
+            Debug.LogError("Missing health reference to enemy.");
+            return null;
+        }
+        return m_health;
     }
 }
