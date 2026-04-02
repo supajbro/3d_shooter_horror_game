@@ -25,6 +25,7 @@ public class EnemyAI : MonoBehaviour
 
         m_health = gameObject.AddComponent<EnemyHealth>();
         m_health.Init();
+        m_health.OnDied += KillEnemy;
 
         m_utils = GetComponent<EnemyUtils>();
         m_utils.InitDebug(m_debug, m_health);
@@ -100,5 +101,11 @@ public class EnemyAI : MonoBehaviour
             return null;
         }
         return m_health;
+    }
+
+    // TODO: Change this when moving to pooling
+    public void KillEnemy()
+    {
+        Destroy(gameObject);
     }
 }
