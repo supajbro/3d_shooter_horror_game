@@ -36,7 +36,7 @@ public abstract class BaseGunController : MonoBehaviour
 
     protected float m_nextTimeToFire = 0f;
 
-    public void Init()
+    public virtual void Init()
     {
         m_initialLocalPos   = transform.localPosition;
         m_targetLocalPos    = m_initialLocalPos;

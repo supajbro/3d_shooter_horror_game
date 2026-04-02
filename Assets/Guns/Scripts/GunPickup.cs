@@ -6,6 +6,12 @@ public class GunPickup : PickupItem
 
     public override void OnPickup(PlayerPickup player)
     {
+        if(m_gunPrefab == null)
+        {
+            Debug.LogError("Missing the prefab reference for the gun.");
+            return;
+        }
+
         // Spawn gun
         BaseGunController gunInstance = Instantiate(m_gunPrefab);
         gunInstance.Init();

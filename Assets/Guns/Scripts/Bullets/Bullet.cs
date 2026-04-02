@@ -2,15 +2,15 @@ using UnityEngine;
 
 public class Bullet : MonoBehaviour
 {
-    [SerializeField] private float m_lifetime   = 5.0f;
-    [SerializeField] private float m_speed      = 5.0f;
+    [SerializeField] protected float m_lifetime   = 5.0f;
+    [SerializeField] protected float m_speed      = 5.0f;
 
-    [SerializeField] private float m_damage     = 10.0f;
+    [SerializeField] protected float m_damage     = 10.0f;
 
     private Vector3 m_direction = Vector3.zero;
     private bool m_active = false;
 
-    public void Init(Vector3 dir)
+    public virtual void Init(Vector3 dir)
     {
         m_direction = dir.normalized;
         m_active = true;
@@ -27,7 +27,7 @@ public class Bullet : MonoBehaviour
         BulletUpdate();
     }
 
-    public void BulletUpdate()
+    public virtual void BulletUpdate()
     {
         if (!m_active)
         {
