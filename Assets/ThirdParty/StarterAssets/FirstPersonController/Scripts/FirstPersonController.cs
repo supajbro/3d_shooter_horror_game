@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using Unity.Cinemachine;
+using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -70,23 +71,39 @@ namespace StarterAssets
 #endif
 		private CharacterController _controller;
 		private StarterAssetsInputs _input;
-		private GameObject _mainCamera;
 
-		private PlayerHealth _health;
+		[Header("Camera references")]
+		[SerializeField] private PlayerCamera m_playerCameraPrefab;
+		private PlayerCamera m_playerCamera;
+        [SerializeField] private CinemachineCamera m_playerFollowCameraPrefab;
+        private CinemachineCamera m_playerFollowCamera;
+
+        private PlayerHealth m_health;
+		private PlayerPickup m_playerPickup;
 
 		private const float _threshold = 0.01f;
 
 		public PlayerHealth GetHealth()
 		{
-			if(_health == null)
+			if(m_health == null)
 			{
 				Debug.LogError("Missing health reference to player.");
 				return null;
 			}
-			return _health;
+			return m_health;
 		}
 
-		private bool IsCurrentDeviceMouse
+        public PlayerCamera GetPlayerCamera()
+        {
+            if (m_playerCamera == null)
+            {
+                Debug.LogError("Missing camera reference to player.");
+                return null;
+            }
+            return m_playerCamera;
+        }
+
+        private bool IsCurrentDeviceMouse
 		{
 			get
 			{
@@ -100,14 +117,26 @@ namespace StarterAssets
 
 		private void Awake()
 		{
-			// get a reference to our main camera
-			if (_mainCamera == null)
-			{
-				_mainCamera = GameObject.FindGameObjectWithTag("MainCamera");
-			}
+			Cursor.lockState = CursorLockMode.Locked;
+			Cursor.visible = false;
 
-			_health = gameObject.AddComponent<PlayerHealth>();
-			_health.Init();
+			// get a reference to our main camera
+			if (m_playerCamera == null)
+			{
+				m_playerCamera = Instantiate(m_playerCameraPrefab);
+            }
+
+            if (m_playerFollowCamera == null)
+            {
+                m_playerFollowCamera = Instantiate(m_playerFollowCameraPrefab);
+                m_playerFollowCamera.Follow = CinemachineCameraTarget.transform;
+            }
+
+            m_health = gameObject.AddComponent<PlayerHealth>();
+			m_health.Init();
+
+			m_playerPickup = GetComponent<PlayerPickup>();
+			m_playerPickup.Init();
 
             DebugManager.Instance.RegisterFloat(
 				new DebugFloat(

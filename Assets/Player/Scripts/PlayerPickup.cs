@@ -1,16 +1,25 @@
+using StarterAssets;
 using UnityEngine;
 
 public class PlayerPickup : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] private Camera m_camera;
-    [SerializeField] private Transform m_holdPoint; // <- child of camera
+    private Transform m_holdPoint; // <- child of camera
+    private Camera m_camera;
+    private FirstPersonController m_player;
 
     [Header("Settings")]
     [SerializeField] private float m_pickupRange = 3f;
     [SerializeField] private LayerMask m_pickupLayer;
 
     private BaseGunController m_currentGun;
+
+    public void Init()
+    {
+        m_player = GetComponent<FirstPersonController>();
+        m_camera = m_player.GetPlayerCamera().GetCamera();
+        m_holdPoint = m_player.GetPlayerCamera().GetWeaponHoldPoint();
+    }
 
     private void Update()
     {
@@ -41,6 +50,12 @@ public class PlayerPickup : MonoBehaviour
 
     public void EquipGun(BaseGunController newGun)
     {
+        if(m_holdPoint == null)
+        {
+            Debug.LogError("Missing reference to weapon hold point");
+            return;
+        }
+
         // Drop current gun
         if (m_currentGun != null)
         {
