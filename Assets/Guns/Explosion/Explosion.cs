@@ -18,7 +18,7 @@ public class Explosion : MonoBehaviour
 
     [SerializeField] private LayerMask m_hitLayers;
 
-    private HashSet<EnemyAI> m_enemiesInRange = new HashSet<EnemyAI>();
+    private HashSet<Enemy> m_enemiesInRange = new HashSet<Enemy>();
 
     public void StartExplosion()
     {
@@ -47,7 +47,7 @@ public class Explosion : MonoBehaviour
             {
                 if (hit.transform.parent != null)
                 {
-                    if (hit.transform.parent.TryGetComponent<EnemyAI>(out var enemy))
+                    if (hit.transform.parent.TryGetComponent<Enemy>(out var enemy))
                     {
                         m_enemiesInRange.Add(enemy);
                     }
