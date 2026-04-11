@@ -56,9 +56,9 @@ public class Bullet : MonoBehaviour
         }
 
         // Enemies collision is tied to the mesh (child of enemy).
-        if (other.gameObject.transform.parent != null)
+        if (other.gameObject.transform != null)
         {
-            if (other.gameObject.transform.parent.TryGetComponent<Enemy>(out var enemy))
+            if (other.gameObject.transform.TryGetComponent<Enemy>(out var enemy))
             {
                 enemy.GetHealth().SetHealthRelative(-m_damage);
             }

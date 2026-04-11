@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2570788455754064072}
   - component: {fileID: 7557257208540048715}
   - component: {fileID: 5415851073188088659}
+  - component: {fileID: 4012454556931792919}
   m_Layer: 8
   m_Name: Enemy
   m_TagString: Enemy
@@ -90,6 +91,29 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyUtils
   m_debugCanvas: {fileID: 3599789649610984243}
   m_debugHealthText: {fileID: 9130098917441716317}
+--- !u!136 &4012454556931792919
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7583739206958332103}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2.6546881
+  m_Direction: 1
+  m_Center: {x: 0, y: 1, z: 0}
 --- !u!1001 &3460427542187404092
 PrefabInstance:
   m_ObjectHideFlags: 0
