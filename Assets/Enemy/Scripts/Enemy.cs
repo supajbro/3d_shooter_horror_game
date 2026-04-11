@@ -1,12 +1,13 @@
 using UnityEngine;
 using UnityEngine.AI;
 
-public class Enemy : MonoBehaviour
+public class Enemy : MonoBehaviour, IPoolable
 {
     [Header("References")]
     [SerializeField] private Animator m_anim;
     private EnemyHealth m_health;
     private EnemyUtils m_utils;
+    private EnemySpawner m_enemySpawner;
 
     [Header("Stats")]
     [SerializeField] protected float m_chaseRange = 20f;            // <- Range enemy is within player to start chasing.
@@ -16,29 +17,64 @@ public class Enemy : MonoBehaviour
 
     private Transform m_player;
     private NavMeshAgent m_agent;
+    private string m_poolKey;
 
     private float m_lastAttackTime;
 
+    private bool m_active = false;
+
     [SerializeField] private bool m_debug = false;
 
-    void Start()
+    public void Activate(EnemySpawner enemySpawner)
     {
-        m_player = GameObject.FindGameObjectWithTag("Player").transform;
-        m_agent = GetComponent<NavMeshAgent>();
+        m_active = true;
 
-        m_health = gameObject.AddComponent<EnemyHealth>();
-        m_health.Init();
-        m_health.OnDied += KillEnemy;
+        if(m_player == null)
+            m_player = GameObject.FindGameObjectWithTag("Player").transform;
 
-        m_utils = GetComponent<EnemyUtils>();
-        m_utils.InitDebug(m_debug, m_health);
+        if (m_agent == null)
+            m_agent = GetComponent<NavMeshAgent>();
+
+        if (m_health == null)
+            m_health = gameObject.AddComponent<EnemyHealth>();
+
+        if (m_health != null)
+        {
+            m_health.Init();
+            m_health.OnDied += KillEnemy;
+        }
+
+        if(m_utils == null)
+            m_utils = GetComponent<EnemyUtils>();
+
+        if(m_utils != null)
+            m_utils.InitDebug(m_debug, m_health);
+
+        if (m_enemySpawner == null)
+            m_enemySpawner = enemySpawner;
     }
 
-    void Update()
+    public void Deactivate()
     {
+        m_active = false;
+    }
+
+    private void Update()
+    {
+        if(!m_active)
+        {
+            return;
+        }
+
         if(m_anim == null)
         {
             Debug.LogError("Missing reference to enemy animation.");
+            return;
+        }
+
+        if (m_player == null)
+        {
+            Debug.LogError("Missing reference to player.");
             return;
         }
 
@@ -62,7 +98,6 @@ public class Enemy : MonoBehaviour
     {
         m_agent.isStopped = false;
         m_agent.SetDestination(m_player.position);
-
         m_anim.SetTrigger("Run");
     }
 
@@ -115,9 +150,13 @@ public class Enemy : MonoBehaviour
         return m_health;
     }
 
-    // TODO: Change this when moving to pooling
     public void KillEnemy()
     {
-        Destroy(gameObject);
+        m_enemySpawner.RemoveEnemy(m_poolKey, this.gameObject);
+    }
+
+    public void SetPoolKey(string key)
+    {
+        m_poolKey = key;
     }
 }
