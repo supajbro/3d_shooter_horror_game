@@ -61,7 +61,18 @@ public class Enemy : MonoBehaviour, IPoolable
 
     private void Update()
     {
-        if(!m_active)
+        if (GameStateManager.Instance.GetFreezeGame())
+        {
+            if(!m_agent.isStopped)
+            {
+                m_agent.isStopped = true;
+                m_anim.SetTrigger("Idle");
+            }
+
+            return;
+        }
+
+        if (!m_active)
         {
             return;
         }

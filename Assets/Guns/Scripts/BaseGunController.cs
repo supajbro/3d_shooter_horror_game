@@ -45,6 +45,11 @@ public abstract class BaseGunController : MonoBehaviour
 
     protected virtual void Update()
     {
+        if (GameStateManager.Instance.GetFreezeGame())
+        {
+            return;
+        }
+
         HandleInput();
         DrawDebug();
         UpdateRecoil();

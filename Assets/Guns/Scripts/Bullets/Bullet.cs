@@ -24,6 +24,11 @@ public class Bullet : MonoBehaviour
 
     private void Update()
     {
+        if (GameStateManager.Instance.GetFreezeGame())
+        {
+            return;
+        }
+
         BulletUpdate();
     }
 

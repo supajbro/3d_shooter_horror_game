@@ -176,6 +176,11 @@ namespace StarterAssets
 
 		private void Update()
 		{
+			if(GameStateManager.Instance.GetFreezeGame())
+			{
+				return;
+			}
+
 			JumpAndGravity();
 			GroundedCheck();
 			Move();
@@ -183,7 +188,12 @@ namespace StarterAssets
 
 		private void LateUpdate()
 		{
-			CameraRotation();
+            if (GameStateManager.Instance.GetFreezeGame())
+            {
+                return;
+            }
+
+            CameraRotation();
 		}
 
 		private void GroundedCheck()
