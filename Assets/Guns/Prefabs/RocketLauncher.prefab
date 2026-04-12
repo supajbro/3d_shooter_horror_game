@@ -341,6 +341,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2a9c08ca4e59a0449aea237eed5064ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RocketLauncher
+  m_gunType: 3
   m_firePoint: {fileID: 8767712475449620509}
   m_bulletPrefab: {fileID: 3307854639262314827, guid: 4623d4d59a671864596c82459caa8ae3, type: 3}
   m_reloadAnim: {fileID: 1616286193770749705}

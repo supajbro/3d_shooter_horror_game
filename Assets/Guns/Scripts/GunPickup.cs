@@ -2,6 +2,7 @@ using UnityEngine;
 
 public class GunPickup : PickupItem
 {
+    [SerializeField] private BaseGunController.GunType m_gunType;
     [SerializeField] private BaseGunController m_gunPrefab;
 
     public override void OnPickup(PlayerPickup player)

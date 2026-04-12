@@ -222,6 +222,7 @@ GameObject:
   - component: {fileID: 7664784237809848488}
   - component: {fileID: 6353214498802673558}
   - component: {fileID: 6132113303615300831}
+  - component: {fileID: 7813865190373307531}
   m_Layer: 6
   m_Name: Pickup_Pistol
   m_TagString: Untagged
@@ -257,6 +258,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70487de829da9df4ab9ae76b6d55cd7a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GunPickup
+  m_gunType: 2
   m_gunPrefab: {fileID: 4586241857385662527, guid: cd20a52c444961b4e9c2eeb0afcd21d4, type: 3}
 --- !u!65 &6132113303615300831
 BoxCollider:
@@ -279,6 +281,33 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.2, y: 0.2, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!54 &7813865190373307531
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2641069562612485434}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1 &3431232447534478598
 GameObject:
   m_ObjectHideFlags: 0

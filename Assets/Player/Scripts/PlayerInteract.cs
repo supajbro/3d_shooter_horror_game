@@ -8,20 +8,20 @@ public interface IInteractable
 public class PlayerInteract : MonoBehaviour
 {
     [Header("Interaction Settings")]
-    public float interactDistance = 3f;
-    public LayerMask interactableLayer;
-    public KeyCode interactKey = KeyCode.E;
+    public float m_interactDistance = 3f;
+    public LayerMask m_interactableLayer;
+    public KeyCode m_interactKey = KeyCode.E;
 
-    private Camera playerCamera;
+    private Camera m_playerCamera;
 
-    private void Awake()
+    public void Init(PlayerCamera playerCamera)
     {
-        playerCamera = Camera.main; // assuming main camera is the player camera
+        m_playerCamera = playerCamera.GetCamera();
     }
 
     private void Update()
     {
-        if (Input.GetKeyDown(interactKey))
+        if (Input.GetKeyDown(m_interactKey))
         {
             CheckForInteractable();
         }
@@ -29,8 +29,8 @@ public class PlayerInteract : MonoBehaviour
 
     private void CheckForInteractable()
     {
-        Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
-        if (Physics.Raycast(ray, out RaycastHit hit, interactDistance, interactableLayer))
+        Ray ray = new Ray(m_playerCamera.transform.position, m_playerCamera.transform.forward);
+        if (Physics.Raycast(ray, out RaycastHit hit, m_interactDistance, m_interactableLayer))
         {
             IInteractable interactable = hit.collider.GetComponent<IInteractable>();
             if (interactable != null)

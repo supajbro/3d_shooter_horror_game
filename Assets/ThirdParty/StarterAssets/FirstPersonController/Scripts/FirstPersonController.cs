@@ -78,8 +78,13 @@ namespace StarterAssets
         [SerializeField] private CinemachineCamera m_playerFollowCameraPrefab;
         private CinemachineCamera m_playerFollowCamera;
 
+		[Header("Player references")]
         private PlayerHealth m_health;
 		private PlayerPickup m_playerPickup;
+		private PlayerInteract m_playerInteract;
+
+        [Header("Level references")]
+        private LevelManager m_manager;
 
 		private const float _threshold = 0.01f;
 
@@ -103,6 +108,16 @@ namespace StarterAssets
             return m_playerCamera;
         }
 
+		public LevelManager GetLevelManager()
+		{
+            if (m_manager == null)
+            {
+                Debug.LogError("Missing level manager reference to player.");
+                return null;
+            }
+            return m_manager;
+        }
+
         private bool IsCurrentDeviceMouse
 		{
 			get
@@ -115,7 +130,7 @@ namespace StarterAssets
 			}
 		}
 
-		private void Awake()
+		public void Init(LevelManager manager)
 		{
 			Cursor.lockState = CursorLockMode.Locked;
 			Cursor.visible = false;
@@ -137,6 +152,11 @@ namespace StarterAssets
 
 			m_playerPickup = GetComponent<PlayerPickup>();
 			m_playerPickup.Init();
+
+			m_playerInteract = GetComponent<PlayerInteract>();
+			m_playerInteract.Init(m_playerCamera);
+
+			m_manager = manager;
 
             DebugManager.Instance.RegisterFloat(
 				new DebugFloat(

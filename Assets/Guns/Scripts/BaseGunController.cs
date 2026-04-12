@@ -2,6 +2,16 @@ using UnityEngine;
 
 public abstract class BaseGunController : MonoBehaviour
 {
+    public enum GunType
+    {
+        AUTORIFLE,
+        SHOTGUN,
+        PISTOL,
+        ROCKETLAUNCHER
+    }
+    [SerializeField] private GunType m_gunType;
+    public GunType GetGunType() { return m_gunType; }
+
     [Header("References")]
     [SerializeField] protected Transform  m_firePoint;          // <- Where bullets spawn
     [SerializeField] protected Bullet     m_bulletPrefab;

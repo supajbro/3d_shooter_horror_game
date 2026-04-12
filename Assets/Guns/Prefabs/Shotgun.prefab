@@ -166,6 +166,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cdb294e9d631b644cae731895fde0bd2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Shotgun
+  m_gunType: 1
   m_firePoint: {fileID: 6888693400712273412}
   m_bulletPrefab: {fileID: 6211711623356127772, guid: 6b1a031a245e38945a90b792394bc552, type: 3}
   m_reloadAnim: {fileID: 7107086866669667074}
