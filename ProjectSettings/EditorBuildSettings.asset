@@ -11,5 +11,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Playground.unity
     guid: 9322c9b2112d47e49bc48500fcbac892
+  - enabled: 1
+    path: Assets/Scenes/TestEnvironment.unity
+    guid: 41cd5cc1e128fd34c87222b09ce78611
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

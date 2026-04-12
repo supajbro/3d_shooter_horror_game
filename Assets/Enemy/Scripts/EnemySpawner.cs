@@ -12,8 +12,12 @@ public class EnemySpawner : MonoBehaviour
 
     private int m_currentWaveIndex = 0;
 
-    public void Init()
+    private LevelManager m_manager;
+
+    public void Init(LevelManager manager)
     {
+        m_manager = manager;
+
         if (m_autoStart)
         {
             StartCoroutine(RunWaves());
@@ -85,6 +89,16 @@ public class EnemySpawner : MonoBehaviour
     {
         Debug.Log("All waves complete!");
         // Trigger next level, rewards, etc.
+    }
+
+    public LevelManager GetLevelManager()
+    {
+        if(m_manager == null)
+        {
+            Debug.LogError("Missing level manager reference.");
+            return null;
+        }
+        return m_manager;
     }
 }
 

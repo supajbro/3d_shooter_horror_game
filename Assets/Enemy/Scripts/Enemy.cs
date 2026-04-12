@@ -163,11 +163,17 @@ public class Enemy : MonoBehaviour, IPoolable
 
     public void KillEnemy()
     {
+        SpawnWeapon();
         m_enemySpawner.RemoveEnemy(m_poolKey, this.gameObject);
     }
 
     public void SetPoolKey(string key)
     {
         m_poolKey = key;
+    }
+
+    protected void SpawnWeapon()
+    {
+        m_enemySpawner.GetLevelManager().GetWeaponSpawner().SpawnWeaponRandom(transform);
     }
 }

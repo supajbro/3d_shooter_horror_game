@@ -1,4 +1,6 @@
 using StarterAssets;
+using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class LevelManager : MonoBehaviour
@@ -17,13 +19,26 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private GunPickup m_shotgunPickup;
     [SerializeField] private GunPickup m_pistolPickup;
     [SerializeField] private GunPickup m_rocketLauncherPickup;
+    private WeaponSpawner m_weaponSpawner; // <- Objects in this scene can reference to spawn a weapon pickup.
+
+    [Header("Weapons Pads")]
+    private WeaponPad[] m_weaponPads;
 
     private void Start()
     {
         SpawnPlayer();
 
         m_enemySpawner = GetComponentInChildren<EnemySpawner>();
-        m_enemySpawner.Init();
+        m_enemySpawner.Init(this);
+
+        m_weaponSpawner = gameObject.AddComponent<WeaponSpawner>();
+        m_weaponSpawner.Init();
+
+        m_weaponPads = FindObjectsByType<WeaponPad>(FindObjectsSortMode.None);
+        foreach (var pad in m_weaponPads)
+        {
+            pad.Init(this);
+        }
     }
 
     public void SpawnPlayer()
@@ -58,6 +73,16 @@ public class LevelManager : MonoBehaviour
             return null;
         }
         return m_enemySpawner;
+    }
+
+    public WeaponSpawner GetWeaponSpawner()
+    {
+        if (m_weaponSpawner == null)
+        {
+            Debug.LogError("Missing weapon spawner reference.");
+            return null;
+        }
+        return m_weaponSpawner;
     }
 
     public GunPickup GetGunPickup(BaseGunController.GunType gunType)
