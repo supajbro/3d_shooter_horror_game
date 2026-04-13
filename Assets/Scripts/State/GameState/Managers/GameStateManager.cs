@@ -22,6 +22,10 @@ public class GameStateManager : MonoBehaviour
     public void SetFreezeGame(bool val) { m_freezeGame = val; }
     public bool GetFreezeGame() { return m_freezeGame; }
 
+    [Header("Debug")]
+    [SerializeField] private DebugManager m_debugManagerPrefab;
+    private DebugManager m_debugManager;
+
     private void Awake()
     {
         if (Instance != null)
@@ -36,7 +40,18 @@ public class GameStateManager : MonoBehaviour
 
     private void Start()
     {
+        Init();
+    }
+
+    public void Init()
+    {
         SetState(new MainMenuState(this));
+
+        if(m_debugManager == null)
+        {
+            m_debugManager = Instantiate(m_debugManagerPrefab);
+            m_debugManager.Init(this);
+        }
     }
 
     private void Update()

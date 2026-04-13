@@ -165,8 +165,9 @@ namespace StarterAssets
 					100f,
 					() => MoveSpeed,
 					(v) => MoveSpeed = v
-				)
-			);
+				),
+                "Player"
+            );
 
             DebugManager.Instance.RegisterFloat(
 				new DebugFloat(
@@ -175,8 +176,31 @@ namespace StarterAssets
 					100f,
 					() => SpeedChangeRate,
 					(v) => SpeedChangeRate = v
-				)
+				), 
+				"Player"
 			);
+
+            DebugManager.Instance.RegisterFloat(
+				new DebugFloat(
+					"Jump Height",
+					1f,
+					100f,
+					() => JumpHeight,
+					(v) => JumpHeight = v
+				),
+                "Player"
+            );
+
+            DebugManager.Instance.RegisterFloat(
+				new DebugFloat(
+					"Gravity",
+					-100f,
+					-1f,
+					() => Gravity,
+					(v) => Gravity = v
+				),
+                "Player"
+            );
         }
 
 		private void Start()

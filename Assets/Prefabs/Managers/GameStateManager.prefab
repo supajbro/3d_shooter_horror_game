@@ -45,6 +45,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66b2208351a24c8469f5427b463f7d16, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameStateManager
+  m_debugManagerPrefab: {fileID: 7541628003462455349, guid: 73dfbf153d681d443bdf5e618d1dc480, type: 3}
 --- !u!114 &3194339381401220636
 MonoBehaviour:
   m_ObjectHideFlags: 0
