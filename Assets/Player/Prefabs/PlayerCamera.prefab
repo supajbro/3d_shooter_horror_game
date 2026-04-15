@@ -235,6 +235,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCamera
   m_camera: {fileID: 7663344963451522962}
   m_weaponHoldPoint: {fileID: 3588171402095792575}
+  m_enableHeadBob: 1
+  m_bobFrequency: 3
+  m_bobAmplitude: 0.05
+  m_bobHorizontalAmplitude: 0.03
+  m_speedMultiplier: 1
+  m_idleReturnSpeed: 5
 --- !u!1 &8654739571216143612
 GameObject:
   m_ObjectHideFlags: 0

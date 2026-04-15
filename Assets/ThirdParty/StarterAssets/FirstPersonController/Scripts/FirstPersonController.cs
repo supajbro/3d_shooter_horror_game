@@ -118,6 +118,11 @@ namespace StarterAssets
             return m_manager;
         }
 
+		public float GetSpeed()
+		{
+			return _speed;
+		}
+
         private bool IsCurrentDeviceMouse
 		{
 			get
@@ -139,6 +144,7 @@ namespace StarterAssets
 			if (m_playerCamera == null)
 			{
 				m_playerCamera = Instantiate(m_playerCameraPrefab);
+				m_playerCamera.Init(this, CinemachineCameraTarget.transform);
             }
 
             if (m_playerFollowCamera == null)
