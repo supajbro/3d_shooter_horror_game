@@ -17,7 +17,8 @@ public class RocketLauncher : BaseGunController
                 10f,
                 () => m_fireRate,
                 (v) => m_fireRate = v
-            )
+            ),
+            "Rocket Launcher"
         );
 
         DebugManager.Instance.RegisterFloat(
@@ -27,7 +28,8 @@ public class RocketLauncher : BaseGunController
                 1f,
                 () => recoilKickback,
                 (v) => recoilKickback = v
-            )
+            ),
+            "Rocket Launcher"
         );
 
         DebugManager.Instance.RegisterFloat(
@@ -37,7 +39,8 @@ public class RocketLauncher : BaseGunController
                 20f,
                 () => recoilSpeed,
                 (v) => recoilSpeed = v
-            )
+            ),
+            "Rocket Launcher"
         );
 
         DebugManager.Instance.RegisterFloat(
@@ -47,7 +50,8 @@ public class RocketLauncher : BaseGunController
                 10f,
                 () => returnSpeed,
                 (v) => returnSpeed = v
-            )
+            ),
+            "Rocket Launcher"
         );
     }
 

@@ -8,25 +8,48 @@ public class DebugSliderUI : MonoBehaviour
     [SerializeField] private Slider slider;
     [SerializeField] private TMP_Text valueText;
 
-    private DebugFloat _debugFloat;
+    private DebugFloat  m_debugFloat;
+    private DebugInt    m_debugInt;
 
-    public void Setup(DebugFloat debugFloat)
+    public void SetupFloat(DebugFloat debugFloat)
     {
-        _debugFloat = debugFloat;
+        m_debugFloat = debugFloat;
 
-        label.text = debugFloat.Name;
+        label.text = debugFloat.m_name;
 
-        slider.minValue = debugFloat.Min;
-        slider.maxValue = debugFloat.Max;
-        slider.value = debugFloat.GetValue();
+        slider.wholeNumbers     = false;
+        slider.minValue         = debugFloat.m_min;
+        slider.maxValue         = debugFloat.m_max;
+        slider.value            = debugFloat.GetValue();
 
-        slider.onValueChanged.AddListener(OnValueChanged);
+        slider.onValueChanged.AddListener(OnValueChangedFloat);
         UpdateText(slider.value);
     }
 
-    private void OnValueChanged(float value)
+    public void SetupInt(DebugInt debugInt)
     {
-        _debugFloat.SetValue(value);
+        m_debugInt = debugInt;
+
+        label.text = debugInt.m_name;
+
+        slider.wholeNumbers     = true;
+        slider.minValue         = debugInt.m_min;
+        slider.maxValue         = debugInt.m_max;
+        slider.value            = debugInt.GetValue();
+
+        slider.onValueChanged.AddListener(OnValueChangedInt);
+        UpdateText(slider.value);
+    }
+
+    private void OnValueChangedFloat(float value)
+    {
+        m_debugFloat.SetValue(value);
+        UpdateText(value);
+    }
+
+    private void OnValueChangedInt(float value)
+    {
+        m_debugInt.SetValue((int)value);
         UpdateText(value);
     }
 

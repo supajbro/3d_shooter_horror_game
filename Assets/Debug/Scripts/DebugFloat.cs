@@ -1,21 +1,27 @@
 public class DebugFloat
 {
-    public string Name;
-    public float Min;
-    public float Max;
+    public string m_name;
+    public float m_min;
+    public float m_max;
 
-    private System.Func<float> _getter;
-    private System.Action<float> _setter;
+    public int intMin;
+    public int intMax;
+
+    private System.Func<float> m_getter;
+    private System.Action<float> m_setter;
+
+    private System.Func<int> m_intGetter;
+    private System.Action<int> m_intSetter;
 
     public DebugFloat(string name, float min, float max, System.Func<float> getter, System.Action<float> setter)
     {
-        Name = name;
-        Min = min;
-        Max = max;
-        _getter = getter;
-        _setter = setter;
+        m_name = name;
+        m_min = min;
+        m_max = max;
+        m_getter = getter;
+        m_setter = setter;
     }
 
-    public float GetValue() => _getter();
-    public void SetValue(float value) => _setter(value);
+    public float GetValue() => m_getter();
+    public void SetValue(float value) => m_setter(value);
 }

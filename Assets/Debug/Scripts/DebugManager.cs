@@ -68,7 +68,32 @@ public class DebugManager : MonoBehaviour
 
         // Create slider (always under same parent)
         var slider = Instantiate(m_sliderPrefab, m_contentParent);
-        slider.Setup(debugFloat);
+        slider.SetupFloat(debugFloat);
+
+        // Track it
+        m_categoryItems[category].Add(slider.gameObject);
+
+        // Set initial visibility
+        slider.gameObject.SetActive(category == m_currentCategory);
+    }
+
+    public void RegisterInt(DebugInt debugInt, string category = "General")
+    {
+        // Ensure category exists
+        if (!m_categoryItems.ContainsKey(category))
+        {
+            m_categoryItems[category] = new List<GameObject>();
+
+            // Create button
+            var debugCategory = Instantiate(m_categoryPrefab, m_headerContentParent);
+            debugCategory.Setup(category, () => SelectCategory(category));
+
+            m_categories.Add(category, debugCategory);
+        }
+
+        // Create slider (always under same parent)
+        var slider = Instantiate(m_sliderPrefab, m_contentParent);
+        slider.SetupInt(debugInt);
 
         // Track it
         m_categoryItems[category].Add(slider.gameObject);
