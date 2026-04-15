@@ -37,6 +37,10 @@ public abstract class BaseGunController : MonoBehaviour
     private bool m_startedReloading                 = false;
     private bool m_manualReload                     = false;    // <- Player manually started a reload
 
+    [Header("Required release")]
+    [SerializeField] private bool m_requiresTriggerRelease = false; // <- Does this gun need input to be released to fire again?
+    private bool m_hasReleasedTrigger = true;
+
     private Vector3 m_initialLocalPos;
     private Vector3 m_targetLocalPos;
 
@@ -74,10 +78,28 @@ public abstract class BaseGunController : MonoBehaviour
             return;
         }
 
+        // Track trigger release
+        if (!Input.GetMouseButton(0))
+        {
+            m_hasReleasedTrigger = true;
+        }
+
         if (CanFire() && IsFiring())
         {
+            // If this gun requires release, block until released
+            if (m_requiresTriggerRelease && !m_hasReleasedTrigger)
+            {
+                return;
+            }
+
             Shoot();
             m_nextTimeToFire = Time.time + (1f / m_fireRate);
+
+            // After shooting, require release again
+            if (m_requiresTriggerRelease)
+            {
+                m_hasReleasedTrigger = false;
+            }
         }
     }
 

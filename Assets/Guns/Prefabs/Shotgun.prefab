@@ -176,6 +176,7 @@ MonoBehaviour:
   returnSpeed: 4
   m_maxAmmo: 2
   m_reloadSpeed: 1.1
+  m_requiresTriggerRelease: 1
   m_debugDraw: 1
   m_debugRange: 100
   pelletCount: 6

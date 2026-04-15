@@ -597,6 +597,7 @@ MonoBehaviour:
   returnSpeed: 5
   m_maxAmmo: 14
   m_reloadSpeed: 1.35
+  m_requiresTriggerRelease: 1
   m_debugDraw: 1
   m_debugRange: 100
 --- !u!1 &4341109386158054337

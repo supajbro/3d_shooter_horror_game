@@ -40,7 +40,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 571273797540291815}
-  m_Mesh: {fileID: -5531391580744767754, guid: aa2e241198c8dc7449419404ee07a75b, type: 3}
+  m_Mesh: {fileID: -7016005893142309749, guid: 24aeb89e866e5f8438e557c6aaff1b7b, type: 3}
 --- !u!23 &2084443208100545842
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -138,8 +138,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Bullet
   m_lifetime: 10
-  m_speed: 100
-  m_damage: 10
+  m_speed: 50
+  m_damage: 25
 --- !u!135 &4509452397006456495
 SphereCollider:
   m_ObjectHideFlags: 0
