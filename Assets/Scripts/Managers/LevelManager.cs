@@ -13,6 +13,7 @@ public class LevelManager : MonoBehaviour
 
     [Header("Enemy")]
     private EnemySpawner m_enemySpawner;
+    private CollisionStartsNextEnemyWave[] m_collisionStartsNextEnemyWave; // <- array is inserted at runtime
 
     [Header("Weapons/Pickup")]
     [SerializeField] private GunPickup m_autoRiflePickup;
@@ -30,6 +31,12 @@ public class LevelManager : MonoBehaviour
 
         m_enemySpawner = GetComponentInChildren<EnemySpawner>();
         m_enemySpawner.Init(this);
+
+        m_collisionStartsNextEnemyWave = FindObjectsByType<CollisionStartsNextEnemyWave>(FindObjectsSortMode.None);
+        foreach (var enemyWave in m_collisionStartsNextEnemyWave)
+        {
+            enemyWave.Init(this);
+        }
 
         m_weaponSpawner = gameObject.AddComponent<WeaponSpawner>();
         m_weaponSpawner.Init();
@@ -65,7 +72,7 @@ public class LevelManager : MonoBehaviour
         }
     }
 
-    public EnemySpawner GetLevelSpawner()
+    public EnemySpawner GetEnemySpawner()
     {
         if(m_enemySpawner == null)
         {

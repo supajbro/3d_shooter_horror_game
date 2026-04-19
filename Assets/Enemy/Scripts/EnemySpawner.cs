@@ -1,27 +1,40 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class EnemySpawner : MonoBehaviour
 {
     public static int ActiveEnemyCount = 0;
 
+    public enum WaveStartMode
+    {
+        AutoAfterClear,
+        Manual
+    }
+
+    [Header("Wave Settings")]
     [SerializeField] private List<Wave> m_waves;
-    [SerializeField] private bool m_autoStart = true;
+    [SerializeField] private WaveStartMode m_waveStartMode = WaveStartMode.AutoAfterClear;
+    [SerializeField] private float m_timeBetweenWaves = 3f;
 
     private int m_currentWaveIndex = 0;
+    private bool m_waitingForNextWave = false;
+    private bool m_running = false;
 
     private LevelManager m_manager;
+
+    public event Action<int> OnWaveCompleted;
+    public event Action OnAllWavesCompleted;
 
     public void Init(LevelManager manager)
     {
         m_manager = manager;
 
-        if (m_autoStart)
-        {
-            StartCoroutine(RunWaves());
-        }
+        if (m_running) return;
+
+        m_running = true;
+        StartCoroutine(RunWaves());
     }
 
     private IEnumerator RunWaves()
@@ -30,13 +43,27 @@ public class EnemySpawner : MonoBehaviour
         {
             yield return StartCoroutine(SpawnWave(m_waves[m_currentWaveIndex]));
 
-            // Wait until all enemies are dead
             yield return new WaitUntil(() => ActiveEnemyCount <= 0);
+
+            OnWaveFinished();
+
+            if (m_currentWaveIndex >= m_waves.Count)
+                break;
+
+            if (m_waveStartMode == WaveStartMode.AutoAfterClear)
+            {
+                yield return new WaitForSeconds(m_timeBetweenWaves);
+            }
+            else
+            {
+                m_waitingForNextWave = true;
+                yield return new WaitUntil(() => m_waitingForNextWave == false);
+            }
 
             m_currentWaveIndex++;
         }
 
-        OnAllWavesComplete();
+        OnAllWavesCompleted?.Invoke();
     }
 
     private IEnumerator SpawnWave(Wave wave)
@@ -56,18 +83,17 @@ public class EnemySpawner : MonoBehaviour
 
     private void SpawnEnemy(string key, List<Transform> spawnPoints)
     {
-        if (spawnPoints.Count == 0)
+        if (spawnPoints == null || spawnPoints.Count == 0)
         {
             Debug.LogError("No spawn points assigned!");
             return;
         }
 
-        Transform spawn = spawnPoints[Random.Range(0, spawnPoints.Count)];
+        Transform spawn = spawnPoints[UnityEngine.Random.Range(0, spawnPoints.Count)];
 
         var obj = ObjectPooler.Instance.Spawn(key, spawn.position, spawn.rotation);
-        
-        // Find the enemy and activate it.
-        if(obj.TryGetComponent<Enemy>(out var enemy))
+
+        if (obj.TryGetComponent<Enemy>(out var enemy))
         {
             enemy.Activate(this);
         }
@@ -78,22 +104,41 @@ public class EnemySpawner : MonoBehaviour
         ObjectPooler.Instance.ReturnToPool(key, obj);
         ActiveEnemyCount--;
 
-        // Find the enemy and deactivate it.
         if (obj.TryGetComponent<Enemy>(out var enemy))
         {
             enemy.Deactivate();
         }
     }
 
+    private void OnWaveFinished()
+    {
+        OnWaveCompleted?.Invoke(m_currentWaveIndex);
+        Debug.Log($"Wave {m_currentWaveIndex} complete");
+    }
+
+    public void StartNextWave()
+    {
+        if (m_waveStartMode != WaveStartMode.Manual)
+            return;
+
+        if (!m_waitingForNextWave)
+            return;
+
+        Debug.Log("Next wave has started");
+
+        m_waitingForNextWave = false;
+        m_currentWaveIndex++;
+    }
+
     private void OnAllWavesComplete()
     {
         Debug.Log("All waves complete!");
-        // Trigger next level, rewards, etc.
+        OnAllWavesCompleted?.Invoke();
     }
 
     public LevelManager GetLevelManager()
     {
-        if(m_manager == null)
+        if (m_manager == null)
         {
             Debug.LogError("Missing level manager reference.");
             return null;

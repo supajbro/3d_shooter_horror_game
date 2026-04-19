@@ -45,7 +45,6 @@ public class Health : MonoBehaviour
         }
 
         m_health = Mathf.Clamp(newValue, 0f, m_maxHealth);
-        Debug.Log("Health: " + m_health);
 
         OnHealthChanged?.Invoke(m_health);
 
