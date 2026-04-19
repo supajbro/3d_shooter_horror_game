@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 173732853078729964}
   - component: {fileID: 7737220106135987868}
-  - component: {fileID: 3194339381401220636}
   m_Layer: 0
   m_Name: GameStateManager
   m_TagString: Untagged
@@ -46,21 +45,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameStateManager
   m_eventSystemPrefab: {fileID: 3540210169618723730, guid: 6647895900f61aa4f8bef800097944f2, type: 3}
+  m_uiStateHandlerPrefab: {fileID: 5263142818922411766, guid: 1e8194e471178a04c97d9128f2255591, type: 3}
   m_debugManagerPrefab: {fileID: 7541628003462455349, guid: 73dfbf153d681d443bdf5e618d1dc480, type: 3}
---- !u!114 &3194339381401220636
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1314775059257641288}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3c6181c9bdbd3ec439602a10c4a78e8d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UIStateHandler
-  m_mainMenuUIPrefab: {fileID: 592031707941916812, guid: 32cc65402f2f573499e29863c6929d1d, type: 3}
-  m_pauseUIPrefab: {fileID: 1080357345999027927, guid: a337a5ae44f61d643aff3ef56c6658f9, type: 3}
-  m_gameplayUIPrefab: {fileID: 2722797178144868834, guid: 6266164beede7a5459025f701719ad16, type: 3}
-  m_gameOverUIPrefab: {fileID: 2671942535428483354, guid: c359f572cfdda3c468e839690c3eec5b, type: 3}
-  m_loadingUIPrefab: {fileID: 5379973474321914625, guid: 7f38c0bf6b981fb42b19e51eba62409f, type: 3}

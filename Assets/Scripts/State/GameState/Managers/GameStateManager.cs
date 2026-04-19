@@ -24,9 +24,28 @@ public class GameStateManager : MonoBehaviour
     public void SetFreezeGame(bool val) { m_freezeGame = val; }
     public bool GetFreezeGame() { return m_freezeGame; }
 
+    [Header("Level Manager")]
+    private LevelManager m_levelManager;
+    public void SetLevelManager(LevelManager manager) { m_levelManager = manager; }
+    public LevelManager GetLevelManager() 
+    {
+        if(m_levelManager == null)
+        {
+            Debug.LogError("Missing reference to level manager. "                                           +
+                           "You are probably trying to reference this class while not being in a level! "   +
+                           "Fix your logic.");
+            return null;
+        }
+        return m_levelManager; 
+    }
+
     [Header("Event System")]
     [SerializeField] private EventSystem m_eventSystemPrefab;
     private EventSystem m_eventSystem;
+
+    [Header("UI")]
+    [SerializeField] private UIStateHandler m_uiStateHandlerPrefab;
+    private UIStateHandler m_uiStateHandler;
 
     [Header("Debug")]
     [SerializeField] private DebugManager m_debugManagerPrefab;
@@ -54,7 +73,8 @@ public class GameStateManager : MonoBehaviour
         m_initialState = m_initialState == null ? new MainMenuState(this) : m_initialState;
         SetState(m_initialState);
 
-        m_eventSystem = Instantiate(m_eventSystemPrefab);
+        m_eventSystem       = Instantiate(m_eventSystemPrefab);
+        m_uiStateHandler    = Instantiate(m_uiStateHandlerPrefab);
 
         if(m_debugManager == null)
         {
@@ -79,7 +99,17 @@ public class GameStateManager : MonoBehaviour
         OnStateChanged?.Invoke(m_currentState);
     }
 
-    public GameStateType GetCurrentState()
+    public BaseGameState GetCurrentState()
+    {
+        if (m_currentState == null)
+        {
+            Debug.LogError("Missing reference to current state");
+            return default;
+        }
+        return m_currentState;
+    }
+
+    public GameStateType GetCurrentStateType()
     {
         if (m_currentState == null)
         {
@@ -103,5 +133,15 @@ public class GameStateManager : MonoBehaviour
             return null;
         }
         return m_eventSystem;
+    }
+
+    public UIStateHandler GetUIStateHandler()
+    {
+        if (m_uiStateHandler == null)
+        {
+            Debug.LogError("Missing reference to UI State Handler.");
+            return null;
+        }
+        return m_uiStateHandler;
     }
 }

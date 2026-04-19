@@ -2,19 +2,33 @@ using UnityEngine;
 
 public class UIStateHandler : MonoBehaviour
 {
-    [SerializeField] private GameObject m_mainMenuUIPrefab;
+    public static UIStateHandler Instance;
+
+    [SerializeField] private MainMenuUI m_mainMenuUIPrefab;
     [SerializeField] private GameObject m_pauseUIPrefab;
-    [SerializeField] private GameObject m_gameplayUIPrefab;
+    [SerializeField] private GameplayUI m_gameplayUIPrefab;
     [SerializeField] private GameObject m_gameOverUIPrefab;
     [SerializeField] private GameObject m_loadingUIPrefab;
 
-    private GameObject m_mainMenuUI;
-    private GameObject m_pauseUI;
-    private GameObject m_gameplayUI;
-    private GameObject m_gameOverUI;
-    private GameObject m_loadingUI;
+    public MainMenuUI m_mainMenuUI;
+    public GameObject m_pauseUI;
+    public GameplayUI m_gameplayUI;
+    public GameObject m_gameOverUI;
+    public GameObject m_loadingUI;
 
     private bool m_initialised = false;
+
+    private void Awake()
+    {
+        if (Instance != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
 
     private void Start()
     {
@@ -29,19 +43,14 @@ public class UIStateHandler : MonoBehaviour
             return;
         }
 
-        m_mainMenuUI    = Instantiate(m_mainMenuUIPrefab);
-        m_pauseUI       = Instantiate(m_pauseUIPrefab);
-        m_gameplayUI    = Instantiate(m_gameplayUIPrefab);
-        m_gameOverUI    = Instantiate(m_gameOverUIPrefab);
-        m_loadingUI     = Instantiate(m_loadingUIPrefab);
+        // Child to UIStateHandler so they persist through scenes.
+        m_mainMenuUI    = Instantiate(m_mainMenuUIPrefab,   transform);
+        m_pauseUI       = Instantiate(m_pauseUIPrefab,      transform);
+        m_gameplayUI    = Instantiate(m_gameplayUIPrefab,   transform);
+        m_gameOverUI    = Instantiate(m_gameOverUIPrefab,   transform);
+        m_loadingUI     = Instantiate(m_loadingUIPrefab,    transform);
 
-        // Make all UI persistent too
-        DontDestroyOnLoad(m_mainMenuUI);
-        DontDestroyOnLoad(m_pauseUI);
-        DontDestroyOnLoad(m_gameplayUI);
-        DontDestroyOnLoad(m_gameOverUI);
-        DontDestroyOnLoad(m_loadingUI);
-
+        HandleStateChanged(GameStateManager.Instance.GetCurrentState());
         GameStateManager.Instance.OnStateChanged += HandleStateChanged;
 
         m_initialised = true;
@@ -49,9 +58,9 @@ public class UIStateHandler : MonoBehaviour
 
     private void HandleStateChanged(BaseGameState state)
     {
-        m_mainMenuUI.SetActive(state is MainMenuState);
+        m_mainMenuUI.gameObject.SetActive(state is MainMenuState);
         m_pauseUI.SetActive(state is PauseState);
-        m_gameplayUI.SetActive(state is GameplayState);
+        m_gameplayUI.gameObject.SetActive(state is GameplayState);
         m_gameOverUI.SetActive(state is GameOverState);
         m_loadingUI.SetActive(state is LoadingState);
     }

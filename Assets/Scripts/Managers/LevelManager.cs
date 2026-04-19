@@ -30,6 +30,9 @@ public class LevelManager : MonoBehaviour
     [Header("Weapons Pads")]
     private WeaponPad[] m_weaponPads;
 
+    [Header("UI")]
+    [SerializeField] private GameplayUI m_ui;
+
     private void Start()
     {
         m_manager = GameStateManager.Instance == null ? Instantiate(m_managerPrefab) : GameStateManager.Instance;
@@ -54,6 +57,9 @@ public class LevelManager : MonoBehaviour
         {
             pad.Init(this);
         }
+
+        m_ui = GameStateManager.Instance.GetUIStateHandler().m_gameplayUI;
+        m_ui.Init(this);
     }
 
     public void SpawnPlayer()
@@ -78,6 +84,16 @@ public class LevelManager : MonoBehaviour
         {
             Debug.LogError("Unable to find players FPS Controller.");
         }
+    }
+
+    public FirstPersonController GetPlayer()
+    {
+        if(m_fpsPlayer == null)
+        {
+            Debug.LogError("Missing reference to FPS player.");
+            return null;
+        }
+        return m_fpsPlayer;
     }
 
     public EnemySpawner GetEnemySpawner()

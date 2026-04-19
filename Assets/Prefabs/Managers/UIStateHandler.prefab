@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &5480792523654573297
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4304267190704191999}
+  - component: {fileID: 5263142818922411766}
+  m_Layer: 0
+  m_Name: UIStateHandler
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4304267190704191999
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5480792523654573297}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5263142818922411766
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5480792523654573297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c6181c9bdbd3ec439602a10c4a78e8d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIStateHandler
+  m_mainMenuUIPrefab: {fileID: 5548622399105983916, guid: 32cc65402f2f573499e29863c6929d1d, type: 3}
+  m_pauseUIPrefab: {fileID: 1080357345999027927, guid: a337a5ae44f61d643aff3ef56c6658f9, type: 3}
+  m_gameplayUIPrefab: {fileID: 2799938564527673282, guid: 6266164beede7a5459025f701719ad16, type: 3}
+  m_gameOverUIPrefab: {fileID: 2671942535428483354, guid: c359f572cfdda3c468e839690c3eec5b, type: 3}
+  m_loadingUIPrefab: {fileID: 5379973474321914625, guid: 7f38c0bf6b981fb42b19e51eba62409f, type: 3}
+  m_mainMenuUI: {fileID: 0}
+  m_pauseUI: {fileID: 0}
+  m_gameplayUI: {fileID: 0}
+  m_gameOverUI: {fileID: 0}
+  m_loadingUI: {fileID: 0}
