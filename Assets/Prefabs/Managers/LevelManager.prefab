@@ -46,6 +46,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6bd4611d37a8ff7409963ba4d879b2a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LevelManager
+  m_managerPrefab: {fileID: 7737220106135987868, guid: 9362fe8d33f903a499dbb8dac1bbb98e, type: 3}
   m_playerPrefab: {fileID: 6555680441361901652, guid: 5a05932ef196f544586bba341ea1bdc6, type: 3}
   m_spawnPoint: {fileID: 1965457712917085962}
   m_autoRiflePickup: {fileID: 6353214498802673558, guid: af3470f4dd19a9447b5e4548f0e84461, type: 3}
@@ -134,4 +135,5 @@ MonoBehaviour:
       count: 5
     spawnPoints: []
     spawnDelay: 2
-  m_autoStart: 1
+  m_waveStartMode: 0
+  m_timeBetweenWaves: 3

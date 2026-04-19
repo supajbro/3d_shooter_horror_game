@@ -519,6 +519,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: GameStateManager
       objectReference: {fileID: 0}
+    - target: {fileID: 7737220106135987868, guid: 9362fe8d33f903a499dbb8dac1bbb98e, type: 3}
+      propertyPath: m_eventSystemPrefab
+      value: 
+      objectReference: {fileID: 3540210169618723730, guid: 6647895900f61aa4f8bef800097944f2, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:

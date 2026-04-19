@@ -138,8 +138,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Bullet
   m_lifetime: 10
-  m_speed: 100
-  m_damage: 10
+  m_speed: 75
+  m_damage: 15
 --- !u!135 &4509452397006456495
 SphereCollider:
   m_ObjectHideFlags: 0

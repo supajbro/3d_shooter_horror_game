@@ -2,9 +2,14 @@ using StarterAssets;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class LevelManager : MonoBehaviour
 {
+    [Header("Game State Manager")]
+    [SerializeField] private GameStateManager m_managerPrefab; // <- This is spawned in the level manager if non existing already
+    private GameStateManager m_manager;
+
     [Header("Player")]
     [SerializeField] private GameObject m_playerPrefab;
     [SerializeField] private Transform m_spawnPoint;
@@ -27,6 +32,9 @@ public class LevelManager : MonoBehaviour
 
     private void Start()
     {
+        m_manager = GameStateManager.Instance == null ? Instantiate(m_managerPrefab) : GameStateManager.Instance;
+        m_manager.SetInitialState(new GameplayState(m_manager));
+
         SpawnPlayer();
 
         m_enemySpawner = GetComponentInChildren<EnemySpawner>();
