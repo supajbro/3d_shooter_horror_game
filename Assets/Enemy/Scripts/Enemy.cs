@@ -15,7 +15,10 @@ public class Enemy : MonoBehaviour, IPoolable
     [SerializeField] protected float m_attackCooldown = 1f;         // <- How long it takes to attack player again.
     [SerializeField] protected int m_damage = 10;
 
+    [Header("Player")]
     private Transform m_player;
+    private PlayerHealth m_playerHealth;
+
     private NavMeshAgent m_agent;
     private string m_poolKey;
 
@@ -30,7 +33,14 @@ public class Enemy : MonoBehaviour, IPoolable
         m_active = true;
 
         if(m_player == null)
-            m_player = GameObject.FindGameObjectWithTag("Player").transform;
+        {
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null)
+            {
+                m_player = playerObj.transform;
+                m_playerHealth = playerObj.GetComponent<PlayerHealth>();
+            }
+        }
 
         if (m_agent == null)
             m_agent = GetComponent<NavMeshAgent>();
@@ -121,14 +131,20 @@ public class Enemy : MonoBehaviour, IPoolable
         lookDir.y = 0;
         transform.forward = lookDir;
 
-        if (Time.time >= m_lastAttackTime + m_attackCooldown)
+        if (Time.time < m_lastAttackTime + m_attackCooldown)
+            return;
+
+        m_lastAttackTime = Time.time;
+
+        m_anim.SetTrigger("Attack");
+
+        if (m_playerHealth != null)
         {
-            m_lastAttackTime = Time.time;
-
-            Debug.Log("Enemy attacks!");
-
-            // TODO: call player damage function
-            // player.GetComponent<PlayerHealth>().TakeDamage(damage);
+            m_playerHealth.SetHealthRelative(-m_damage);
+        }
+        else
+        {
+            Debug.LogWarning("PlayerHealth not found on player.");
         }
     }
 
