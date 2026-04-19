@@ -29,7 +29,6 @@ public class Explosion : MonoBehaviour
         }
 
         StartCoroutine(ExplosionRoutine());
-        StartCoroutine(DamageRoutine());
     }
 
     private IEnumerator ExplosionRoutine()
@@ -45,34 +44,27 @@ public class Explosion : MonoBehaviour
 
             foreach (var hit in hits)
             {
-                if (hit.transform.parent != null)
-                {
-                    if (hit.transform.parent.TryGetComponent<Enemy>(out var enemy))
-                    {
-                        m_enemiesInRange.Add(enemy);
-                    }
-                }
+                var enemy = hit.transform.GetComponentInParent<Enemy>();
+                if (enemy != null)
+                    m_enemiesInRange.Add(enemy);
             }
 
             currentRadius += m_expandSpeed * Time.deltaTime;
             yield return null;
         }
 
+        ApplyFinalDamage();
+
         Destroy(gameObject);
     }
 
-    private IEnumerator DamageRoutine()
+    private void ApplyFinalDamage()
     {
-        while (true)
+        foreach (var enemy in m_enemiesInRange)
         {
-            yield return new WaitForSeconds(m_damageInterval);
-
-            foreach (var enemy in m_enemiesInRange)
+            if (enemy != null)
             {
-                if (enemy != null)
-                {
-                    enemy.GetHealth().SetHealthRelative(-m_explosionDamage);
-                }
+                enemy.GetHealth().SetHealthRelative(-m_explosionDamage);
             }
         }
     }
