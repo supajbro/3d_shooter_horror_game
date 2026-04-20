@@ -163,7 +163,26 @@ public abstract class BaseGunController : MonoBehaviour
 
     protected virtual Vector3 GetShootDirection()
     {
-        return transform.forward;
+        if (m_camera == null)
+        {
+            Debug.LogWarning("Missing camera reference, falling back to forward.");
+            return transform.forward;
+        }
+
+        Ray ray = m_camera.GetCamera().ViewportPointToRay(new Vector3(0.5f, 0.5f));
+
+        Vector3 targetPoint;
+
+        if (Physics.Raycast(ray, out RaycastHit hit, 1000f))
+        {
+            targetPoint = hit.point;
+        }
+        else
+        {
+            targetPoint = ray.origin + ray.direction * 1000f;
+        }
+
+        return -(targetPoint - m_firePoint.position).normalized;
     }
 
     protected virtual void OnShoot()

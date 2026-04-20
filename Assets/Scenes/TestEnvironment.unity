@@ -316,6 +316,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Zipline
       objectReference: {fileID: 0}
+    - target: {fileID: 5268249369447005364, guid: 9605215f278fd384fb8c37023cdb323a, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5531213398312964370, guid: 9605215f278fd384fb8c37023cdb323a, type: 3}
       propertyPath: m_LocalPosition.x
       value: 4
@@ -368,6 +372,11 @@ PrefabInstance:
 --- !u!4 &119079906 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5531213398312964370, guid: 9605215f278fd384fb8c37023cdb323a, type: 3}
+  m_PrefabInstance: {fileID: 119079905}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &119079907 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5268249369447005364, guid: 9605215f278fd384fb8c37023cdb323a, type: 3}
   m_PrefabInstance: {fileID: 119079905}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &178683132
@@ -830,6 +839,46 @@ PrefabInstance:
     - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
       propertyPath: m_waves.Array.data[1].enemies.Array.data[0].poolKey
       value: BASE_ENEMY
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: OnWaveCompleted.m_PersistentCalls.m_Calls.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_Mode
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 119079907}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: SetActive
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
+      value: UnityEngine.GameObject, UnityEngine
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_BoolArgument
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
+      value: UnityEngine.Object, UnityEngine
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

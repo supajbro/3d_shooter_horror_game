@@ -1,7 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class EnemySpawner : MonoBehaviour
 {
@@ -13,6 +13,15 @@ public class EnemySpawner : MonoBehaviour
         Manual
     }
 
+    private enum WaveState
+    {
+        Idle,
+        Spawning,
+        WaitingForClear,
+        WaitingForNextWave,
+        Completed
+    }
+
     [Header("Wave Settings")]
     [SerializeField] private List<Wave> m_waves;
     [SerializeField] private WaveStartMode m_waveStartMode = WaveStartMode.AutoAfterClear;
@@ -22,10 +31,19 @@ public class EnemySpawner : MonoBehaviour
     private bool m_waitingForNextWave = false;
     private bool m_running = false;
 
+    private WaveState m_state = WaveState.Idle;
+
+    // Spawning state data
+    private int m_groupIndex;
+    private int m_enemyIndexInGroup;
+    private float m_spawnTimer;
+
+    // Delay timer
+    private float m_stateTimer;
+
     private LevelManager m_manager;
 
-    public event Action<int> OnWaveCompleted;
-    public event Action OnAllWavesCompleted;
+    public UnityEvent OnAllWavesCompleted;
 
     public void Init(LevelManager manager)
     {
@@ -34,52 +52,140 @@ public class EnemySpawner : MonoBehaviour
         if (m_running) return;
 
         m_running = true;
-        StartCoroutine(RunWaves());
+        m_currentWaveIndex = 0;
+
+        StartWave();
     }
 
-    private IEnumerator RunWaves()
+    private void Update()
     {
-        while (m_currentWaveIndex < m_waves.Count)
+        if (!m_running || m_state == WaveState.Idle || m_state == WaveState.Completed)
+            return;
+
+        switch (m_state)
         {
-            yield return StartCoroutine(SpawnWave(m_waves[m_currentWaveIndex]));
-
-            yield return new WaitUntil(() => ActiveEnemyCount <= 0);
-
-            OnWaveFinished();
-
-            if (m_currentWaveIndex >= m_waves.Count)
+            case WaveState.Spawning:
+                UpdateSpawning();
                 break;
 
-            if (m_waveStartMode == WaveStartMode.AutoAfterClear)
-            {
-                yield return new WaitForSeconds(m_timeBetweenWaves);
-            }
-            else
-            {
-                m_waitingForNextWave = true;
-                yield return new WaitUntil(() => m_waitingForNextWave == false);
-            }
+            case WaveState.WaitingForClear:
+                if (ActiveEnemyCount <= 0)
+                {
+                    OnWaveFinished(m_waves[m_currentWaveIndex]);
+                    EnterNextWaveDelay();
+                }
+                break;
 
-            m_currentWaveIndex++;
+            case WaveState.WaitingForNextWave:
+                UpdateNextWaveWait();
+                break;
         }
-
-        OnAllWavesCompleted?.Invoke();
     }
 
-    private IEnumerator SpawnWave(Wave wave)
+    #region --- WAVE FLOW ---
+
+    private void StartWave()
     {
-        foreach (var group in wave.enemies)
+        if (m_currentWaveIndex >= m_waves.Count)
         {
-            for (int i = 0; i < group.count; i++)
+            m_state = WaveState.Completed;
+            OnAllWavesComplete();
+            return;
+        }
+
+        StartSpawning(m_waves[m_currentWaveIndex]);
+    }
+
+    private void EnterNextWaveDelay()
+    {
+        if (m_waveStartMode == WaveStartMode.AutoAfterClear)
+        {
+            m_stateTimer = m_timeBetweenWaves;
+            m_state = WaveState.WaitingForNextWave;
+        }
+        else
+        {
+            m_waitingForNextWave = true;
+            m_state = WaveState.WaitingForNextWave;
+        }
+    }
+
+    private void UpdateNextWaveWait()
+    {
+        if (m_waveStartMode == WaveStartMode.AutoAfterClear)
+        {
+            m_stateTimer -= Time.deltaTime;
+
+            if (m_stateTimer <= 0f)
             {
-                SpawnEnemy(group.poolKey, wave.spawnPoints);
-
-                ActiveEnemyCount++;
-
-                yield return new WaitForSeconds(wave.spawnDelay);
+                m_currentWaveIndex++;
+                StartWave();
+            }
+        }
+        else
+        {
+            if (!m_waitingForNextWave)
+            {
+                m_currentWaveIndex++;
+                StartWave();
             }
         }
     }
+
+    #endregion
+
+    #region --- SPAWNING ---
+
+    private void StartSpawning(Wave wave)
+    {
+        m_groupIndex = 0;
+        m_enemyIndexInGroup = 0;
+        m_spawnTimer = 0f;
+
+        m_state = WaveState.Spawning;
+    }
+
+    private void UpdateSpawning()
+    {
+        Wave wave = m_waves[m_currentWaveIndex];
+
+        if (wave.enemies == null || wave.enemies.Count == 0)
+        {
+            m_state = WaveState.WaitingForClear;
+            return;
+        }
+
+        m_spawnTimer -= Time.deltaTime;
+
+        if (m_spawnTimer > 0f)
+            return;
+
+        if (m_groupIndex >= wave.enemies.Count)
+        {
+            m_state = WaveState.WaitingForClear;
+            return;
+        }
+
+        var group = wave.enemies[m_groupIndex];
+
+        // Spawn enemy
+        SpawnEnemy(group.poolKey, wave.spawnPoints);
+        ActiveEnemyCount++;
+
+        m_enemyIndexInGroup++;
+        m_spawnTimer = wave.spawnDelay;
+
+        // Move to next group if done
+        if (m_enemyIndexInGroup >= group.count)
+        {
+            m_groupIndex++;
+            m_enemyIndexInGroup = 0;
+        }
+    }
+
+    #endregion
+
+    #region --- ENEMY HANDLING ---
 
     private void SpawnEnemy(string key, List<Transform> spawnPoints)
     {
@@ -110,11 +216,25 @@ public class EnemySpawner : MonoBehaviour
         }
     }
 
-    private void OnWaveFinished()
+    #endregion
+
+    #region --- EVENTS ---
+
+    private void OnWaveFinished(Wave currentWave)
     {
-        OnWaveCompleted?.Invoke(m_currentWaveIndex);
+        currentWave.OnWaveCompleted?.Invoke(m_currentWaveIndex);
         Debug.Log($"Wave {m_currentWaveIndex} complete");
     }
+
+    private void OnAllWavesComplete()
+    {
+        Debug.Log("All waves complete!");
+        OnAllWavesCompleted?.Invoke();
+    }
+
+    #endregion
+
+    #region --- PUBLIC API ---
 
     public void StartNextWave()
     {
@@ -127,13 +247,6 @@ public class EnemySpawner : MonoBehaviour
         Debug.Log("Next wave has started");
 
         m_waitingForNextWave = false;
-        m_currentWaveIndex++;
-    }
-
-    private void OnAllWavesComplete()
-    {
-        Debug.Log("All waves complete!");
-        OnAllWavesCompleted?.Invoke();
     }
 
     public LevelManager GetLevelManager()
@@ -145,6 +258,8 @@ public class EnemySpawner : MonoBehaviour
         }
         return m_manager;
     }
+
+    #endregion
 }
 
 [System.Serializable]
@@ -164,4 +279,6 @@ public class Wave
     public List<Transform> spawnPoints;
 
     public float spawnDelay = 0.5f;
+
+    public UnityEvent<int> OnWaveCompleted;
 }
