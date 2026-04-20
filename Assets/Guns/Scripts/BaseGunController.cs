@@ -15,6 +15,7 @@ public abstract class BaseGunController : MonoBehaviour
     [Header("References")]
     [SerializeField] protected Transform  m_firePoint;          // <- Where bullets spawn
     [SerializeField] protected Bullet     m_bulletPrefab;
+    private LevelManager m_manager;
 
     [Header("Animation References")]
     [SerializeField] protected Animator m_reloadAnim;
@@ -23,9 +24,10 @@ public abstract class BaseGunController : MonoBehaviour
     [SerializeField] protected float m_fireRate = 5f;           // <- Bullets per second
 
     [Header("Recoil")]
-    [SerializeField] protected float recoilKickback = 0.1f;     // <- How far back it moves
-    [SerializeField] protected float recoilSpeed    = 10f;      // <- How fast it goes back
-    [SerializeField] protected float returnSpeed    = 6f;       // <- How fast it returns
+    [SerializeField] protected float recoilKickback     = 0.1f;     // <- How far back it moves
+    [SerializeField] protected float recoilSpeed        = 10f;      // <- How fast it goes back
+    [SerializeField] protected float returnSpeed        = 6f;       // <- How fast it returns
+    [SerializeField] protected float crosshairRecoil    = 2.0f;     // <- Recoil added to the crosshair
 
     [Header("Ammo")]
     [SerializeField] protected int m_maxAmmo    = -1;           // <- Max ammo this weapon can hold
@@ -55,6 +57,7 @@ public abstract class BaseGunController : MonoBehaviour
         m_initialLocalPos   = transform.localPosition;
         m_targetLocalPos    = m_initialLocalPos;
         m_currentAmmo       = m_maxAmmo;
+        m_manager           = GameStateManager.Instance.GetLevelManager();
     }
 
     protected virtual void Update()
@@ -170,6 +173,7 @@ public abstract class BaseGunController : MonoBehaviour
     {
         // move backwards in local space
         m_targetLocalPos += Vector3.forward * recoilKickback;
+        m_manager.GetGameplayUI().GetCrosshair().ExpandCrosshair(crosshairRecoil);
     }
 
     protected void UpdateRecoil()

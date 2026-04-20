@@ -38,6 +38,8 @@ public class LevelManager : MonoBehaviour
         m_manager = GameStateManager.Instance == null ? Instantiate(m_managerPrefab) : GameStateManager.Instance;
         m_manager.SetInitialState(new GameplayState(m_manager));
 
+        GameStateManager.Instance.SetLevelManager(this);
+
         SpawnPlayer();
 
         m_enemySpawner = GetComponentInChildren<EnemySpawner>();
@@ -114,6 +116,16 @@ public class LevelManager : MonoBehaviour
             return null;
         }
         return m_weaponSpawner;
+    }
+
+    public GameplayUI GetGameplayUI()
+    {
+        if (m_ui == null)
+        {
+            Debug.LogError("Missing Gameplay UI reference.");
+            return null;
+        }
+        return m_ui;
     }
 
     public GunPickup GetGunPickup(BaseGunController.GunType gunType)

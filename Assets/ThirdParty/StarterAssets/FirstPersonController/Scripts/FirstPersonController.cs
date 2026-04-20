@@ -167,7 +167,7 @@ namespace StarterAssets
 			m_health.Init();
 
 			m_playerPickup = GetComponent<PlayerPickup>();
-			m_playerPickup.Init();
+			m_playerPickup.Init(manager);
 
 			m_playerInteract = GetComponent<PlayerInteract>();
 			m_playerInteract.Init(m_playerCamera);

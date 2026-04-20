@@ -7,6 +7,7 @@ public class PlayerPickup : MonoBehaviour
     private Transform m_holdPoint;
     private Camera m_camera;
     private FirstPersonController m_player;
+    private LevelManager m_manager;
 
     [Header("Settings")]
     [SerializeField] private float m_pickupRange = 3f;
@@ -18,11 +19,12 @@ public class PlayerPickup : MonoBehaviour
 
     public System.Action<int> OnWeaponChanged;
 
-    public void Init()
+    public void Init(LevelManager manager)
     {
         m_player = GetComponent<FirstPersonController>();
         m_camera = m_player.GetPlayerCamera().GetCamera();
         m_holdPoint = m_player.GetPlayerCamera().GetWeaponHoldPoint();
+        m_manager = manager;
     }
 
     private void Update()

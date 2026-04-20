@@ -6,6 +6,9 @@ public class GameplayUI : MonoBehaviour
     [Header("Health")]
     [SerializeField] private Slider m_health;
 
+    [SerializeField] private TooManyCrosshairs.Crosshair m_autoRifleCrosshair;
+    private TooManyCrosshairs.Crosshair m_crosshair;                              // <- Whatever the current selected crosshair is.
+
     [SerializeField] private WeaponInventory m_weapon01;
     [SerializeField] private WeaponInventory m_weapon02;
 
@@ -16,6 +19,8 @@ public class GameplayUI : MonoBehaviour
         m_health.maxValue       = manager.GetPlayer().GetHealth().GetMaxHealth();
         m_health.value          = manager.GetPlayer().GetHealth().GetHealth();
         m_health.wholeNumbers   = false;
+
+        m_crosshair = m_autoRifleCrosshair;
 
         manager.GetPlayer().GetPlayerPickup().OnWeaponChanged += HandleWeaponChanged;
     }
@@ -32,6 +37,16 @@ public class GameplayUI : MonoBehaviour
             m_weapon01.Unequip();
             m_weapon02.Equip();
         }
+    }
+
+    public TooManyCrosshairs.Crosshair GetCrosshair()
+    {
+        if(m_crosshair == null)
+        {
+            Debug.LogError("Unable to get reference for current crosshair.");
+            return null;
+        }
+        return m_crosshair;
     }
 }
 
