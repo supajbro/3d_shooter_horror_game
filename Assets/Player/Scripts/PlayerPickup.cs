@@ -16,6 +16,8 @@ public class PlayerPickup : MonoBehaviour
     private BaseGunController[] m_guns = new BaseGunController[2];
     private int m_activeIndex = 0;
 
+    public System.Action<int> OnWeaponChanged;
+
     public void Init()
     {
         m_player = GetComponent<FirstPersonController>();
@@ -104,6 +106,8 @@ public class PlayerPickup : MonoBehaviour
         }
 
         UpdateActiveWeapon();
+
+        OnWeaponChanged?.Invoke(m_activeIndex);
     }
 
     private void UpdateActiveWeapon()

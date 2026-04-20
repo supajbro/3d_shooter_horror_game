@@ -354,6 +354,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameplayUI
   m_health: {fileID: 6558030117930296358}
+  m_weapon01:
+    m_holder: {fileID: 3280907278517340681}
+    m_weaponImage: {fileID: 4165548602154132740}
+    m_activeSize: {x: 200, y: 200}
+    m_inActiveSize: {x: 100, y: 100}
+  m_weapon02:
+    m_holder: {fileID: 5020497473630996079}
+    m_weaponImage: {fileID: 5902948563058764130}
+    m_activeSize: {x: 200, y: 200}
+    m_inActiveSize: {x: 100, y: 100}
 --- !u!1 &3888008467285687050
 GameObject:
   m_ObjectHideFlags: 0
@@ -588,7 +598,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4860210545153739350, guid: c344593a682e2834bb173ab0a3cb642b, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -175
+      value: -125
       objectReference: {fileID: 0}
     - target: {fileID: 4860210545153739350, guid: c344593a682e2834bb173ab0a3cb642b, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -636,6 +646,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 4860210545153739350, guid: c344593a682e2834bb173ab0a3cb642b, type: 3}
   m_PrefabInstance: {fileID: 494987386203835449}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &5902948563058764130 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6284192836078249307, guid: c344593a682e2834bb173ab0a3cb642b, type: 3}
+  m_PrefabInstance: {fileID: 494987386203835449}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
 --- !u!1001 &7996968473256919135
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -738,3 +759,14 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 4860210545153739350, guid: c344593a682e2834bb173ab0a3cb642b, type: 3}
   m_PrefabInstance: {fileID: 7996968473256919135}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &4165548602154132740 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6284192836078249307, guid: c344593a682e2834bb173ab0a3cb642b, type: 3}
+  m_PrefabInstance: {fileID: 7996968473256919135}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image

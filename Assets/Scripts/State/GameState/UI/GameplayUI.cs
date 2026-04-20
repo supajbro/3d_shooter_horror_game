@@ -6,6 +6,9 @@ public class GameplayUI : MonoBehaviour
     [Header("Health")]
     [SerializeField] private Slider m_health;
 
+    [SerializeField] private WeaponInventory m_weapon01;
+    [SerializeField] private WeaponInventory m_weapon02;
+
     public void Init(LevelManager manager)
     {
         manager.GetPlayer().GetHealth().OnHealthChanged += m_health.SetValueWithoutNotify;
@@ -13,5 +16,44 @@ public class GameplayUI : MonoBehaviour
         m_health.maxValue       = manager.GetPlayer().GetHealth().GetMaxHealth();
         m_health.value          = manager.GetPlayer().GetHealth().GetHealth();
         m_health.wholeNumbers   = false;
+
+        manager.GetPlayer().GetPlayerPickup().OnWeaponChanged += HandleWeaponChanged;
+    }
+
+    private void HandleWeaponChanged(int index)
+    {
+        if (index == 0)
+        {
+            m_weapon01.Equip();
+            m_weapon02.Unequip();
+        }
+        else if (index == 1)
+        {
+            m_weapon01.Unequip();
+            m_weapon02.Equip();
+        }
+    }
+}
+
+[System.Serializable]
+public class WeaponInventory
+{
+    [SerializeField] private RectTransform m_holder;
+    [SerializeField] private Image m_weaponImage;
+    private bool m_active = false;
+
+    [SerializeField] private Vector2 m_activeSize = new Vector2(200.0f, 200.0f);
+    [SerializeField] private Vector2 m_inActiveSize = new Vector2(100.0f, 100.0f);
+
+    public void Equip()
+    {
+        m_active = true;
+        m_holder.sizeDelta = m_activeSize;
+    }
+
+    public void Unequip()
+    {
+        m_active = false;
+        m_holder.sizeDelta = m_inActiveSize;
     }
 }

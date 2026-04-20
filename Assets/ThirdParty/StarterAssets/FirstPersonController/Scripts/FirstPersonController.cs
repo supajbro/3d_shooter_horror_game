@@ -108,7 +108,17 @@ namespace StarterAssets
             return m_playerCamera;
         }
 
-		public LevelManager GetLevelManager()
+        public PlayerPickup GetPlayerPickup()
+        {
+            if (m_playerPickup == null)
+            {
+                Debug.LogError("Missing reference to player pickup.");
+                return null;
+            }
+            return m_playerPickup;
+        }
+
+        public LevelManager GetLevelManager()
 		{
             if (m_manager == null)
             {
