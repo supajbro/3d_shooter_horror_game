@@ -73,8 +73,8 @@ public class GameStateManager : MonoBehaviour
         m_initialState = m_initialState == null ? new MainMenuState(this) : m_initialState;
         SetState(m_initialState);
 
-        m_eventSystem       = Instantiate(m_eventSystemPrefab);
-        m_uiStateHandler    = Instantiate(m_uiStateHandlerPrefab);
+        m_eventSystem       = Instantiate(m_eventSystemPrefab, transform);
+        m_uiStateHandler    = Instantiate(m_uiStateHandlerPrefab, transform);
 
         if(m_debugManager == null)
         {

@@ -7,13 +7,13 @@ public class UIStateHandler : MonoBehaviour
     [SerializeField] private MainMenuUI m_mainMenuUIPrefab;
     [SerializeField] private GameObject m_pauseUIPrefab;
     [SerializeField] private GameplayUI m_gameplayUIPrefab;
-    [SerializeField] private GameObject m_gameOverUIPrefab;
+    [SerializeField] private GameoverUI m_gameOverUIPrefab;
     [SerializeField] private GameObject m_loadingUIPrefab;
 
     public MainMenuUI m_mainMenuUI;
     public GameObject m_pauseUI;
     public GameplayUI m_gameplayUI;
-    public GameObject m_gameOverUI;
+    public GameoverUI m_gameOverUI;
     public GameObject m_loadingUI;
 
     private bool m_initialised = false;
@@ -61,7 +61,7 @@ public class UIStateHandler : MonoBehaviour
         m_mainMenuUI.gameObject.SetActive(state is MainMenuState);
         m_pauseUI.SetActive(state is PauseState);
         m_gameplayUI.gameObject.SetActive(state is GameplayState);
-        m_gameOverUI.SetActive(state is GameOverState);
+        m_gameOverUI.gameObject.SetActive(state is GameOverState);
         m_loadingUI.SetActive(state is LoadingState);
     }
 }
