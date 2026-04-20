@@ -349,6 +349,9 @@ MonoBehaviour:
   recoilKickback: 0.75
   recoilSpeed: 10
   returnSpeed: 1
+  crosshairRecoil: 2
+  m_strength: 0.215
+  m_duration: 0.05
   m_maxAmmo: 1
   m_reloadSpeed: 4.05
   m_requiresTriggerRelease: 1

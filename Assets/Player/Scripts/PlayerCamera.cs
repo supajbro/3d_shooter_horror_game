@@ -16,6 +16,12 @@ public class PlayerCamera : MonoBehaviour
     [SerializeField] private float m_speedMultiplier = 1f;
     [SerializeField] private float m_idleReturnSpeed = 5f;
 
+    [Header("Camera Shake Settings")]
+    [SerializeField] private AnimationCurve m_shakeCurve;
+    private float m_shakeTimer;
+    private float m_shakeDuration;
+    private float m_shakeStrength;
+
     private Vector3 m_initialLocalPos;
     private float m_timer;
     private FirstPersonController m_player;
@@ -32,6 +38,16 @@ public class PlayerCamera : MonoBehaviour
     }
 
     private void Update()
+    {
+        HeadboppingUpdate();
+    }
+
+    private void LateUpdate()
+    {
+        CameraShakeUpdate();
+    }
+
+    private void HeadboppingUpdate()
     {
         if (!m_enableHeadBob || m_camera == null)
             return;
@@ -59,6 +75,31 @@ public class PlayerCamera : MonoBehaviour
             );
         }
     }
+
+    #region - SHAKE - 
+    public void Shake(float strength, float duration)
+    {
+        m_shakeStrength = strength;
+        m_shakeDuration = duration;
+        m_shakeTimer = duration;
+    }
+
+    private void CameraShakeUpdate()
+    {
+        if (m_shakeTimer <= 0f)
+            return;
+
+        m_shakeTimer -= Time.deltaTime;
+
+        float t = 1f - (m_shakeTimer / m_shakeDuration);
+        float curveValue = m_shakeCurve.Evaluate(t);
+
+        // single directional kick, not random spam
+        Vector3 offset = new Vector3(0f, curveValue * m_shakeStrength, 0f);
+
+        m_cameraRoot.localPosition = m_initialLocalPos + offset;
+    }
+    #endregion
 
     private float GetMovementSpeed()
     {

@@ -443,6 +443,8 @@ MonoBehaviour:
   recoilSpeed: 2.5
   returnSpeed: 6
   crosshairRecoil: 0.15
+  m_strength: 0.075
+  m_duration: 0.05
   m_maxAmmo: 30
   m_reloadSpeed: 1.5
   m_requiresTriggerRelease: 0

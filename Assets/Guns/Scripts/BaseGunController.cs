@@ -1,3 +1,4 @@
+using StarterAssets;
 using UnityEngine;
 
 public abstract class BaseGunController : MonoBehaviour
@@ -16,6 +17,8 @@ public abstract class BaseGunController : MonoBehaviour
     [SerializeField] protected Transform  m_firePoint;          // <- Where bullets spawn
     [SerializeField] protected Bullet     m_bulletPrefab;
     private LevelManager m_manager;
+    private FirstPersonController m_player;
+    private PlayerCamera m_camera;
 
     [Header("Animation References")]
     [SerializeField] protected Animator m_reloadAnim;
@@ -28,6 +31,10 @@ public abstract class BaseGunController : MonoBehaviour
     [SerializeField] protected float recoilSpeed        = 10f;      // <- How fast it goes back
     [SerializeField] protected float returnSpeed        = 6f;       // <- How fast it returns
     [SerializeField] protected float crosshairRecoil    = 2.0f;     // <- Recoil added to the crosshair
+
+    [Header("Camera Shake")]
+    [SerializeField] protected float m_strength = 0.03f;
+    [SerializeField] protected float m_duration = 0.05f;
 
     [Header("Ammo")]
     [SerializeField] protected int m_maxAmmo    = -1;           // <- Max ammo this weapon can hold
@@ -58,6 +65,8 @@ public abstract class BaseGunController : MonoBehaviour
         m_targetLocalPos    = m_initialLocalPos;
         m_currentAmmo       = m_maxAmmo;
         m_manager           = GameStateManager.Instance.GetLevelManager();
+        m_player            = m_manager.GetPlayer();
+        m_camera            = m_player.GetPlayerCamera();
     }
 
     protected virtual void Update()
@@ -173,6 +182,7 @@ public abstract class BaseGunController : MonoBehaviour
     {
         // move backwards in local space
         m_targetLocalPos += Vector3.forward * recoilKickback;
+        m_camera?.Shake(m_strength, m_duration);
         m_manager.GetGameplayUI().GetCrosshair().ExpandCrosshair(crosshairRecoil);
     }
 
