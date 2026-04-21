@@ -246,6 +246,9 @@ public abstract class BaseGunController : MonoBehaviour
             m_muzzleFlash.Stop();
             m_muzzleFlash.Play();
         }
+
+        // Update the ammo count UI
+        m_manager.GetGameplayUI().SetAmmoText(m_currentAmmo + "/" + m_maxAmmo);
     }
 
     protected virtual void OnShoot(Bullet bullet, Vector3 direction)
@@ -295,6 +298,9 @@ public abstract class BaseGunController : MonoBehaviour
             m_reloadTimer = 0f;
             m_startedReloading = false;
             m_manualReload = false;
+
+            // Reset the ammo count UI
+            m_manager.GetGameplayUI().SetAmmoText(m_currentAmmo + "/" + m_maxAmmo);
         }
     }
 
@@ -311,6 +317,18 @@ public abstract class BaseGunController : MonoBehaviour
         {
             m_manualReload = true;
         }
+    }
+    #endregion
+
+    #region - GETTERS -
+    public int GetCurrentAmmo()
+    {
+        return m_currentAmmo;
+    }
+
+    public int GetMaxAmmo()
+    {
+        return m_maxAmmo;
     }
     #endregion
 

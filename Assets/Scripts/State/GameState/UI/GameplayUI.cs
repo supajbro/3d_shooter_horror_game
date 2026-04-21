@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -6,9 +7,14 @@ public class GameplayUI : MonoBehaviour
     [Header("Health")]
     [SerializeField] private Slider m_health;
 
+    [Header("Crosshairs")]
     [SerializeField] private TooManyCrosshairs.Crosshair m_autoRifleCrosshair;
     private TooManyCrosshairs.Crosshair m_crosshair;                              // <- Whatever the current selected crosshair is.
 
+    [Header("Ammo UI")]
+    [SerializeField] private TextMeshProUGUI m_ammoCount;
+
+    [Header("Weapon Slots")]
     [SerializeField] private WeaponInventory m_weapon01;
     [SerializeField] private WeaponInventory m_weapon02;
 
@@ -21,6 +27,8 @@ public class GameplayUI : MonoBehaviour
         m_health.wholeNumbers   = false;
 
         m_crosshair = m_autoRifleCrosshair;
+
+        m_ammoCount.gameObject.SetActive(manager.GetPlayer().GetPlayerPickup().GetGuns().Length > 0);
 
         manager.GetPlayer().GetPlayerPickup().OnWeaponChanged += HandleWeaponChanged;
     }
@@ -47,6 +55,26 @@ public class GameplayUI : MonoBehaviour
             return null;
         }
         return m_crosshair;
+    }
+
+    public void SetAmmoText(string text)
+    {
+        if (m_ammoCount == null)
+        {
+            Debug.LogError("Unable to get reference to ammo count UI.");
+            return;
+        }
+        m_ammoCount.text = text;
+    }
+
+    public TextMeshProUGUI GetAmmoText()
+    {
+        if (m_ammoCount == null)
+        {
+            Debug.LogError("Unable to get reference to ammo count UI.");
+            return null;
+        }
+        return m_ammoCount;
     }
 }
 

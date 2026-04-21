@@ -1,4 +1,5 @@
 using StarterAssets;
+using System.Linq;
 using UnityEngine;
 
 public class PlayerPickup : MonoBehaviour
@@ -135,6 +136,11 @@ public class PlayerPickup : MonoBehaviour
     private void SetGunActive(BaseGunController gun, bool active)
     {
         gun.gameObject.SetActive(active);
+
+        if(active)
+        {
+            m_manager.GetGameplayUI().SetAmmoText(gun.GetCurrentAmmo() + "/" + gun.GetMaxAmmo());
+        }
     }
 
     private void AttachToHoldPoint(BaseGunController gun)
@@ -171,6 +177,11 @@ public class PlayerPickup : MonoBehaviour
         }
 
         Destroy(gun.gameObject);
+    }
+
+    public BaseGunController[] GetGuns()
+    {
+        return m_guns;
     }
 
     private void OnDrawGizmos()
