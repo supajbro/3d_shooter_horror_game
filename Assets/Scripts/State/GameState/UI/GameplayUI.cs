@@ -18,6 +18,12 @@ public class GameplayUI : MonoBehaviour
     [SerializeField] private WeaponInventory m_weapon01;
     [SerializeField] private WeaponInventory m_weapon02;
 
+    [Header("Weapon Sprites")]
+    [SerializeField] private Sprite m_autorifleSprite;
+    [SerializeField] private Sprite m_pistolSprite;
+    [SerializeField] private Sprite m_shotgunSprite;
+    [SerializeField] private Sprite m_rocketLauncherSprite;
+
     public void Init(LevelManager manager)
     {
         manager.GetPlayer().GetHealth().OnHealthChanged += m_health.SetValueWithoutNotify;
@@ -27,8 +33,6 @@ public class GameplayUI : MonoBehaviour
         m_health.wholeNumbers   = false;
 
         m_crosshair = m_autoRifleCrosshair;
-
-        m_ammoCount.gameObject.SetActive(manager.GetPlayer().GetPlayerPickup().GetGuns().Length > 0);
 
         manager.GetPlayer().GetPlayerPickup().OnWeaponChanged += HandleWeaponChanged;
     }
