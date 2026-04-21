@@ -62,6 +62,9 @@ public abstract class BaseGunController : MonoBehaviour
     [SerializeField] private bool m_requiresTriggerRelease = false; // <- Does this gun need input to be released to fire again?
     private bool m_hasReleasedTrigger = true;
 
+    [Header("Muzzle")]
+    [SerializeField] private ParticleSystem m_muzzleFlash;
+
     private Vector3 m_initialLocalPos;
     private Vector3 m_targetLocalPos;
 
@@ -233,6 +236,16 @@ public abstract class BaseGunController : MonoBehaviour
     protected virtual void OnShoot()
     {
         m_currentAmmo--;
+
+        if(m_muzzleFlash == null)
+        {
+            Debug.LogWarning("Missing reference to muzzle flash");
+        }
+        else
+        {
+            m_muzzleFlash.Stop();
+            m_muzzleFlash.Play();
+        }
     }
 
     protected virtual void OnShoot(Bullet bullet, Vector3 direction)
