@@ -588,6 +588,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Pistol
   m_gunType: 2
+  m_fireMode: 1
   m_firePoint: {fileID: 8767712475449620509}
   m_bulletPrefab: {fileID: 6211711623356127772, guid: 49f1feb47d9738a47b2890bec04f6f3b, type: 3}
   m_reloadAnim: {fileID: 6073498916581069406}
@@ -600,6 +601,7 @@ MonoBehaviour:
   m_duration: 0.05
   m_maxAmmo: 14
   m_reloadSpeed: 1.35
+  m_damage: 25
   m_requiresTriggerRelease: 1
   m_debugDraw: 1
   m_debugRange: 100

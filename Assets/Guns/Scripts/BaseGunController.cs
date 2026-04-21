@@ -1,5 +1,6 @@
 using StarterAssets;
 using UnityEngine;
+using static BaseGunController;
 
 public abstract class BaseGunController : MonoBehaviour
 {
@@ -12,6 +13,13 @@ public abstract class BaseGunController : MonoBehaviour
     }
     [SerializeField] private GunType m_gunType;
     public GunType GetGunType() { return m_gunType; }
+
+    public enum FireMode
+    {
+        Projectile,
+        Hitscan
+    }
+    [SerializeField] private FireMode m_fireMode = FireMode.Projectile;
 
     [Header("References")]
     [SerializeField] protected Transform  m_firePoint;          // <- Where bullets spawn
@@ -45,6 +53,10 @@ public abstract class BaseGunController : MonoBehaviour
     protected float m_reloadTimer                   = 0f;       // <- Runtime of how long time has elapsed since starting reload
     private bool m_startedReloading                 = false;
     private bool m_manualReload                     = false;    // <- Player manually started a reload
+
+    [Header("Hitscan Settings")]                                // <- Only uses this if it is a hitscan weapon
+    [SerializeField] private float m_damage         = 10.0f;
+    [SerializeField] private float m_hitscanRange   = 100.0f;
 
     [Header("Required release")]
     [SerializeField] private bool m_requiresTriggerRelease = false; // <- Does this gun need input to be released to fire again?
@@ -136,29 +148,62 @@ public abstract class BaseGunController : MonoBehaviour
     #region - SHOOTING -
     protected virtual void Shoot()
     {
+        switch (m_fireMode)
+        {
+            case FireMode.Projectile:
+                ShootProjectile();
+                break;
+
+            case FireMode.Hitscan:
+                ShootHitscan();
+                break;
+        }
+
+        ApplyRecoil();
+        OnShoot();
+    }
+
+    private void ShootProjectile()
+    {
         if (m_bulletPrefab == null || m_firePoint == null)
         {
             Debug.LogWarning("Missing bulletPrefab or firePoint");
             return;
         }
 
-        // Instantiate bullet
         Bullet bullet = Instantiate(m_bulletPrefab, m_firePoint.position, Quaternion.identity);
 
-        if(bullet == null)
-        {
-            Debug.LogError("You are missing the reference to the bullet.");
-            return;
-        }
-
-        // Direction = player forward (not firePoint forward)
         Vector3 direction = GetShootDirection();
         bullet.Init(direction);
 
-        ApplyRecoil();
-
-        // Optional hook for child classes
         OnShoot(bullet, direction);
+    }
+
+    private void ShootHitscan()
+    {
+        if (m_camera == null)
+            return;
+
+        Ray ray = m_camera.GetCamera().ViewportPointToRay(new Vector3(0.5f, 0.5f));
+
+        if (Physics.Raycast(ray, out RaycastHit hit, m_hitscanRange))
+        {
+            if (hit.transform.gameObject.transform != null)
+            {
+                if (hit.transform.gameObject.transform.TryGetComponent<Enemy>(out var enemy))
+                {
+                    enemy.GetHealth().SetHealthRelative(-m_damage);
+                }
+            }
+
+            Debug.Log($"Hit: {hit.collider.name}");
+        }
+
+        // Optional: debug line
+        if (m_debugDraw)
+        {
+            Debug.DrawRay(ray.origin, ray.direction * m_hitscanRange, Color.green, 1f);
+        }
     }
 
     protected virtual Vector3 GetShootDirection()
