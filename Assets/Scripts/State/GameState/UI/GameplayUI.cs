@@ -55,8 +55,18 @@ public class GameplayUI : MonoBehaviour
         BaseGunController primaryWeapon    = pickup.GetGuns()[0];
         BaseGunController secondaryWeapon  = pickup.GetGuns()[1];
 
-        m_weapon01.SetWeapon(GetWeaponSprite(primaryWeapon.GetGunType()));
-        m_weapon02.SetWeapon(GetWeaponSprite(secondaryWeapon.GetGunType()));
+        // Null check as it is valid for these to be null in certain situations.
+
+        if(primaryWeapon != null)
+        {
+            m_weapon01.SetWeapon(GetWeaponSprite(primaryWeapon.GetGunType()));
+        }
+        
+        if(secondaryWeapon != null)
+        {
+            m_weapon02.SetWeapon(GetWeaponSprite(secondaryWeapon.GetGunType()));
+        }
+        
 
         if (index == 0)
         {

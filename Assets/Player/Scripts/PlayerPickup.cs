@@ -83,6 +83,8 @@ public class PlayerPickup : MonoBehaviour
         // Auto switch to new weapon
         m_activeIndex = slot;
         UpdateActiveWeapon();
+
+        OnWeaponChanged?.Invoke(m_activeIndex);
     }
 
     private int GetEmptySlot()
