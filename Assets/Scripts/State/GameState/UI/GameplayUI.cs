@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using static BaseGunController;
 
 public class GameplayUI : MonoBehaviour
 {
@@ -24,6 +25,8 @@ public class GameplayUI : MonoBehaviour
     [SerializeField] private Sprite m_shotgunSprite;
     [SerializeField] private Sprite m_rocketLauncherSprite;
 
+    private PlayerPickup m_playerPickup;
+
     public void Init(LevelManager manager)
     {
         manager.GetPlayer().GetHealth().OnHealthChanged += m_health.SetValueWithoutNotify;
@@ -34,11 +37,27 @@ public class GameplayUI : MonoBehaviour
 
         m_crosshair = m_autoRifleCrosshair;
 
-        manager.GetPlayer().GetPlayerPickup().OnWeaponChanged += HandleWeaponChanged;
+        if(m_playerPickup = manager.GetPlayer().GetPlayerPickup())
+        {
+            m_playerPickup.OnWeaponChanged += HandleWeaponChanged;
+        }
     }
 
     private void HandleWeaponChanged(int index)
     {
+        if(m_playerPickup == null)
+        {
+            Debug.LogError("Missing player pickup reference.");
+            return;
+        }
+        var pickup = m_playerPickup;
+
+        BaseGunController primaryWeapon    = pickup.GetGuns()[0];
+        BaseGunController secondaryWeapon  = pickup.GetGuns()[1];
+
+        m_weapon01.SetWeapon(GetWeaponSprite(primaryWeapon.GetGunType()));
+        m_weapon02.SetWeapon(GetWeaponSprite(secondaryWeapon.GetGunType()));
+
         if (index == 0)
         {
             m_weapon01.Equip();
@@ -80,6 +99,26 @@ public class GameplayUI : MonoBehaviour
         }
         return m_ammoCount;
     }
+
+    private Sprite GetWeaponSprite(GunType type)
+    {
+        switch (type)
+        {
+            case GunType.AUTORIFLE:
+                return m_autorifleSprite;
+
+            case GunType.PISTOL:
+                return m_pistolSprite;
+
+            case GunType.SHOTGUN:
+                return m_shotgunSprite;
+
+            case GunType.ROCKETLAUNCHER:
+                return m_rocketLauncherSprite;
+        }
+
+        return null;
+    }
 }
 
 [System.Serializable]
@@ -91,6 +130,18 @@ public class WeaponInventory
 
     [SerializeField] private Vector2 m_activeSize = new Vector2(200.0f, 200.0f);
     [SerializeField] private Vector2 m_inActiveSize = new Vector2(100.0f, 100.0f);
+
+    public void SetWeapon(Sprite sprite)
+    {
+        if (m_weaponImage == null)
+        {
+            Debug.LogError("Missing weapon image reference.");
+            return;
+        }
+
+        m_weaponImage.sprite = sprite;
+        m_weaponImage.enabled = sprite != null;
+    }
 
     public void Equip()
     {
