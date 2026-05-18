@@ -61,12 +61,20 @@ public class GameplayUI : MonoBehaviour
         {
             m_weapon01.SetWeapon(GetWeaponSprite(primaryWeapon.GetGunType()));
         }
-        
-        if(secondaryWeapon != null)
+        else
+        {
+            m_weapon01.SetWeapon(null);
+        }
+
+        if (secondaryWeapon != null)
         {
             m_weapon02.SetWeapon(GetWeaponSprite(secondaryWeapon.GetGunType()));
         }
-        
+        else
+        {
+            m_weapon02.SetWeapon(null);
+        }
+
 
         if (index == 0)
         {
@@ -108,6 +116,16 @@ public class GameplayUI : MonoBehaviour
             return null;
         }
         return m_ammoCount;
+    }
+
+    public WeaponInventory GetWeaponSlotOne()
+    {
+        return m_weapon01;
+    }
+
+    public WeaponInventory GetWeaponSlotTwo()
+    {
+        return m_weapon02;
     }
 
     private Sprite GetWeaponSprite(GunType type)

@@ -99,8 +99,14 @@ public class PlayerPickup : MonoBehaviour
 
     private void SwitchWeapon()
     {
+        // We have no remaining weapons, make sure we know the user has no weapons..
         if (m_guns[0] == null && m_guns[1] == null)
+        {
+            var ui = m_manager.GetGameplayUI();
+            ui.GetWeaponSlotOne().SetWeapon(null);
+            ui.GetWeaponSlotTwo().SetWeapon(null);
             return;
+        }
 
         m_activeIndex = (m_activeIndex + 1) % m_guns.Length;
 
