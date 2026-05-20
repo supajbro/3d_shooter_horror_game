@@ -78,11 +78,19 @@ public class PlayerPickup : MonoBehaviour
         }
 
         m_guns[slot] = newGun;
+
+        // Disable the newly picked up gun by default
         SetGunActive(newGun, false);
 
-        // Auto switch to new weapon
-        m_activeIndex = slot;
-        UpdateActiveWeapon();
+        // Count how many weapons we now have
+        int weaponCount = m_guns.Count(g => g != null);
+
+        // Auto-equip ONLY if this is the first weapon
+        if (weaponCount == 1)
+        {
+            m_activeIndex = slot;
+            UpdateActiveWeapon();
+        }
 
         OnWeaponChanged?.Invoke(m_activeIndex);
     }
