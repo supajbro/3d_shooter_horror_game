@@ -7,6 +7,7 @@ public class GameplayUI : MonoBehaviour
 {
     [Header("Health")]
     [SerializeField] private Slider m_health;
+    [SerializeField] private TextMeshProUGUI m_healthText;
 
     [Header("Crosshairs")]
     [SerializeField] private TooManyCrosshairs.Crosshair m_autoRifleCrosshair;
@@ -34,6 +35,12 @@ public class GameplayUI : MonoBehaviour
         m_health.maxValue       = manager.GetPlayer().GetHealth().GetMaxHealth();
         m_health.value          = manager.GetPlayer().GetHealth().GetHealth();
         m_health.wholeNumbers   = false;
+
+        manager.GetPlayer().GetHealth().OnHealthChanged += value =>
+        {
+            m_healthText.SetText(value.ToString());
+        };
+        m_healthText.text = manager.GetPlayer().GetHealth().GetHealth().ToString();
 
         m_crosshair = m_autoRifleCrosshair;
 
