@@ -163,8 +163,8 @@ public class WeaponInventory
     [SerializeField] private Image m_weaponImage;
     private bool m_active = false;
 
-    [SerializeField] private Vector2 m_activeSize = new Vector2(200.0f, 200.0f);
-    [SerializeField] private Vector2 m_inActiveSize = new Vector2(100.0f, 100.0f);
+    [SerializeField] private Vector2 m_activeSize   = new Vector2(1.0f, 1.0f);
+    [SerializeField] private Vector2 m_inActiveSize = new Vector2(0.5f, 0.5f);
 
     public void SetWeapon(Sprite sprite)
     {
@@ -181,12 +181,12 @@ public class WeaponInventory
     public void Equip()
     {
         m_active = true;
-        m_holder.sizeDelta = m_activeSize;
+        m_holder.transform.localScale = m_activeSize;
     }
 
     public void Unequip()
     {
         m_active = false;
-        m_holder.sizeDelta = m_inActiveSize;
+        m_holder.transform.localScale = m_inActiveSize;
     }
 }
