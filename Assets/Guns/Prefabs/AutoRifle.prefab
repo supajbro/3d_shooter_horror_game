@@ -453,6 +453,8 @@ MonoBehaviour:
   m_hitscanRange: 100
   m_requiresTriggerRelease: 0
   m_muzzleFlash: {fileID: 2575443378568375663}
+  m_trailPrefab: {fileID: 3157627874281696998, guid: 9c08e463fd9a289418f38286e03f67c1, type: 3}
+  m_trailSpeed: 200
   m_debugDraw: 1
   m_debugRange: 100
 --- !u!1 &4341109386158054337

@@ -1,4 +1,5 @@
 using StarterAssets;
+using System.Collections;
 using UnityEngine;
 using static BaseGunController;
 
@@ -64,6 +65,9 @@ public abstract class BaseGunController : MonoBehaviour
 
     [Header("Muzzle")]
     [SerializeField] private ParticleSystem m_muzzleFlash;
+
+    [Header("Trail")]
+    [SerializeField] private GameObject m_tracerPrefab;
 
     private Vector3 m_initialLocalPos;
     private Vector3 m_targetLocalPos;
@@ -187,25 +191,44 @@ public abstract class BaseGunController : MonoBehaviour
         if (m_camera == null)
             return;
 
-        Ray ray = m_camera.GetCamera().ViewportPointToRay(new Vector3(0.5f, 0.5f));
+        Camera cam = m_camera.GetCamera();
 
-        if (Physics.Raycast(ray, out RaycastHit hit, m_hitscanRange))
+        // Find target point from center of screen
+        Ray cameraRay = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f));
+
+        Vector3 targetPoint;
+
+        if (Physics.Raycast(cameraRay, out RaycastHit cameraHit, m_hitscanRange))
         {
-            if (hit.transform.gameObject.transform != null)
-            {
-                if (hit.transform.gameObject.transform.TryGetComponent<Enemy>(out var enemy))
-                {
-                    enemy.GetHealth().SetHealthRelative(-m_damage);
-                }
-            }
-
-            Debug.Log($"Hit: {hit.collider.name}");
+            targetPoint = cameraHit.point;
+        }
+        else
+        {
+            targetPoint = cameraRay.origin + cameraRay.direction * m_hitscanRange;
         }
 
-        // Optional: debug line
+        // Now shoot FROM muzzle TO target
+        Vector3 shootDirection = (targetPoint - m_firePoint.position).normalized;
+
+        Ray muzzleRay = new Ray(m_firePoint.position, shootDirection);
+
+        Vector3 finalHitPoint = targetPoint;
+
+        if (Physics.Raycast(muzzleRay, out RaycastHit hit, m_hitscanRange))
+        {
+            finalHitPoint = hit.point;
+
+            if (hit.transform.TryGetComponent<Enemy>(out var enemy))
+            {
+                enemy.GetHealth().SetHealthRelative(-m_damage);
+            }
+        }
+
+        SpawnTracer(m_firePoint.position, finalHitPoint, m_firePoint);
+
         if (m_debugDraw)
         {
-            Debug.DrawRay(ray.origin, ray.direction * m_hitscanRange, Color.green, 1f);
+            Debug.DrawLine(m_firePoint.position, finalHitPoint, Color.green, 1f);
         }
     }
 
@@ -317,6 +340,35 @@ public abstract class BaseGunController : MonoBehaviour
         {
             m_manualReload = true;
         }
+    }
+    #endregion
+
+    #region - TRAIL -
+    private void SpawnTracer(Vector3 start, Vector3 end, Transform muzzle)
+    {
+        GameObject tracer = Instantiate(m_tracerPrefab, muzzle);
+
+        tracer.transform.localPosition = Vector3.zero;
+        tracer.transform.localRotation = Quaternion.identity;
+
+        Vector3 localEnd = muzzle.InverseTransformPoint(end);
+
+        float distance = localEnd.magnitude;
+        Vector3 localDir = localEnd.normalized;
+
+        tracer.transform.localRotation = Quaternion.LookRotation(localDir);
+
+        Vector3 scale = tracer.transform.localScale;
+        scale.z = distance;
+        tracer.transform.localScale = scale;
+
+        StartCoroutine(DestroyTracer(tracer, 0.05f));
+    }
+
+    private IEnumerator DestroyTracer(GameObject tracer, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        Destroy(tracer);
     }
     #endregion
 
