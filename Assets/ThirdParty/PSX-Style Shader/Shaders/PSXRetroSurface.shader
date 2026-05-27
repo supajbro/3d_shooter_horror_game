@@ -29,11 +29,11 @@ Shader "FX/PSX Retro Surface"
                 Tags { "LightMode" = "ForwardBase" }
 
                 CGPROGRAM
-                #pragma target 3.0
                 #pragma vertex vert
                 #pragma fragment frag
                 #pragma multi_compile_fwdbase
                 #pragma multi_compile __ PSX_AFFINE
+                #pragma multi_compile_fog
                 #pragma shader_feature_local __ PSX_NORMALMAP
 
                 #include "UnityCG.cginc"
@@ -171,6 +171,7 @@ Shader "FX/PSX Retro Surface"
 
                     float3 vtxLight : TEXCOORD6;
                     float depth01 : TEXCOORD7;
+                    UNITY_FOG_COORDS(8)
                 };
 
                 v2f vert(appdata v)
@@ -236,6 +237,8 @@ Shader "FX/PSX Retro Surface"
                     float3 vtxLit = (ambient + diffuse);
 
                     o.vtxLight = lerp(float3(1.0, 1.0, 1.0), vtxLit, useVertex);
+
+                    UNITY_TRANSFER_FOG(o, o.pos);
 
                     return o;
                 }
@@ -307,6 +310,7 @@ Shader "FX/PSX Retro Surface"
 
                     color = QuantizeRgb(color, _PSX_ColorBits, dither * enabled);
 
+                    UNITY_APPLY_FOG(i.fogCoord, color);
                     return fixed4(color, 1.0);
                 }
                 ENDCG
