@@ -116,7 +116,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainMenuUI
   m_playGameButton: {fileID: 471316088288172050}
-  m_sceneName: TestEnvironment
+  m_sceneName: EntryLevel
 --- !u!1 &4330193611465621416
 GameObject:
   m_ObjectHideFlags: 0

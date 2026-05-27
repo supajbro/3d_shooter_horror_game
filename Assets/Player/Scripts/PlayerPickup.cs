@@ -151,6 +151,12 @@ public class PlayerPickup : MonoBehaviour
 
     private void SetGunActive(BaseGunController gun, bool active)
     {
+        if(!m_manager || !m_manager.GetGameplayUI())
+        {
+            Debug.LogError("Missing reference to gameplay UI. Unable to make gun active.");
+            return;
+        }
+
         gun.gameObject.SetActive(active);
 
         if(active)
