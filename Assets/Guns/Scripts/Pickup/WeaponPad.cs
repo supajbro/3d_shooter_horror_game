@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class WeaponPad : MonoBehaviour
 {
@@ -14,6 +15,8 @@ public class WeaponPad : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private Transform m_spawnPosition;
+
+    [SerializeField] private UnityEvent OnWeaponPickup;
 
     public void Init(LevelManager manager)
     {
@@ -36,7 +39,7 @@ public class WeaponPad : MonoBehaviour
             Debug.LogError("Missing reference to the level manager.");
             return;
         }
-        m_manager.GetWeaponSpawner().SpawnWeapon(m_weaponIndex, m_spawnPosition);
+        m_manager.GetWeaponSpawner().SpawnWeapon(m_weaponIndex, m_spawnPosition, OnWeaponPickup);
     }
 
     private void SpawnWeaponRandom()
@@ -46,6 +49,6 @@ public class WeaponPad : MonoBehaviour
             Debug.LogError("Missing reference to the level manager.");
             return;
         }
-        m_manager.GetWeaponSpawner().SpawnWeaponRandom(m_spawnPosition);
+        m_manager.GetWeaponSpawner().SpawnWeaponRandom(m_spawnPosition, OnWeaponPickup);
     }
 }

@@ -190,6 +190,6 @@ public class Enemy : MonoBehaviour, IPoolable
 
     protected void SpawnWeapon()
     {
-        m_enemySpawner.GetLevelManager().GetWeaponSpawner().SpawnWeaponRandom(transform);
+        m_enemySpawner.GetLevelManager().GetWeaponSpawner().SpawnWeaponRandom(transform, null);
     }
 }

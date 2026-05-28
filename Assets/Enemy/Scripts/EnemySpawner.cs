@@ -54,7 +54,8 @@ public class EnemySpawner : MonoBehaviour
         m_running = true;
         m_currentWaveIndex = 0;
 
-        StartWave();
+        // TODO: Add an option for spawning wave on enemy spawners init.
+        //StartWave();
     }
 
     private void Update()
@@ -80,6 +81,14 @@ public class EnemySpawner : MonoBehaviour
                 UpdateNextWaveWait();
                 break;
         }
+    }
+
+    /// <summary>
+    /// Other classes can reference this to start a new wave.
+    /// </summary>
+    public void SpawnWave()
+    {
+        StartWave();
     }
 
     #region --- WAVE FLOW ---
@@ -202,6 +211,12 @@ public class EnemySpawner : MonoBehaviour
         if (obj.TryGetComponent<Enemy>(out var enemy))
         {
             enemy.Activate(this);
+        }
+
+        // TODO: Make charger enemy inherit from enemy and make enemy generic.
+        if (obj.TryGetComponent<ChargerEnemy>(out var chargerEnemy))
+        {
+            chargerEnemy.Activate(this);
         }
     }
 
