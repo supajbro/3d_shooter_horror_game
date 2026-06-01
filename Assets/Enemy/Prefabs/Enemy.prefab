@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1433369650147192987}
-  - component: {fileID: 2570788455754064072}
+  - component: {fileID: 3833492819193774000}
   - component: {fileID: 7557257208540048715}
   - component: {fileID: 5415851073188088659}
   - component: {fileID: 4012454556931792919}
@@ -37,7 +37,7 @@ Transform:
   - {fileID: 260317586781097084}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2570788455754064072
+--- !u!114 &3833492819193774000
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -46,9 +46,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 7583739206958332103}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ea9720d0124ae7a419e72c60c810bd16, type: 3}
+  m_Script: {fileID: 11500000, guid: 2e388313c53d9304b93dde2666be8d46, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyAI
+  m_EditorClassIdentifier: Assembly-CSharp::DefaultEnemy
   m_anim: {fileID: 5466432983467641610}
   m_chaseRange: 20
   m_attackRange: 2

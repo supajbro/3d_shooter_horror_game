@@ -14,8 +14,9 @@ public class Health : MonoBehaviour
     public float GetHealth() { return m_health; }
     public float GetMaxHealth() { return m_maxHealth; }
 
-    public virtual void Init()
+    public virtual void Init(float maxHealth = 100.0f)
     {
+        m_maxHealth = maxHealth;
         m_health = m_maxHealth;
     }
 

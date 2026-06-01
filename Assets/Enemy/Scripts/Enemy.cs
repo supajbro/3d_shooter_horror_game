@@ -4,7 +4,7 @@ using UnityEngine.AI;
 public class Enemy : MonoBehaviour, IPoolable
 {
     [Header("References")]
-    [SerializeField] private Animator m_anim;
+    [SerializeField] protected Animator m_anim;
     private EnemyHealth m_health;
     private EnemyUtils m_utils;
     private EnemySpawner m_enemySpawner;
@@ -15,11 +15,14 @@ public class Enemy : MonoBehaviour, IPoolable
     [SerializeField] protected float m_attackCooldown = 1f;         // <- How long it takes to attack player again.
     [SerializeField] protected int m_damage = 10;
 
-    [Header("Player")]
-    private Transform m_player;
-    private PlayerHealth m_playerHealth;
+    [Header("Health Stats")]
+    [SerializeField] protected float m_maxHealth = 100.0f;
 
-    private NavMeshAgent m_agent;
+    [Header("Player")]
+    protected Transform m_player;
+    protected PlayerHealth m_playerHealth;
+
+    protected NavMeshAgent m_agent;
     private string m_poolKey;
 
     private float m_lastAttackTime;
@@ -28,7 +31,7 @@ public class Enemy : MonoBehaviour, IPoolable
 
     [SerializeField] private bool m_debug = false;
 
-    public void Activate(EnemySpawner enemySpawner)
+    public virtual void Activate(EnemySpawner enemySpawner)
     {
         m_active = true;
 
@@ -50,7 +53,7 @@ public class Enemy : MonoBehaviour, IPoolable
 
         if (m_health != null)
         {
-            m_health.Init();
+            m_health.Init(m_maxHealth);
             m_health.OnDied += KillEnemy;
         }
 
@@ -69,7 +72,7 @@ public class Enemy : MonoBehaviour, IPoolable
         m_active = false;
     }
 
-    private void Update()
+    protected virtual void Update()
     {
         if (GameStateManager.Instance.GetFreezeGame())
         {
@@ -98,31 +101,16 @@ public class Enemy : MonoBehaviour, IPoolable
             Debug.LogError("Missing reference to player.");
             return;
         }
-
-        float distance = Vector3.Distance(transform.position, m_player.position);
-
-        if (distance <= m_attackRange)
-        {
-            AttackPlayer();
-        }
-        else if (distance <= m_chaseRange && CanSeePlayer())
-        {
-            ChasePlayer();
-        }
-        else
-        {
-            Idle();
-        }
     }
 
-    void ChasePlayer()
+    protected virtual void ChasePlayer()
     {
         m_agent.isStopped = false;
         m_agent.SetDestination(m_player.position);
         m_anim.SetTrigger("Run");
     }
 
-    void AttackPlayer()
+    protected virtual void AttackPlayer()
     {
         m_agent.isStopped = true;
 
@@ -148,13 +136,13 @@ public class Enemy : MonoBehaviour, IPoolable
         }
     }
 
-    void Idle()
+    protected virtual void Idle()
     {
         m_agent.isStopped = true;
         m_anim.SetTrigger("Idle");
     }
 
-    bool CanSeePlayer()
+    protected virtual bool CanSeePlayer()
     {
         Ray ray = new Ray(transform.position + Vector3.up, (m_player.position - transform.position).normalized);
         RaycastHit hit;
@@ -167,7 +155,7 @@ public class Enemy : MonoBehaviour, IPoolable
         return false;
     }
 
-    public EnemyHealth GetHealth()
+    public virtual EnemyHealth GetHealth()
     {
         if (m_health == null)
         {
@@ -177,10 +165,24 @@ public class Enemy : MonoBehaviour, IPoolable
         return m_health;
     }
 
-    public void KillEnemy()
+    public virtual void KillEnemy()
     {
         SpawnWeapon();
         m_enemySpawner.RemoveEnemy(m_poolKey, this.gameObject);
+    }
+
+    private Vector3 GetFlatDirectionToTarget()
+    {
+        Vector3 dir = (m_player.position - transform.position);
+        dir.y = 0;
+        return dir.normalized;
+    }
+
+    protected void FaceTarget()
+    {
+        Vector3 dir = GetFlatDirectionToTarget();
+        if (dir.sqrMagnitude > 0.001f)
+            transform.forward = dir;
     }
 
     public void SetPoolKey(string key)

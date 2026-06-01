@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class PlayerHealth : Health
 {
-    public override void Init()
+    public override void Init(float maxHealth = 100.0f)
     {
         base.Init();
         OnDied += Gameover;

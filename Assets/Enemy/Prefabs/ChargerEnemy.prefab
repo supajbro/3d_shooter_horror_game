@@ -50,10 +50,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ChargerEnemy
   m_anim: {fileID: 5466432983467641610}
+  m_chaseRange: 20
+  m_attackRange: 2
+  m_attackCooldown: 1
+  m_damage: 25
+  m_maxHealth: 75
+  m_debug: 1
   m_windupTime: 0.8
   m_chargeDuration: 0.6
   m_cooldown: 2
-  m_damage: 25
 --- !u!195 &7557257208540048715
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -63,7 +68,7 @@ NavMeshAgent:
   m_GameObject: {fileID: 7583739206958332103}
   m_Enabled: 1
   m_AgentTypeID: 0
-  m_Radius: 0.5
+  m_Radius: 1.5
   m_Speed: 10
   m_Acceleration: 8
   avoidancePriority: 50
