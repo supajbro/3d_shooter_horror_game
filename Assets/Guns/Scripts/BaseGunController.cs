@@ -1,6 +1,7 @@
 using StarterAssets;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using static BaseGunController;
 
 public abstract class BaseGunController : MonoBehaviour
@@ -78,6 +79,9 @@ public abstract class BaseGunController : MonoBehaviour
 
     protected float m_nextTimeToFire = 0f;
 
+    private UnityEngine.InputSystem.PlayerInput m_playerInput;
+    private InputAction m_fireAction;
+
     public virtual void Init()
     {
         m_initialLocalPos   = transform.localPosition;
@@ -86,7 +90,26 @@ public abstract class BaseGunController : MonoBehaviour
         m_manager           = GameStateManager.Instance.GetLevelManager();
         m_player            = m_manager.GetPlayer();
         m_camera            = m_player.GetPlayerCamera();
+
+        m_playerInput = m_player.GetPlayerInput();
+        if (m_playerInput != null)
+        {
+            m_fireAction = m_playerInput.actions["Shoot"];
+        }
     }
+
+/*    private void OnEnable()
+    {
+        m_fireAction.started += OnFireStarted;
+        m_fireAction.canceled += OnFireCanceled;
+    }
+
+    private void OnDisable()
+    {
+        m_fireAction.started -= OnFireStarted;
+        m_fireAction.canceled -= OnFireCanceled;
+    }*/
+
 
     protected virtual void Update()
     {

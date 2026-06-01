@@ -133,6 +133,16 @@ namespace StarterAssets
 			return _speed;
 		}
 
+		public UnityEngine.InputSystem.PlayerInput GetPlayerInput()
+		{
+            if (_playerInput == null)
+            {
+                Debug.LogError("Missing player input reference to player.");
+                return null;
+            }
+            return _playerInput;
+        }
+
         private bool IsCurrentDeviceMouse
 		{
 			get
