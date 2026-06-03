@@ -18,7 +18,7 @@ public class Shotgun : BaseGunController
             }
 
             Vector3 direction = GetSpreadDirection();
-            bullet.Init(direction);
+            bullet.Init(direction, m_player.GetPlayerVelocity());
 
             ApplyRecoil();
         }

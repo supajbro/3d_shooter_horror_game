@@ -6,11 +6,6 @@ public class Rocket : Bullet
     [SerializeField] private Explosion m_explosionPrefab;
     private bool m_hasExploded = false;
 
-    public override void Init(Vector3 dir)
-    {
-        base.Init(dir);
-    }
-
     protected void OnTriggerEnter(Collider other)
     {
         if (m_hasExploded) return;

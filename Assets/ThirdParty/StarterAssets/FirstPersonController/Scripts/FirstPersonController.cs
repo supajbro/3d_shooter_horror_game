@@ -133,6 +133,11 @@ namespace StarterAssets
 			return _speed;
 		}
 
+		public Vector3 GetPlayerVelocity()
+		{
+			return _controller.velocity;
+		}
+
 		public UnityEngine.InputSystem.PlayerInput GetPlayerInput()
 		{
             if (_playerInput == null)

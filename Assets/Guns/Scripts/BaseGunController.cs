@@ -26,9 +26,9 @@ public abstract class BaseGunController : MonoBehaviour
     [Header("References")]
     [SerializeField] protected Transform  m_firePoint;          // <- Where bullets spawn
     [SerializeField] protected Bullet     m_bulletPrefab;
-    private LevelManager m_manager;
-    private FirstPersonController m_player;
-    private PlayerCamera m_camera;
+    protected LevelManager m_manager;
+    protected FirstPersonController m_player;
+    protected PlayerCamera m_camera;
 
     [Header("Animation References")]
     [SerializeField] protected Animator m_reloadAnim;
@@ -192,7 +192,7 @@ public abstract class BaseGunController : MonoBehaviour
         Bullet bullet = Instantiate(m_bulletPrefab, m_firePoint.position, Quaternion.identity);
 
         Vector3 direction = GetShootDirection();
-        bullet.Init(direction);
+        bullet.Init(direction, m_player.GetPlayerVelocity());
 
         OnShoot(bullet, direction);
     }
