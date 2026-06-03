@@ -55,6 +55,7 @@ MonoBehaviour:
   m_attackCooldown: 1
   m_damage: 25
   m_maxHealth: 75
+  shouldSpawnWeapon: 0
   m_debug: 1
   m_windupTime: 0.8
   m_chargeDuration: 0.6

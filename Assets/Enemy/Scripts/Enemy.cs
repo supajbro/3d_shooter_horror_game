@@ -18,6 +18,9 @@ public class Enemy : MonoBehaviour, IPoolable
     [Header("Health Stats")]
     [SerializeField] protected float m_maxHealth = 100.0f;
 
+    [Header("Weapon Spawning")]
+    [SerializeField] protected bool shouldSpawnWeapon = true;
+
     [Header("Player")]
     protected Transform m_player;
     protected PlayerHealth m_playerHealth;
@@ -192,6 +195,11 @@ public class Enemy : MonoBehaviour, IPoolable
 
     protected void SpawnWeapon()
     {
+        if(!shouldSpawnWeapon)
+        {
+            return;
+        }
+
         m_enemySpawner.GetLevelManager().GetWeaponSpawner().SpawnWeaponRandom(transform, null);
     }
 }

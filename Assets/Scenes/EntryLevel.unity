@@ -50372,7 +50372,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4831028334292294671, guid: b2277ff4de282084895954d2b6809417, type: 3}
       propertyPath: m_weaponIndex
-      value: 3
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4831028334292294671, guid: b2277ff4de282084895954d2b6809417, type: 3}
       propertyPath: m_spawnWeaponRandom
