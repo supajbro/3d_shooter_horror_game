@@ -1,6 +1,7 @@
 using StarterAssets;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class PlayerPickup : MonoBehaviour
 {
@@ -18,6 +19,12 @@ public class PlayerPickup : MonoBehaviour
     private BaseGunController[] m_guns = new BaseGunController[2];
     private int m_activeIndex = 0;
 
+    [Header("Input System")]
+    private UnityEngine.InputSystem.PlayerInput m_playerInput;
+    private InputAction m_switchWeaponAction;
+    private InputAction m_dropWeaponAction;
+    private InputAction m_interactAction;
+
     public System.Action<int> OnWeaponChanged;
 
     public void Init(LevelManager manager)
@@ -26,23 +33,37 @@ public class PlayerPickup : MonoBehaviour
         m_camera = m_player.GetPlayerCamera().GetCamera();
         m_holdPoint = m_player.GetPlayerCamera().GetWeaponHoldPoint();
         m_manager = manager;
+
+        m_playerInput = m_player.GetPlayerInput();
+        if (m_playerInput != null)
+        {
+            m_switchWeaponAction    = m_playerInput.actions["SwitchWeapon"];
+            m_interactAction        = m_playerInput.actions["Interact"];
+            m_dropWeaponAction      = m_playerInput.actions["DropWeapon"];
+        }
+
+        if (m_switchWeaponAction != null && m_interactAction != null && m_dropWeaponAction != null)
+        {
+            m_switchWeaponAction.performed  += OnSwitchWeapon;
+            m_interactAction.performed      += OnTryPickup;
+            m_dropWeaponAction.performed    += OnDropWeapon;
+        }
+        else
+        {
+            Debug.LogError("Missing reference to input.");
+        }
     }
 
-    private void Update()
+    private void OnDisable()
     {
-        HandleInput();
+        m_switchWeaponAction.performed  -= OnSwitchWeapon;
+        m_interactAction.performed      -= OnTryPickup;
+        m_dropWeaponAction.performed    -= OnDropWeapon;
     }
 
-    private void HandleInput()
+    public void OnTryPickup(InputAction.CallbackContext context)
     {
-        if (Input.GetKeyDown(KeyCode.E))
-            TryPickup();
-
-        if (Input.GetKeyDown(KeyCode.Q))
-            SwitchWeapon();
-
-        if (Input.GetKeyDown(KeyCode.G))
-            DropCurrentWeapon();
+        TryPickup();
     }
 
     private void TryPickup()
@@ -105,7 +126,17 @@ public class PlayerPickup : MonoBehaviour
         return -1;
     }
 
-    private void SwitchWeapon()
+    private void OnSwitchWeapon(InputAction.CallbackContext context)
+    {
+        float scroll = context.ReadValue<float>();
+
+        if (scroll > 0)
+            SwitchWeapon(1);
+        else if (scroll < 0)
+            SwitchWeapon(-1);
+    }
+
+    private void SwitchWeapon(int direction)
     {
         // We have no remaining weapons, make sure we know the user has no weapons..
         if (m_guns[0] == null && m_guns[1] == null)
@@ -116,16 +147,16 @@ public class PlayerPickup : MonoBehaviour
             return;
         }
 
-        m_activeIndex = (m_activeIndex + 1) % m_guns.Length;
+        int startIndex = m_activeIndex;
 
-        // Skip empty slot
-        if (m_guns[m_activeIndex] == null)
+        // loop until we find a valid weapon or come back around
+        do
         {
-            m_activeIndex = (m_activeIndex + 1) % m_guns.Length;
+            m_activeIndex = (m_activeIndex + direction + m_guns.Length) % m_guns.Length;
         }
+        while (m_guns[m_activeIndex] == null && m_activeIndex != startIndex);
 
         UpdateActiveWeapon();
-
         OnWeaponChanged?.Invoke(m_activeIndex);
     }
 
@@ -173,6 +204,11 @@ public class PlayerPickup : MonoBehaviour
         gun.transform.localScale = Vector3.one;
     }
 
+    private void OnDropWeapon(InputAction.CallbackContext context)
+    {
+        DropCurrentWeapon();
+    }
+
     private void DropCurrentWeapon()
     {
         BaseGunController gun = m_guns[m_activeIndex];
@@ -182,7 +218,7 @@ public class PlayerPickup : MonoBehaviour
         m_guns[m_activeIndex] = null;
 
         // Switch to other weapon if available
-        SwitchWeapon();
+        SwitchWeapon(1);
     }
 
     private void DropGun(BaseGunController gun)

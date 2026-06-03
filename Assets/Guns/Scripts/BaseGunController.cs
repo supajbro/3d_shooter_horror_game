@@ -79,8 +79,10 @@ public abstract class BaseGunController : MonoBehaviour
 
     protected float m_nextTimeToFire = 0f;
 
+    [Header("Input System")]
     private UnityEngine.InputSystem.PlayerInput m_playerInput;
     private InputAction m_fireAction;
+    private InputAction m_reloadAction;
 
     public virtual void Init()
     {
@@ -95,21 +97,9 @@ public abstract class BaseGunController : MonoBehaviour
         if (m_playerInput != null)
         {
             m_fireAction = m_playerInput.actions["Shoot"];
+            m_reloadAction = m_playerInput.actions["Reload"];
         }
     }
-
-/*    private void OnEnable()
-    {
-        m_fireAction.started += OnFireStarted;
-        m_fireAction.canceled += OnFireCanceled;
-    }
-
-    private void OnDisable()
-    {
-        m_fireAction.started -= OnFireStarted;
-        m_fireAction.canceled -= OnFireCanceled;
-    }*/
-
 
     protected virtual void Update()
     {
@@ -132,8 +122,7 @@ public abstract class BaseGunController : MonoBehaviour
             return;
         }
 
-        // Track trigger release
-        if (!Input.GetMouseButton(0))
+        if (!IsFiring())
         {
             m_hasReleasedTrigger = true;
         }
@@ -160,8 +149,7 @@ public abstract class BaseGunController : MonoBehaviour
     #region - HELPERS -
     protected virtual bool IsFiring()
     {
-        // Default: left mouse
-        return Input.GetMouseButton(0);
+        return m_fireAction != null && m_fireAction.IsPressed();
     }
 
     protected virtual bool CanFire()
@@ -283,7 +271,7 @@ public abstract class BaseGunController : MonoBehaviour
     {
         m_currentAmmo--;
 
-        if(m_muzzleFlash == null)
+        if (m_muzzleFlash == null)
         {
             Debug.LogWarning("Missing reference to muzzle flash");
         }
@@ -350,8 +338,6 @@ public abstract class BaseGunController : MonoBehaviour
         }
     }
 
-    // TODO: when using the new input registers, register this to the reload button
-    //       hardcoding not tuff.
     protected virtual void CheckManualReload()
     {
         if(m_currentAmmo >= m_maxAmmo)
@@ -359,7 +345,7 @@ public abstract class BaseGunController : MonoBehaviour
             return;
         }
 
-        if(Input.GetKeyDown(KeyCode.R))
+        if (m_reloadAction != null && m_reloadAction.WasPressedThisFrame())
         {
             m_manualReload = true;
         }

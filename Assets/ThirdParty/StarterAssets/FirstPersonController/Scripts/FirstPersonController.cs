@@ -160,8 +160,17 @@ namespace StarterAssets
 			Cursor.lockState = CursorLockMode.Locked;
 			Cursor.visible = false;
 
-			// get a reference to our main camera
-			if (m_playerCamera == null)
+            _controller = GetComponent<CharacterController>();
+            _input = GetComponent<StarterAssetsInputs>();
+
+#if ENABLE_INPUT_SYSTEM
+            _playerInput = GetComponent<UnityEngine.InputSystem.PlayerInput>();
+#else
+			Debug.LogError( "Starter Assets package is missing dependencies. Please use Tools/Starter Assets/Reinstall Dependencies to fix it");
+#endif
+
+            // get a reference to our main camera
+            if (m_playerCamera == null)
 			{
 				m_playerCamera = Instantiate(m_playerCameraPrefab);
 				m_playerCamera.Init(this, CinemachineCameraTarget.transform);
@@ -231,14 +240,6 @@ namespace StarterAssets
 
 		private void Start()
 		{
-			_controller = GetComponent<CharacterController>();
-			_input = GetComponent<StarterAssetsInputs>();
-#if ENABLE_INPUT_SYSTEM
-			_playerInput = GetComponent<UnityEngine.InputSystem.PlayerInput>();
-#else
-			Debug.LogError( "Starter Assets package is missing dependencies. Please use Tools/Starter Assets/Reinstall Dependencies to fix it");
-#endif
-
 			// reset our timeouts on start
 			_jumpTimeoutDelta = JumpTimeout;
 			_fallTimeoutDelta = FallTimeout;
