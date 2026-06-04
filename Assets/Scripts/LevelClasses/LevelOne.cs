@@ -7,6 +7,9 @@ public class LevelOne : MonoBehaviour
     [Header("First Enemy Wave Stats")]
     [SerializeField] private float m_screamDelay = 1.5f; // <- How long it takes from the enemy screams before wave spawns in
 
+    [Header("Tunnel Blockage")]
+    [SerializeField] private GameObject m_tunnelBlockage;
+
     private LevelManager m_manager;
 
     private void Start()
@@ -39,5 +42,15 @@ public class LevelOne : MonoBehaviour
             return;
         }
         m_manager.GetEnemySpawner().SpawnWave();
+    }
+
+    public void OpenTunnel()
+    {
+        if(!m_tunnelBlockage)
+        {
+            Debug.LogError("Missing reference to the Tunnel Blockage");
+            return;
+        }
+        m_tunnelBlockage.SetActive(false);
     }
 }

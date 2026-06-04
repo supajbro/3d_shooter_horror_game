@@ -763,39 +763,91 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: OnAllWavesCompleted.m_PersistentCalls.m_Calls.Array.size
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: OnAllWavesCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_Mode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
       propertyPath: OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: OnAllWavesCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 1770248438}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: OnAllWavesCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: OnAllWavesCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: OpenTunnel
       objectReference: {fileID: 0}
     - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
       propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.size
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: OnAllWavesCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
+      value: LevelOne, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
       propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_Mode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[1].m_Mode
       value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
       propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 1770248438}
     - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
       propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[1].m_CallState
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
       propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: OpenTunnel
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[1].m_MethodName
       value: SetActive
       objectReference: {fileID: 0}
     - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
       propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
+      value: LevelOne, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[1].m_TargetAssemblyTypeName
       value: UnityEngine.GameObject, UnityEngine
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: OnAllWavesCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
+      value: UnityEngine.Object, UnityEngine
       objectReference: {fileID: 0}
     - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
       propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_BoolArgument
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[1].m_Arguments.m_BoolArgument
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
       propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
+      value: UnityEngine.Object, UnityEngine
+      objectReference: {fileID: 0}
+    - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: m_waves.Array.data[0].OnWaveCompleted.m_PersistentCalls.m_Calls.Array.data[1].m_Arguments.m_ObjectArgumentAssemblyTypeName
       value: UnityEngine.Object, UnityEngine
       objectReference: {fileID: 0}
     m_RemovedComponents: []
@@ -25829,6 +25881,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LevelOne
   m_screamDelay: 1.5
+  m_tunnelBlockage: {fileID: 855955176}
 --- !u!4 &1770248439
 Transform:
   m_ObjectHideFlags: 0

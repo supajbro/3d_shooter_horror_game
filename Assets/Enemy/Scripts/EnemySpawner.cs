@@ -5,7 +5,7 @@ using UnityEngine.Events;
 
 public class EnemySpawner : MonoBehaviour
 {
-    public static int ActiveEnemyCount = 0;
+    private int m_activeEnemyCount = 0;
 
     public enum WaveStartMode
     {
@@ -70,7 +70,7 @@ public class EnemySpawner : MonoBehaviour
                 break;
 
             case WaveState.WaitingForClear:
-                if (ActiveEnemyCount <= 0)
+                if (m_activeEnemyCount <= 0)
                 {
                     OnWaveFinished(m_waves[m_currentWaveIndex]);
                     EnterNextWaveDelay();
@@ -179,7 +179,7 @@ public class EnemySpawner : MonoBehaviour
 
         // Spawn enemy
         SpawnEnemy(group.poolKey, wave.spawnPoints);
-        ActiveEnemyCount++;
+        m_activeEnemyCount++;
 
         m_enemyIndexInGroup++;
         m_spawnTimer = wave.spawnDelay;
@@ -212,19 +212,12 @@ public class EnemySpawner : MonoBehaviour
         {
             enemy.Activate(this);
         }
-
-        // TODO: Make charger enemy inherit from enemy and make enemy generic.
-        if (obj.TryGetComponent<ChargerEnemy>(out var chargerEnemy))
-        {
-            chargerEnemy.Activate(this);
-        }
     }
 
     public void RemoveEnemy(string key, GameObject obj)
     {
         ObjectPooler.Instance.ReturnToPool(key, obj);
-        ActiveEnemyCount--;
-
+        m_activeEnemyCount--;
         if (obj.TryGetComponent<Enemy>(out var enemy))
         {
             enemy.Deactivate();
