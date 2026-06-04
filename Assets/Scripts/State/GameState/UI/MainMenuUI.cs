@@ -3,6 +3,11 @@ using UnityEngine.UI;
 
 public class MainMenuUI : StateUI
 {
+    [Header("Logo")]
+    [SerializeField] private CanvasGroup m_logoCg;
+    [SerializeField] private float m_logoFadeDuration = 1.0f;
+
+    [Header("Buttons")]
     [SerializeField] private GenericButton m_playGameButton;
     [SerializeField] private GenericButton m_levelSelectButton;
     [SerializeField] private GenericButton m_settingsButton;
@@ -79,7 +84,12 @@ public class MainMenuUI : StateUI
 
     private void AnimateIntro()
     {
-        for (int i = 0; i < m_buttons.Length; i++)
+        int count = m_buttons.Length;
+
+        float lastDelay = (count - 1) * m_staggerDelay;
+        float totalTime = lastDelay + Mathf.Max(m_fadeDuration, m_moveDuration);
+
+        for (int i = 0; i < count; i++)
         {
             int index = i;
 
@@ -88,11 +98,9 @@ public class MainMenuUI : StateUI
 
             float delay = index * m_staggerDelay;
 
-            // Fade in
             LeanTween.alphaCanvas(cg, 1f, m_fadeDuration)
                 .setDelay(delay);
 
-            // Move down to final position
             LeanTween.move(rect, m_finalPositions[index], m_moveDuration)
                 .setDelay(delay)
                 .setEase(m_ease)
@@ -101,6 +109,13 @@ public class MainMenuUI : StateUI
                     m_buttons[index].SetInactive(false);
                 });
         }
+
+        LeanTween.delayedCall(totalTime, FadeInLogo);
+    }
+
+    private void FadeInLogo()
+    {
+        LeanTween.alphaCanvas(m_logoCg, 1f, m_logoFadeDuration);
     }
 
     private void PlayGame()
