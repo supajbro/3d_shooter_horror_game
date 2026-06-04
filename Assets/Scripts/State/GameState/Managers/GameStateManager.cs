@@ -61,6 +61,8 @@ public class GameStateManager : MonoBehaviour
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
+
+        LeanTween.reset();
     }
 
     private void Start()

@@ -744,7 +744,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
       propertyPath: m_waves.Array.data[0].enemies.Array.data[0].count
-      value: 10
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 5708965433801207995, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
       propertyPath: m_waves.Array.data[1].enemies.Array.data[0].count
@@ -891,7 +891,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3133639331962943339}
-  - {fileID: 1938718942}
   m_Father: {fileID: 8345070699414287370}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &589864021
@@ -50371,104 +50370,6 @@ Transform:
   - {fileID: 88468606}
   m_Father: {fileID: 589864022}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &1938718941
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 419891684}
-    m_Modifications:
-    - target: {fileID: 1080909737191863937, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: m_Name
-      value: WeaponPad (1)
-      objectReference: {fileID: 0}
-    - target: {fileID: 2001548980910438020, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 2001548980910438020, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2001548980910438020, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 15.25456
-      objectReference: {fileID: 0}
-    - target: {fileID: 2001548980910438020, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2001548980910438020, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2001548980910438020, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2001548980910438020, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2001548980910438020, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2001548980910438020, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2001548980910438020, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4831028334292294671, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: m_weaponIndex
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4831028334292294671, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: m_spawnWeaponRandom
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4831028334292294671, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: OnWeaponPickup.m_PersistentCalls.m_Calls.Array.size
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4831028334292294671, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: OnWeaponPickup.m_PersistentCalls.m_Calls.Array.data[0].m_Mode
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4831028334292294671, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: OnWeaponPickup.m_PersistentCalls.m_Calls.Array.data[0].m_Target
-      value: 
-      objectReference: {fileID: 1770248438}
-    - target: {fileID: 4831028334292294671, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: OnWeaponPickup.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 4831028334292294671, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: OnWeaponPickup.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
-      value: SpawnFirstEnemyWave
-      objectReference: {fileID: 0}
-    - target: {fileID: 4831028334292294671, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: OnWeaponPickup.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
-      value: LevelOne, Assembly-CSharp
-      objectReference: {fileID: 0}
-    - target: {fileID: 4831028334292294671, guid: b2277ff4de282084895954d2b6809417, type: 3}
-      propertyPath: OnWeaponPickup.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
-      value: UnityEngine.Object, UnityEngine
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: b2277ff4de282084895954d2b6809417, type: 3}
---- !u!4 &1938718942 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 2001548980910438020, guid: b2277ff4de282084895954d2b6809417, type: 3}
-  m_PrefabInstance: {fileID: 1938718941}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &2053438480
 GameObject:
   m_ObjectHideFlags: 0
