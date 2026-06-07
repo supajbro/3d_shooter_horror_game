@@ -44,7 +44,11 @@ namespace StarterAssets
 		[Tooltip("What layers the character uses as ground")]
 		public LayerMask GroundLayers;
 
-		[Header("Cinemachine")]
+        [Header("Ladder")]
+        [SerializeField] private float m_ladderClimbSpeed = 3.0f;
+        private bool m_isClimbing = false;
+
+        [Header("Cinemachine")]
 		[Tooltip("The follow target set in the Cinemachine Virtual Camera that the camera will follow")]
 		public GameObject CinemachineCameraTarget;
 		[Tooltip("How far in degrees can you move the camera up")]
@@ -303,8 +307,25 @@ namespace StarterAssets
 
 		private void Move()
 		{
-			// set target speed based on move speed, sprint speed and if sprint is pressed
-			float targetSpeed = _input.sprint ? SprintSpeed : MoveSpeed;
+			// Climbing vertically
+            if (m_isClimbing)
+            {
+                // Pressing S exits ladder
+                if (_input.move.y < -0.1f)
+                {
+                    StopClimbing();
+                    return;
+                }
+
+                Vector3 climbMovement = Vector3.up * (_input.move.y * m_ladderClimbSpeed);
+
+                _controller.Move(climbMovement * Time.deltaTime);
+
+                return;
+            }
+
+            // set target speed based on move speed, sprint speed and if sprint is pressed
+            float targetSpeed = _input.sprint ? SprintSpeed : MoveSpeed;
 
 			// a simplistic acceleration and deceleration designed to be easy to remove, replace, or iterate upon
 
@@ -355,7 +376,14 @@ namespace StarterAssets
 
         private void JumpAndGravity()
 		{
-			if (Grounded)
+			// No gravity when climbing
+            if (m_isClimbing)
+            {
+                _verticalVelocity = 0f;
+                return;
+            }
+
+            if (Grounded)
 			{
 				// reset the fall timeout timer
 				_fallTimeoutDelta = FallTimeout;
@@ -419,5 +447,36 @@ namespace StarterAssets
 			// when selected, draw a gizmo in the position of, and matching radius of, the grounded collider
 			Gizmos.DrawSphere(new Vector3(transform.position.x, transform.position.y - GroundedOffset, transform.position.z), GroundedRadius);
 		}
-	}
+
+        #region - TRIGGER FUNCS -
+        private void OnTriggerEnter(Collider other)
+        {
+            if (other.CompareTag("Ladder"))
+            {
+                StartClimbing();
+            }
+        }
+
+        private void OnTriggerExit(Collider other)
+        {
+            if (other.CompareTag("Ladder"))
+            {
+                StopClimbing();
+            }
+        }
+        #endregion
+
+        #region - CLIMBING -
+        private void StartClimbing()
+        {
+            m_isClimbing = true;
+            _verticalVelocity = 0f;
+        }
+
+        private void StopClimbing()
+        {
+            m_isClimbing = false;
+        }
+        #endregion
+    }
 }
