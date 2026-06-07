@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -24,6 +25,9 @@ public class Enemy : MonoBehaviour, IPoolable
     [Header("Player")]
     protected Transform m_player;
     protected PlayerHealth m_playerHealth;
+
+    [Header("Items enemy can drop")]
+    private IDropable[] m_drops;
 
     protected NavMeshAgent m_agent;
     private string m_poolKey;
@@ -68,6 +72,9 @@ public class Enemy : MonoBehaviour, IPoolable
 
         if (m_enemySpawner == null)
             m_enemySpawner = enemySpawner;
+
+        if(m_drops == null)
+            m_drops = GetComponents<IDropable>();
     }
 
     public void Deactivate()
@@ -195,11 +202,14 @@ public class Enemy : MonoBehaviour, IPoolable
 
     protected void SpawnWeapon()
     {
-        if(!shouldSpawnWeapon)
+        foreach (IDropable drop in m_drops)
         {
-            return;
+            drop.Drop();
         }
 
-        m_enemySpawner.GetLevelManager().GetWeaponSpawner().SpawnWeaponRandom(transform, null);
+        if (shouldSpawnWeapon)
+        {
+            m_enemySpawner.GetLevelManager().GetWeaponSpawner().SpawnWeaponRandom(transform, null);
+        }
     }
 }

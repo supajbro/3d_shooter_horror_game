@@ -3,6 +3,12 @@ using UnityEngine.AI;
 
 public class ChargerEnemy : Enemy
 {
+    public override void Activate(EnemySpawner enemySpawner)
+    {
+        base.Activate(enemySpawner);
+        m_anim.SetTrigger("Idle");
+    }
+
     protected override void Update()
     {
         base.Update();
