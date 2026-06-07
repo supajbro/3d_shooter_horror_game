@@ -6,11 +6,16 @@ public class DefaultEnemy : Enemy
     {
         base.Update();
 
+        if(m_attacking)
+        {
+            return;
+        }
+
         float distance = Vector3.Distance(transform.position, m_player.position);
 
         if (distance <= m_attackRange)
         {
-            AttackPlayer();
+            StartAttack();
         }
         else if (distance <= m_chaseRange && CanSeePlayer())
         {

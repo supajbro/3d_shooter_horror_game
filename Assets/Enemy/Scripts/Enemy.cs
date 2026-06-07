@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
@@ -11,10 +12,14 @@ public class Enemy : MonoBehaviour, IPoolable
     private EnemySpawner m_enemySpawner;
 
     [Header("Stats")]
-    [SerializeField] protected float m_chaseRange = 20f;            // <- Range enemy is within player to start chasing.
-    [SerializeField] protected float m_attackRange = 2f;            // <- How close enemy has to be to attack player.
-    [SerializeField] protected float m_attackCooldown = 1f;         // <- How long it takes to attack player again.
-    [SerializeField] protected int m_damage = 10;
+    [SerializeField] protected float    m_chaseRange = 20f;            // <- Range enemy is within player to start chasing.
+    [SerializeField] protected float    m_attackRange = 2f;            // <- How close enemy has to be to attack player.
+    [SerializeField] protected float    m_attackCooldown = 1f;         // <- How long it takes to attack player again.
+    [SerializeField] protected int      m_damage = 10;
+
+    [Header("Attacl")]
+    [SerializeField] protected bool     m_attacking = false;
+    [SerializeField] protected float    m_attackDelay = 1.5f;
 
     [Header("Health Stats")]
     [SerializeField] protected float m_maxHealth = 100.0f;
@@ -120,12 +125,23 @@ public class Enemy : MonoBehaviour, IPoolable
         m_anim.SetTrigger("Run");
     }
 
+    protected virtual void StartAttack()
+    {
+        m_attacking = true;
+        m_agent.isStopped = true;
+        m_anim.SetTrigger("Attack");
+        StartCoroutine(AttackRoutine());
+    }
+
     protected virtual void AttackPlayer()
     {
-        m_agent.isStopped = true;
+        Vector3 origin = transform.position + Vector3.up * 1.5f;
+        Vector3 target = m_player.position + Vector3.up * 1.0f;
+
+        Vector3 direction = (target - origin).normalized;
 
         // Face player
-        Vector3 lookDir = (m_player.position - transform.position).normalized;
+        Vector3 lookDir = direction;
         lookDir.y = 0;
         transform.forward = lookDir;
 
@@ -134,16 +150,26 @@ public class Enemy : MonoBehaviour, IPoolable
 
         m_lastAttackTime = Time.time;
 
-        m_anim.SetTrigger("Attack");
+        Debug.DrawRay(origin, direction * m_attackRange, Color.red, 1f);
 
-        if (m_playerHealth != null)
+        if (Physics.Raycast(origin, direction, out RaycastHit hit, m_attackRange))
         {
-            m_playerHealth.SetHealthRelative(-m_damage);
+            if (hit.transform.root == m_player)
+            {
+                Debug.Log("Attacked player");
+
+                if (m_playerHealth != null)
+                    m_playerHealth.SetHealthRelative(-m_damage);
+            }
         }
-        else
-        {
-            Debug.LogWarning("PlayerHealth not found on player.");
-        }
+
+        m_attacking = false;
+    }
+
+    protected virtual IEnumerator AttackRoutine()
+    {
+        yield return new WaitForSeconds(m_attackDelay);
+        AttackPlayer();
     }
 
     protected virtual void Idle()
