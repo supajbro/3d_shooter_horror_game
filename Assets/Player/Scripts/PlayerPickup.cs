@@ -192,7 +192,7 @@ public class PlayerPickup : MonoBehaviour
 
         if(active)
         {
-            m_manager.GetGameplayUI().SetAmmoText(gun.GetCurrentAmmo() + "/" + gun.GetMaxAmmo());
+            m_manager.GetGameplayUI().SetAmmoText(gun.GetCurrentAmmo() + "/" + gun.GetAvailableAmmo());
         }
     }
 

@@ -47,8 +47,13 @@ public abstract class BaseGunController : MonoBehaviour
     [SerializeField] protected float m_duration = 0.05f;
 
     [Header("Ammo")]
-    [SerializeField] protected int m_maxAmmo    = -1;           // <- Max ammo this weapon can hold
+    [SerializeField] protected int m_maxAmmo    = -1;   // <- Max ammo this weapon can hold
     protected int m_currentAmmo                 = 0;
+
+    [Header("Available Ammmo")]
+    [SerializeField] protected bool m_inifiniteAmmo     = false;     // <- Does this gun have infinite ammo?
+    [SerializeField] protected int m_availableAmmo      = 0;         // <- How much extra ammo the gun has in storage.
+    [SerializeField] protected int m_maxAvailableAmmo   = 10;        // <- Maximum amount of ammo a gun can hold.
 
     [Header("Reload")]
     [SerializeField] protected float m_reloadSpeed  = 1.0f;     // <- How long it takes to reload
@@ -89,6 +94,7 @@ public abstract class BaseGunController : MonoBehaviour
         m_initialLocalPos   = transform.localPosition;
         m_targetLocalPos    = m_initialLocalPos;
         m_currentAmmo       = m_maxAmmo;
+        m_availableAmmo     = m_maxAvailableAmmo;
         m_manager           = GameStateManager.Instance.GetLevelManager();
         m_player            = m_manager.GetPlayer();
         m_camera            = m_player.GetPlayerCamera();
@@ -282,7 +288,7 @@ public abstract class BaseGunController : MonoBehaviour
         }
 
         // Update the ammo count UI
-        m_manager.GetGameplayUI().SetAmmoText(m_currentAmmo + "/" + m_maxAmmo);
+        m_manager.GetGameplayUI().SetAmmoText(m_currentAmmo + "/" + GetAvailableAmmo());
     }
 
     protected virtual void OnShoot(Bullet bullet, Vector3 direction)
@@ -319,6 +325,15 @@ public abstract class BaseGunController : MonoBehaviour
             return;
         }
 
+        // Can't reload, no available ammo.
+        if(!m_inifiniteAmmo && m_availableAmmo == 0)
+        {
+            m_reloadTimer = 0f;
+            m_startedReloading = false;
+            m_manualReload = false;
+            return;
+        }
+
         if(!m_startedReloading)
         {
             m_startedReloading = true;
@@ -328,13 +343,22 @@ public abstract class BaseGunController : MonoBehaviour
         m_reloadTimer += Time.deltaTime;
         if (m_reloadTimer >= m_reloadSpeed)
         {
-            m_currentAmmo = m_maxAmmo;
+            // Decrease the bullets available by the ammo used
+            var ammoUsed = m_maxAmmo - m_currentAmmo;
+
+            m_currentAmmo = Mathf.Clamp(m_currentAmmo + m_availableAmmo, 0, m_maxAmmo);
+
+            if(!m_inifiniteAmmo)
+            {
+                m_availableAmmo = Mathf.Clamp(m_availableAmmo - ammoUsed, 0, m_maxAvailableAmmo);
+            }
+
             m_reloadTimer = 0f;
             m_startedReloading = false;
             m_manualReload = false;
 
             // Reset the ammo count UI
-            m_manager.GetGameplayUI().SetAmmoText(m_currentAmmo + "/" + m_maxAmmo);
+            m_manager.GetGameplayUI().SetAmmoText(m_currentAmmo + "/" + GetAvailableAmmo());
         }
     }
 
@@ -390,6 +414,13 @@ public abstract class BaseGunController : MonoBehaviour
     public int GetMaxAmmo()
     {
         return m_maxAmmo;
+    }
+
+    public int GetAvailableAmmo()
+    {
+        // Only show max ammo if this gun has infinite ammo.
+        var value = m_inifiniteAmmo ? m_maxAmmo : m_availableAmmo;
+        return value;
     }
     #endregion
 

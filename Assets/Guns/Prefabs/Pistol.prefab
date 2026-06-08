@@ -601,14 +601,15 @@ MonoBehaviour:
   m_strength: 0.03
   m_duration: 0.05
   m_maxAmmo: 14
+  m_inifiniteAmmo: 1
+  m_availableAmmo: 0
+  m_maxAvailableAmmo: 42
   m_reloadSpeed: 1.35
   m_damage: 25
   m_hitscanRange: 100
   m_requiresTriggerRelease: 1
   m_muzzleFlash: {fileID: 7114061108657074022}
-  m_trailPrefab: {fileID: 3157627874281696998, guid: 9c08e463fd9a289418f38286e03f67c1, type: 3}
   m_tracerPrefab: {fileID: 3695466312865966810, guid: 48d1ba7660f9dd84884edc39557f5696, type: 3}
-  m_trailSpeed: 1000
   m_debugDraw: 1
   m_debugRange: 100
 --- !u!1 &4341109386158054337
