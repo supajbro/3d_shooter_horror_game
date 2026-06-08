@@ -212,6 +212,7 @@ MonoBehaviour:
   GroundLayers:
     serializedVersion: 2
     m_Bits: 1
+  m_ladderClimbSpeed: 8
   CinemachineCameraTarget: {fileID: 6551835356135164912}
   TopClamp: 89
   BottomClamp: -89
