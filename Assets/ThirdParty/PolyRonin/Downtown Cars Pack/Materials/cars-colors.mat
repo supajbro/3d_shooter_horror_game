@@ -77,8 +77,8 @@ Material:
     - _NormalScale: 1
     - _OcclusionStrength: 1
     - _Parallax: 0.02
-    - _PsxSpecPower: 24
-    - _PsxSpecSteps: 6
+    - _PsxSpecPower: 4
+    - _PsxSpecSteps: 16
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 0
     - _SrcBlend: 1
