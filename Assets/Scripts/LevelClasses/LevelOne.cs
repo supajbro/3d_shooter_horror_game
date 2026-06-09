@@ -8,7 +8,8 @@ public class LevelOne : MonoBehaviour
     [SerializeField] private float m_screamDelay = 1.5f; // <- How long it takes from the enemy screams before wave spawns in
 
     [Header("Tunnel Blockage")]
-    [SerializeField] private GameObject m_tunnelBlockage;
+    [SerializeField] private BoxCollider m_tunnelBlockage;
+    [SerializeField] private Animator m_tunnelBlockageAnim;
 
     private LevelManager m_manager;
 
@@ -46,11 +47,15 @@ public class LevelOne : MonoBehaviour
 
     public void OpenTunnel()
     {
-        if(!m_tunnelBlockage)
+        if(!m_tunnelBlockage || !m_tunnelBlockageAnim)
         {
             Debug.LogError("Missing reference to the Tunnel Blockage");
             return;
         }
-        m_tunnelBlockage.SetActive(false);
+
+        // User can now progress through the tunnel.
+
+        m_tunnelBlockage.enabled = false;
+        m_tunnelBlockageAnim.SetTrigger("Play");
     }
 }
