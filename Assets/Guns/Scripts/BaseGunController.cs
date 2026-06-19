@@ -30,6 +30,12 @@ public abstract class BaseGunController : MonoBehaviour
     protected FirstPersonController m_player;
     protected PlayerCamera m_camera;
 
+    [Header("Gun Model")]
+    [SerializeField] private Transform m_gunModel;
+    [SerializeField] private float m_swayAmount = 0.05f;
+    [SerializeField] private float m_swaySmooth = 8f;
+    private Vector3 m_modelInitialLocalPos;
+
     [Header("Animation References")]
     [SerializeField] protected Animator m_reloadAnim;
 
@@ -99,6 +105,11 @@ public abstract class BaseGunController : MonoBehaviour
         m_player            = m_manager.GetPlayer();
         m_camera            = m_player.GetPlayerCamera();
 
+        if(m_gunModel != null)
+        {
+            m_modelInitialLocalPos = m_gunModel.localPosition;
+        }
+
         m_playerInput = m_player.GetPlayerInput();
         if (m_playerInput != null)
         {
@@ -116,6 +127,7 @@ public abstract class BaseGunController : MonoBehaviour
 
         HandleInput();
         DrawDebug();
+        UpdateGunSway();
         UpdateRecoil();
     }
 
@@ -402,6 +414,57 @@ public abstract class BaseGunController : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
         Destroy(tracer);
+    }
+    #endregion
+
+    #region - GUN SWAY -
+    protected virtual void UpdateGunSway()
+    {
+        if (m_gunModel == null || m_player == null)
+        {
+            Debug.LogError("Unable to reference important objects.");
+            return;
+        }
+
+        Vector3 velocity = m_player.GetPlayerVelocity();
+
+        // Ignore vertical movement
+        velocity.y = 0f;
+
+        float speed = velocity.magnitude;
+
+        // Safety check
+        if (speed < 0.001f)
+        {
+            // Smooth return to rest position when idle
+            m_gunModel.localPosition = Vector3.Lerp(
+                m_gunModel.localPosition,
+                m_modelInitialLocalPos,
+                Time.deltaTime * m_swaySmooth
+            );
+            return;
+        }
+
+        // Get movement direction relative to player
+        Vector3 localVelocity = m_player.transform.InverseTransformDirection(velocity.normalized);
+
+        // Build sway offset (always scales with actual movement speed)
+        Vector3 targetOffset = new Vector3(
+            -localVelocity.x,
+            0f,
+            -localVelocity.z * 0.5f
+        ) * m_swayAmount * speed * 0.1f;
+
+        Vector3 targetPos = m_modelInitialLocalPos + targetOffset;
+
+        // Smooth movement
+        m_gunModel.localPosition = Vector3.Lerp(
+            m_gunModel.localPosition,
+            targetPos,
+            Time.deltaTime * m_swaySmooth
+        );
+
+        Debug.Log($"Speed: {m_gunModel.localPosition}, Offset: {targetOffset}");
     }
     #endregion
 

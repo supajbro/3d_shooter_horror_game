@@ -125,7 +125,7 @@ MonoBehaviour:
   m_levelSelectButton: {fileID: 8739089600981589511}
   m_settingsButton: {fileID: 5193321423196611097}
   m_quitButton: {fileID: 3056442457494763875}
-  m_sceneName: EntryLevel
+  m_sceneName: New_Enemies_Experiment
   m_staggerDelay: 0.12
   m_moveDuration: 0.6
   m_fadeDuration: 0.4
