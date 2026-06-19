@@ -378,7 +378,7 @@ MonoBehaviour:
   m_firePoint: {fileID: 8767712475449620509}
   m_bulletPrefab: {fileID: 3307854639262314827, guid: 4623d4d59a671864596c82459caa8ae3, type: 3}
   m_gunModel: {fileID: 3223002792163507117}
-  m_swayAmount: 0.05
+  m_swayAmount: 0.025
   m_swaySmooth: 8
   m_reloadAnim: {fileID: 1616286193770749705}
   m_fireRate: 0.35

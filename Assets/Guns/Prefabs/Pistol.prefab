@@ -601,8 +601,8 @@ MonoBehaviour:
   recoilSpeed: 10
   returnSpeed: 5
   crosshairRecoil: 2
-  m_strength: 0.03
-  m_duration: 0.05
+  m_strength: 0.075
+  m_duration: 0.1
   m_maxAmmo: 14
   m_inifiniteAmmo: 1
   m_availableAmmo: 0

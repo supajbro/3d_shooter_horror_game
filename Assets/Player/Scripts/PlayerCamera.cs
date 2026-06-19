@@ -77,27 +77,47 @@ public class PlayerCamera : MonoBehaviour
     }
 
     #region - SHAKE - 
+    private float m_noiseSeedX;
+    private float m_noiseSeedY;
+    private float m_noiseTime;
+
     public void Shake(float strength, float duration)
     {
         m_shakeStrength = strength;
         m_shakeDuration = duration;
         m_shakeTimer = duration;
+
+        // random seeds so each shake feels different
+        m_noiseSeedX = Random.Range(0f, 1000f);
+        m_noiseSeedY = Random.Range(0f, 1000f);
+
+        m_noiseTime = 0f;
     }
 
     private void CameraShakeUpdate()
     {
         if (m_shakeTimer <= 0f)
+        {
+            m_cameraRoot.localPosition = m_initialLocalPos;
             return;
+        }
 
         m_shakeTimer -= Time.deltaTime;
+        m_noiseTime += Time.deltaTime;
 
         float t = 1f - (m_shakeTimer / m_shakeDuration);
-        float curveValue = m_shakeCurve.Evaluate(t);
 
-        // single directional kick, not random spam
-        Vector3 offset = new Vector3(0f, curveValue * m_shakeStrength, 0f);
+        // optional fade out (keeps shake from ending abruptly)
+        float falloff = m_shakeCurve != null ? m_shakeCurve.Evaluate(t) : 1f;
 
-        m_cameraRoot.localPosition = m_initialLocalPos + offset;
+        float time = m_noiseTime * 10f; // frequency control (tweak this)
+
+        float x = (Mathf.PerlinNoise(m_noiseSeedX, time) - 0.5f) * 2f;
+        float y = (Mathf.PerlinNoise(m_noiseSeedY, time) - 0.5f) * 2f;
+
+        Vector3 noiseOffset = new Vector3(x, y, 0f) * m_shakeStrength * falloff;
+
+        m_cameraRoot.localPosition = m_initialLocalPos + noiseOffset;
     }
     #endregion
 

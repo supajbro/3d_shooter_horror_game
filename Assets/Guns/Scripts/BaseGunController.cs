@@ -463,8 +463,6 @@ public abstract class BaseGunController : MonoBehaviour
             targetPos,
             Time.deltaTime * m_swaySmooth
         );
-
-        Debug.Log($"Speed: {m_gunModel.localPosition}, Offset: {targetOffset}");
     }
     #endregion
 
