@@ -113,7 +113,7 @@ public abstract class BaseGunController : MonoBehaviour
         m_playerInput = m_player.GetPlayerInput();
         if (m_playerInput != null)
         {
-            m_fireAction = m_playerInput.actions["Shoot"];
+            m_fireAction   = m_playerInput.actions["Shoot"];
             m_reloadAction = m_playerInput.actions["Reload"];
         }
     }

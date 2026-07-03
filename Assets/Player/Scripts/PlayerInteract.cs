@@ -21,6 +21,7 @@ public class PlayerInteract : MonoBehaviour
 
     private void Update()
     {
+        // TODO: Change this to use new input system
         if (Input.GetKeyDown(m_interactKey))
         {
             CheckForInteractable();

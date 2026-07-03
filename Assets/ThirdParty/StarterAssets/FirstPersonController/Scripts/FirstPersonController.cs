@@ -1,4 +1,5 @@
-﻿using Unity.Cinemachine;
+﻿using System.Collections;
+using Unity.Cinemachine;
 using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -178,6 +179,8 @@ namespace StarterAssets
 			Debug.LogError( "Starter Assets package is missing dependencies. Please use Tools/Starter Assets/Reinstall Dependencies to fix it");
 #endif
 
+            _playerInput.actions["Shoot"].performed += OnAttack;
+
             // get a reference to our main camera
             if (m_playerCamera == null)
 			{
@@ -254,7 +257,12 @@ namespace StarterAssets
 			_fallTimeoutDelta = FallTimeout;
 		}
 
-		private void Update()
+        private void OnDisable()
+        {
+            _playerInput.actions["Shoot"].performed -= OnAttack;
+        }
+
+        private void Update()
 		{
 			if(GameStateManager.Instance.GetFreezeGame())
 			{
@@ -476,6 +484,76 @@ namespace StarterAssets
         private void StopClimbing()
         {
             m_isClimbing = false;
+        }
+        #endregion
+
+        #region - ATTACKING -
+        [SerializeField] private float m_attackDuration = 0.6f;
+        [SerializeField] private float m_comboWindow = 0.25f;
+
+        private bool m_attacking = false;
+        private int m_attackIndex = 0;
+        private float m_lastAttackTime = -999f;
+        public bool IsAttacking()
+        {
+            return m_attacking;
+        }
+
+        private void OnAttack(InputAction.CallbackContext context)
+        {
+            if (m_playerPickup == null)
+            {
+                Debug.LogError("Uhh why are we missing this?");
+                return;
+            }
+
+            if (m_playerPickup.GetGunCount() != 0)
+            {
+                Debug.Log("Got guns, melee is unavailable");
+                return;
+            }
+
+            float timeSinceLastAttack = Time.time - m_lastAttackTime;
+
+            // If within combo window, advance combo
+            if (m_attacking && timeSinceLastAttack <= m_comboWindow)
+            {
+                m_attackIndex = 1; // second attack
+                return;
+            }
+
+            // Start new attack chain
+            if (!m_attacking)
+            {
+                m_attackIndex = 0;
+                StartCoroutine(AttackRoutine());
+            }
+        }
+
+        private IEnumerator AttackRoutine()
+        {
+            m_attacking = true;
+
+            m_lastAttackTime = Time.time;
+
+            yield return new WaitForSeconds(m_attackDuration);
+
+            m_attacking = false;
+            m_attackIndex = 0;
+        }
+
+        public void PlayAttack(Animator anim)
+        {
+            switch (m_attackIndex)
+            {
+                case 0:
+                    anim.SetTrigger("Attack01");
+                    break;
+
+                case 1:
+                    anim.SetTrigger("Attack02");
+                    break;
+            }
         }
         #endregion
     }

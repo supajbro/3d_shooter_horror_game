@@ -6,6 +6,7 @@ public class PlayerCamera : MonoBehaviour
     [Header("References")]
     [SerializeField] private Camera m_camera;
     [SerializeField] private Transform m_weaponHoldPoint;
+    [SerializeField] private Animator m_playerAnim;
     private Transform m_cameraRoot;
 
     [Header("Head Bob Settings")]
@@ -149,5 +150,15 @@ public class PlayerCamera : MonoBehaviour
             return null;
         }
         return m_weaponHoldPoint;
+    }
+
+    public Animator GetPlayerAnimator()
+    {
+        if (m_playerAnim == null)
+        {
+            Debug.LogError("Missing Player Animation reference.");
+            return null;
+        }
+        return m_playerAnim;
     }
 }

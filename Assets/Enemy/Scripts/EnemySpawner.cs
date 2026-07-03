@@ -26,6 +26,7 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField] private List<Wave> m_waves;
     [SerializeField] private WaveStartMode m_waveStartMode = WaveStartMode.AutoAfterClear;
     [SerializeField] private float m_timeBetweenWaves = 3f;
+    [SerializeField] private bool m_spawnOnLoad = false;
 
     private int m_currentWaveIndex = 0;
     private bool m_waitingForNextWave = false;
@@ -54,8 +55,8 @@ public class EnemySpawner : MonoBehaviour
         m_running = true;
         m_currentWaveIndex = 0;
 
-        // TODO: Add an option for spawning wave on enemy spawners init.
-        //StartWave();
+        if(m_spawnOnLoad)
+            StartWave();
     }
 
     private void Update()

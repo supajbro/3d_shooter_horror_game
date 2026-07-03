@@ -3,12 +3,14 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+// TODO: Rename this class. PlayerPickup only references other PickupItem classes, it doesn't actually do the _Pickup_
 public class PlayerPickup : MonoBehaviour
 {
     [Header("References")]
     private Transform m_holdPoint;
     private Camera m_camera;
     private FirstPersonController m_player;
+    private Animator m_anim;
     private LevelManager m_manager;
 
     [Header("Settings")]
@@ -31,6 +33,7 @@ public class PlayerPickup : MonoBehaviour
     {
         m_player = GetComponent<FirstPersonController>();
         m_camera = m_player.GetPlayerCamera().GetCamera();
+        m_anim = m_player.GetPlayerCamera().GetPlayerAnimator();
         m_holdPoint = m_player.GetPlayerCamera().GetWeaponHoldPoint();
         m_manager = manager;
 
@@ -52,6 +55,11 @@ public class PlayerPickup : MonoBehaviour
         {
             Debug.LogError("Missing reference to input.");
         }
+    }
+
+    private void Update()
+    {
+        ChooseAnimation();
     }
 
     private void OnDisable()
@@ -80,6 +88,10 @@ public class PlayerPickup : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Adds this gun to our inventory
+    /// </summary>
+    /// <param name="newGun">Gun that has been picked up.</param>
     public void EquipGun(BaseGunController newGun)
     {
         if (m_holdPoint == null)
@@ -240,6 +252,48 @@ public class PlayerPickup : MonoBehaviour
     public BaseGunController[] GetGuns()
     {
         return m_guns;
+    }
+
+    public int GetGunCount()
+    {
+        int count = 0;
+
+        for (int i = 0; i < m_guns.Length; i++)
+        {
+            if (m_guns[i] != null)
+                count++;
+        }
+
+        return count;
+    }
+
+    private void ChooseAnimation()
+    {
+        if(m_anim == null)
+        {
+            Debug.LogError("Woah! Missing your animations buddy.");
+            return;
+        }
+        //var prefix = m_guns.Length == 0 ? GetAnimationPrefix(AnimationType.MELEE) : GetAnimationPrefix(AnimationType.PISTOL);
+        
+        if(GetGunCount() != 0)
+        {
+            Debug.Log("We have a gun, don't animate these as these are for melee only.");
+            return;
+        }
+
+        if(m_player.IsAttacking())
+        {
+            m_player.PlayAttack(m_anim);
+        }
+        else if(m_player.GetPlayerVelocity().sqrMagnitude > 0)
+        {
+            m_anim.SetTrigger("Walk");
+        }
+        else if(m_player.GetPlayerVelocity().sqrMagnitude == 0)
+        {
+            m_anim.SetTrigger("Idle");
+        }
     }
 
     private void OnDrawGizmos()
