@@ -27,6 +27,11 @@ public class PlayerPickup : MonoBehaviour
     private InputAction m_dropWeaponAction;
     private InputAction m_interactAction;
 
+    [SerializeField] private Transform m_model;
+    [SerializeField] private float m_moveOffset = 0.05f;
+    [SerializeField] private float m_moveLerpSpeed = 10f;
+    private Vector3 m_defaultLocalPos;
+
     public System.Action<int> OnWeaponChanged;
 
     public void Init(LevelManager manager)
@@ -34,6 +39,8 @@ public class PlayerPickup : MonoBehaviour
         m_player = GetComponent<FirstPersonController>();
         m_camera = m_player.GetPlayerCamera().GetCamera();
         m_anim = m_player.GetPlayerCamera().GetPlayerAnimator();
+        m_model = m_anim.gameObject.transform;
+        m_defaultLocalPos = m_model.localPosition;
         m_holdPoint = m_player.GetPlayerCamera().GetWeaponHoldPoint();
         m_manager = manager;
 
@@ -282,16 +289,31 @@ public class PlayerPickup : MonoBehaviour
             return;
         }
 
-        if(!m_player.IsAttacking())
+        if (!m_player.IsAttacking())
         {
-            if(m_player.GetPlayerVelocity().sqrMagnitude > 0)
+            Vector3 localVelocity = transform.InverseTransformDirection(m_player.GetPlayerVelocity());
+            Vector3 targetOffset = Vector3.zero;
+
+            if (localVelocity.sqrMagnitude > 0.01f)
             {
+                targetOffset = new Vector3(
+                    localVelocity.x,
+                    0f,
+                    localVelocity.z
+                ).normalized * m_moveOffset;
+
                 m_anim.SetTrigger("Walk");
             }
-            else if(m_player.GetPlayerVelocity().sqrMagnitude == 0)
+            else
             {
                 m_anim.SetTrigger("Idle");
             }
+
+            m_model.localPosition = Vector3.Lerp(
+                m_model.localPosition,
+                m_defaultLocalPos + targetOffset,
+                Time.deltaTime * m_moveLerpSpeed
+            );
         }
     }
 
