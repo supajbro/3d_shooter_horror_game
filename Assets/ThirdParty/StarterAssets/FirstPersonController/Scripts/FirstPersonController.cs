@@ -272,6 +272,7 @@ namespace StarterAssets
 			JumpAndGravity();
 			GroundedCheck();
 			Move();
+			AttackUpdate();
 		}
 
 		private void LateUpdate()
@@ -485,15 +486,24 @@ namespace StarterAssets
         {
             m_isClimbing = false;
         }
-        #endregion
+		#endregion
 
-        #region - ATTACKING -
+		#region - ATTACKING -
+		[Header("Attack")]
+        [SerializeField] private float m_attackRange = 2.0f;
+        [SerializeField] private LayerMask m_enemyLayer;
+
         [SerializeField] private float m_attackDuration = 0.6f;
         [SerializeField] private float m_comboWindow = 0.25f;
 
-        private bool m_attacking = false;
-        private int m_attackIndex = 0;
-        private float m_lastAttackTime = -999f;
+        private bool m_attacking;
+        private bool m_comboQueued;
+
+        private int m_attackIndex;
+
+        private float m_attackTimer;
+        private float m_lastAttackTime;
+
         public bool IsAttacking()
         {
             return m_attacking;
@@ -503,48 +513,71 @@ namespace StarterAssets
         {
             if (m_playerPickup == null)
             {
-                Debug.LogError("Uhh why are we missing this?");
+                Debug.LogError("Missing PlayerPickup.");
                 return;
             }
 
             if (m_playerPickup.GetGunCount() != 0)
+                return;
+
+            // Already attacking, try to queue combo.
+            if (m_attacking)
             {
-                Debug.Log("Got guns, melee is unavailable");
+                if (m_attackIndex == 0 &&
+                    !m_comboQueued &&
+                    Time.time - m_lastAttackTime <= m_comboWindow)
+                {
+                    m_comboQueued = true;
+                }
+
                 return;
             }
 
-            float timeSinceLastAttack = Time.time - m_lastAttackTime;
-
-            // If within combo window, advance combo
-            if (m_attacking && timeSinceLastAttack <= m_comboWindow)
-            {
-                m_attackIndex = 1; // second attack
-                return;
-            }
-
-            // Start new attack chain
-            if (!m_attacking)
-            {
-                m_attackIndex = 0;
-                StartCoroutine(AttackRoutine());
-            }
-        }
-
-        private IEnumerator AttackRoutine()
-        {
+            // Start first attack.
             m_attacking = true;
-
+            m_attackIndex = 0;
+            m_attackTimer = m_attackDuration;
             m_lastAttackTime = Time.time;
 
-            yield return new WaitForSeconds(m_attackDuration);
-
-            m_attacking = false;
-            m_attackIndex = 0;
+            PlayAttack(0);
         }
 
-        public void PlayAttack(Animator anim)
+        private void AttackUpdate()
         {
-            switch (m_attackIndex)
+            if (!m_attacking)
+                return;
+
+            m_attackTimer -= Time.deltaTime;
+
+            if (m_attackTimer > 0f)
+                return;
+
+            // Current attack finished
+            if (m_comboQueued)
+            {
+                m_comboQueued = false;
+
+                m_attackIndex = 1;
+                m_attackTimer = m_attackDuration;
+                m_lastAttackTime = Time.time;
+
+                PlayAttack(1);
+            }
+            else
+            {
+                m_attacking = false;
+                m_attackIndex = 0;
+            }
+        }
+
+        public void PlayAttack(int index)
+        {
+            Animator anim = GetPlayerCamera().GetPlayerAnimator();
+
+            anim.ResetTrigger("Attack01");
+            anim.ResetTrigger("Attack02");
+
+            switch (index)
             {
                 case 0:
                     anim.SetTrigger("Attack01");
@@ -553,6 +586,26 @@ namespace StarterAssets
                 case 1:
                     anim.SetTrigger("Attack02");
                     break;
+            }
+
+            DoMeleeHit();
+        }
+
+        private void DoMeleeHit()
+        {
+            Camera cam = GetPlayerCamera().GetCamera();
+
+            Ray ray = new Ray(cam.transform.position, cam.transform.forward);
+
+            if (Physics.Raycast(ray, out RaycastHit hit, m_attackRange, m_enemyLayer))
+            {
+                Debug.Log("Hit: " + hit.collider.name);
+
+                var enemy = hit.collider.GetComponent<EnemyHealth>();
+                if (enemy != null)
+                {
+                    enemy.SetHealthRelative(-10);
+                }
             }
         }
         #endregion

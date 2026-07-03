@@ -282,17 +282,16 @@ public class PlayerPickup : MonoBehaviour
             return;
         }
 
-        if(m_player.IsAttacking())
+        if(!m_player.IsAttacking())
         {
-            m_player.PlayAttack(m_anim);
-        }
-        else if(m_player.GetPlayerVelocity().sqrMagnitude > 0)
-        {
-            m_anim.SetTrigger("Walk");
-        }
-        else if(m_player.GetPlayerVelocity().sqrMagnitude == 0)
-        {
-            m_anim.SetTrigger("Idle");
+            if(m_player.GetPlayerVelocity().sqrMagnitude > 0)
+            {
+                m_anim.SetTrigger("Walk");
+            }
+            else if(m_player.GetPlayerVelocity().sqrMagnitude == 0)
+            {
+                m_anim.SetTrigger("Idle");
+            }
         }
     }
 
