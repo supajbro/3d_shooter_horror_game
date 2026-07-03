@@ -17,9 +17,18 @@ public class Enemy : MonoBehaviour, IPoolable
     [SerializeField] protected float    m_attackCooldown = 1f;         // <- How long it takes to attack player again.
     [SerializeField] protected int      m_damage = 10;
 
-    [Header("Attacl")]
+    [Header("Attack")]
     [SerializeField] protected bool     m_attacking = false;
     [SerializeField] protected float    m_attackDelay = 1.5f;
+
+    [Header("Knockback")]
+    private bool m_isKnockedBack;
+    private Vector3 m_knockbackVelocity;
+    private float m_knockbackForce = 2.0f;
+    private float m_knockbackTimer;
+    private float m_knockbackDuration;
+    private float m_knockbackStartY;
+    private float m_knockbackVerticalStrength;
 
     [Header("Health Stats")]
     [SerializeField] protected float m_maxHealth = 100.0f;
@@ -89,6 +98,12 @@ public class Enemy : MonoBehaviour, IPoolable
 
     protected virtual void Update()
     {
+        if (m_isKnockedBack)
+        {
+            HandleKnockback();
+            return;
+        }
+
         if (GameStateManager.Instance.GetFreezeGame())
         {
             if(!m_agent.isStopped)
@@ -120,7 +135,7 @@ public class Enemy : MonoBehaviour, IPoolable
 
     protected virtual void ChasePlayer()
     {
-        m_agent.isStopped = false;
+        m_agent.isStopped = m_isKnockedBack;
         m_agent.SetDestination(m_player.position);
         m_anim.SetTrigger("Run");
     }
@@ -176,6 +191,58 @@ public class Enemy : MonoBehaviour, IPoolable
     {
         m_agent.isStopped = true;
         m_anim.SetTrigger("Idle");
+    }
+
+    public void ApplyKnockback(Vector3 velocity, float duration)
+    {
+        m_isKnockedBack = true;
+
+        if (m_agent != null)
+            m_agent.isStopped = true;
+
+        m_knockbackVelocity = new Vector3(velocity.x, 0f, velocity.z);
+
+        m_knockbackDuration = duration;
+        m_knockbackTimer = 0f;
+
+        m_knockbackStartY = transform.position.y * 2.5f;
+        m_knockbackVerticalStrength = m_knockbackForce * 0.5f;
+    }
+
+    private void HandleKnockback()
+    {
+        m_knockbackTimer += Time.deltaTime;
+
+        float t = m_knockbackTimer / m_knockbackDuration;
+
+        if (t >= 1f)
+        {
+            Vector3 finalPos = transform.position;
+            finalPos.y = m_knockbackStartY;
+            transform.position = finalPos;
+
+            if (m_agent != null)
+            {
+                m_agent.Warp(transform.position);
+                m_agent.isStopped = false;
+            }
+
+            m_isKnockedBack = false;
+            return;
+        }
+
+        // horizontal decay
+        float curve = Mathf.Pow(1f - t, 2f); // stronger initial push
+        Vector3 horizontal = m_knockbackVelocity * 7.5f * curve;
+
+        // vertical arc (jump feel)
+        float height = Mathf.Sin(t * Mathf.PI) * m_knockbackVerticalStrength;
+
+        Vector3 pos = transform.position;
+        pos += horizontal * Time.deltaTime;
+        pos.y = m_knockbackStartY + height;
+
+        transform.position = pos;
     }
 
     protected virtual bool CanSeePlayer()

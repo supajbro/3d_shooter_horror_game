@@ -599,12 +599,15 @@ namespace StarterAssets
 
             if (Physics.Raycast(ray, out RaycastHit hit, m_attackRange, m_enemyLayer))
             {
-                Debug.Log("Hit: " + hit.collider.name);
-
-                var enemy = hit.collider.GetComponent<EnemyHealth>();
+                var enemy = hit.collider.GetComponent<Enemy>();
                 if (enemy != null)
                 {
-                    enemy.SetHealthRelative(-10);
+                    Vector3 dir = transform.forward;
+                    dir.y = 0f;
+                    dir.Normalize();
+                    enemy.ApplyKnockback(dir * 15f, 0.5f);
+
+                    enemy.GetHealth().SetHealthRelative(-10);
                 }
             }
         }

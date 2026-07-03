@@ -218,7 +218,7 @@ MonoBehaviour:
   BottomClamp: -89
   m_playerCameraPrefab: {fileID: 6761295945343866183, guid: 373105a077f66ad4eab285fadd6330bb, type: 3}
   m_playerFollowCameraPrefab: {fileID: 1076050068048378901, guid: 5dc2f7ab9674a214885e4f83d6e44487, type: 3}
-  m_attackRange: 10
+  m_attackRange: 25
   m_enemyLayer:
     serializedVersion: 2
     m_Bits: 256
