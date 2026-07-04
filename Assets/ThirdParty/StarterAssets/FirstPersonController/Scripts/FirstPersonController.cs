@@ -91,9 +91,29 @@ namespace StarterAssets
         [Header("Level references")]
         private LevelManager m_manager;
 
-		private const float _threshold = 0.01f;
+        [Header("Dash")]
+        [SerializeField] private float m_dashSpeed = 20f;
+        [SerializeField] private float m_dashDuration = 0.2f;
+        private bool m_isDashing;
+        private float m_dashTimer;
+        private float m_dashSpeedMultiplier;
+        private Vector3 m_dashDirection;
 
-		public PlayerHealth GetHealth()
+        [Header("Slide")]
+        [SerializeField] private float m_slideSpeed = 10f;
+        [SerializeField] private float m_slideDuration = 0.6f;
+        private bool m_isSliding;
+        public bool IsSliding() { return m_isSliding; }
+        private float m_slideTimer;
+        private Vector3 m_slideDirection;
+        private bool m_slideQueued;
+        private float m_slideQueueTime;
+        [SerializeField] private float m_slideBufferTime = 0.2f;
+
+        private const float _threshold = 0.01f;
+
+        #region - GETTERS -
+        public PlayerHealth GetHealth()
 		{
 			if(m_health == null)
 			{
@@ -152,6 +172,7 @@ namespace StarterAssets
             }
             return _playerInput;
         }
+        #endregion
 
         private bool IsCurrentDeviceMouse
 		{
@@ -180,6 +201,8 @@ namespace StarterAssets
 #endif
 
             _playerInput.actions["Shoot"].performed += OnAttack;
+            _playerInput.actions["Dash"].performed  += OnStartDash;
+            _playerInput.actions["Slide"].performed += OnStartSlide;
 
             // get a reference to our main camera
             if (m_playerCamera == null)
@@ -273,6 +296,7 @@ namespace StarterAssets
 			GroundedCheck();
 			Move();
 			AttackUpdate();
+            UpdateQueuedActions();
 		}
 
 		private void LateUpdate()
@@ -312,14 +336,32 @@ namespace StarterAssets
 				// rotate the player left and right
 				transform.Rotate(Vector3.up * _rotationVelocity);
 			}
-		}
 
-		private void Move()
-		{
-			// Climbing vertically
+            if (m_isSliding)
+            {
+                Vector3 pos = m_playerFollowCamera.transform.localPosition;
+                pos.y = -2.0f; // Desired slide height
+                m_playerFollowCamera.transform.localPosition = pos;
+            }
+            else
+            {
+                Vector3 pos = m_playerFollowCamera.transform.localPosition;
+                pos.y = 0.0f; // Normal height
+                m_playerFollowCamera.transform.localPosition = pos;
+            }
+        }
+
+        private void Move()
+        {
+            if (UpdateDash())
+                return;
+
+            if (UpdateSlide())
+                return;
+
+            // Climbing vertically
             if (m_isClimbing)
             {
-                // Pressing S exits ladder
                 if (_input.move.y < -0.1f)
                 {
                     StopClimbing();
@@ -333,52 +375,177 @@ namespace StarterAssets
                 return;
             }
 
-            // set target speed based on move speed, sprint speed and if sprint is pressed
             float targetSpeed = _input.sprint ? SprintSpeed : MoveSpeed;
 
-			// a simplistic acceleration and deceleration designed to be easy to remove, replace, or iterate upon
+            if (_input.move == Vector2.zero)
+                targetSpeed = 0.0f;
 
-			// note: Vector2's == operator uses approximation so is not floating point error prone, and is cheaper than magnitude
-			// if there is no input, set the target speed to 0
-			if (_input.move == Vector2.zero) targetSpeed = 0.0f;
+            float currentHorizontalSpeed = new Vector3(_controller.velocity.x, 0.0f, _controller.velocity.z).magnitude;
 
-			// a reference to the players current horizontal velocity
-			float currentHorizontalSpeed = new Vector3(_controller.velocity.x, 0.0f, _controller.velocity.z).magnitude;
+            float speedOffset = 0.1f;
+            float inputMagnitude = _input.analogMovement ? _input.move.magnitude : 1f;
 
-			float speedOffset = 0.1f;
-			float inputMagnitude = _input.analogMovement ? _input.move.magnitude : 1f;
+            if (currentHorizontalSpeed < targetSpeed - speedOffset ||
+                currentHorizontalSpeed > targetSpeed + speedOffset)
+            {
+                _speed = Mathf.Lerp(currentHorizontalSpeed,
+                    targetSpeed * inputMagnitude,
+                    Time.deltaTime * SpeedChangeRate);
 
-			// accelerate or decelerate to target speed
-			if (currentHorizontalSpeed < targetSpeed - speedOffset || currentHorizontalSpeed > targetSpeed + speedOffset)
-			{
-				// creates curved result rather than a linear one giving a more organic speed change
-				// note T in Lerp is clamped, so we don't need to clamp our speed
-				_speed = Mathf.Lerp(currentHorizontalSpeed, targetSpeed * inputMagnitude, Time.deltaTime * SpeedChangeRate);
+                _speed = Mathf.Round(_speed * 1000f) / 1000f;
+            }
+            else
+            {
+                _speed = targetSpeed;
+            }
 
-				// round speed to 3 decimal places
-				_speed = Mathf.Round(_speed * 1000f) / 1000f;
-			}
-			else
-			{
-				_speed = targetSpeed;
-			}
+            Vector3 inputDirection = new Vector3(_input.move.x, 0f, _input.move.y).normalized;
 
-			// normalise input direction
-			Vector3 inputDirection = new Vector3(_input.move.x, 0.0f, _input.move.y).normalized;
+            if (_input.move != Vector2.zero)
+            {
+                inputDirection = transform.right * _input.move.x +
+                                 transform.forward * _input.move.y;
+            }
 
-			// note: Vector2's != operator uses approximation so is not floating point error prone, and is cheaper than magnitude
-			// if there is a move input rotate player when the player is moving
-			if (_input.move != Vector2.zero)
-			{
-				// move
-				inputDirection = transform.right * _input.move.x + transform.forward * _input.move.y;
-			}
+            _controller.Move(
+                inputDirection.normalized * (_speed * Time.deltaTime) +
+                Vector3.up * (_verticalVelocity * Time.deltaTime));
+        }
 
-			// move the player
-			_controller.Move(inputDirection.normalized * (_speed * Time.deltaTime) + new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
-		}
+        #region - DASHING -
+        private bool UpdateDash()
+        {
+            if (!m_isDashing)
+                return false;
 
-		public void SetVerticalVelocity(float val)
+            m_dashTimer -= Time.deltaTime;
+
+            if (m_dashTimer <= 0f)
+            {
+                m_isDashing = false;
+                return false;
+            }
+
+            _controller.Move(m_dashDirection * (m_dashSpeed * m_dashSpeedMultiplier * Time.deltaTime) + Vector3.up * (_verticalVelocity * Time.deltaTime));
+
+            return true;
+        }
+
+        public void OnStartDash(InputAction.CallbackContext context)
+        {
+            if (m_isSliding || m_isDashing)
+                return;
+
+            Vector3 inputDir = transform.right * _input.move.x +
+                               transform.forward * _input.move.y;
+
+            Vector3 velocity = _controller.velocity;
+            velocity.y = 0f;
+
+            Vector3 baseDir;
+
+            // prefer current momentum if moving fast enough
+            if (velocity.sqrMagnitude > 1f)
+                baseDir = velocity.normalized;
+            else if (inputDir.sqrMagnitude > 0.01f)
+                baseDir = inputDir.normalized;
+            else
+                baseDir = transform.forward;
+
+            m_dashDirection = baseDir;
+
+            // burst feel tuning
+            m_dashTimer = m_dashDuration;
+            m_dashSpeedMultiplier = 1f;
+
+            // optional: slightly different behavior air vs ground
+            if (!_controller.isGrounded)
+            {
+                m_dashSpeedMultiplier = 0.8f; // weaker air dash for control
+            }
+
+            m_isDashing = true;
+        }
+        #endregion
+
+        #region - SLIDING -
+        private bool UpdateSlide()
+        {
+            if (!m_isSliding)
+                return false;
+
+            m_slideTimer -= Time.deltaTime;
+
+            if (m_slideTimer <= 0f)
+            {
+                m_isSliding = false;
+                return false;
+            }
+
+            _controller.Move(m_slideDirection * (m_slideSpeed * Time.deltaTime) + Vector3.up * (_verticalVelocity * Time.deltaTime));
+
+            return true;
+        }
+
+        public void OnStartSlide(InputAction.CallbackContext context)
+        {
+            if (m_isSliding || m_isDashing)
+                return;
+
+            if (_controller.velocity.magnitude == 0)
+                return;
+
+            // If grounded, start immediately
+            if (_controller.isGrounded)
+            {
+                StartSlide();
+            }
+            else
+            {
+                m_slideQueued = true;
+                m_slideQueueTime = m_slideBufferTime;
+            }
+        }
+
+        private void StartSlide()
+        {
+            Vector3 velocity = _controller.velocity;
+
+            // remove vertical component
+            velocity.y = 0f;
+
+            // if barely moving, fallback to facing direction
+            if (velocity.sqrMagnitude < 0.1f)
+                velocity = transform.forward;
+
+            m_slideDirection = velocity.normalized;
+
+            m_slideTimer = m_slideDuration;
+            m_isSliding = true;
+        }
+        #endregion
+
+        private void UpdateQueuedActions()
+        {
+            if (m_slideQueued)
+            {
+                m_slideQueueTime -= Time.deltaTime;
+
+                if (m_slideQueueTime <= 0f)
+                {
+                    m_slideQueued = false;
+                    return;
+                }
+
+                if (_controller.isGrounded && !m_isDashing && !m_isSliding)
+                {
+                    m_slideQueued = false;
+                    StartSlide();
+                }
+            }
+        }
+
+        public void SetVerticalVelocity(float val)
 		{
 			_verticalVelocity += val;
         }

@@ -31,7 +31,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8324676473821787592}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.1005766, y: 0.029949602, z: 0.0030289677, w: 0.9944739}
+  m_LocalRotation: {x: 0.0018305057, y: -0.99679905, z: 0.023925956, w: 0.076262206}
   m_LocalPosition: {x: 0, y: 1.8, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -238,8 +238,8 @@ MonoBehaviour:
   m_weaponHoldPoint: {fileID: 3588171402095792575}
   m_playerAnim: {fileID: 8551480405225275423}
   m_enableHeadBob: 1
-  m_bobFrequency: 3
-  m_bobAmplitude: 0.05
+  m_bobFrequency: 0.5
+  m_bobAmplitude: 0.1
   m_bobHorizontalAmplitude: 0.03
   m_speedMultiplier: 1
   m_idleReturnSpeed: 5
@@ -267,6 +267,8 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 0
     m_RotationOrder: 4
+  m_slideCameraOffset: -1
+  m_slideCameraSmoothSpeed: 10
 --- !u!1 &8654739571216143612
 GameObject:
   m_ObjectHideFlags: 0

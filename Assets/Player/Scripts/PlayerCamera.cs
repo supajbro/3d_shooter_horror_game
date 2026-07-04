@@ -27,6 +27,10 @@ public class PlayerCamera : MonoBehaviour
     private float m_timer;
     private FirstPersonController m_player;
 
+    [SerializeField] private float m_slideCameraOffset = -0.5f;
+    [SerializeField] private float m_slideCameraSmoothSpeed = 10f;
+    private float m_currentSlideOffset;
+
     public void Init(FirstPersonController player, Transform cameraRoot)
     {
         if (m_camera != null)
@@ -55,6 +59,13 @@ public class PlayerCamera : MonoBehaviour
 
         float speed = GetMovementSpeed();
 
+        // Smoothly move camera down while sliding
+        float targetSlideOffset = m_player.IsSliding() ? m_slideCameraOffset : 0f;
+
+        m_currentSlideOffset = Mathf.Lerp(m_currentSlideOffset, targetSlideOffset, Time.deltaTime * m_slideCameraSmoothSpeed);
+
+        Vector3 basePosition = m_initialLocalPos + Vector3.up * m_currentSlideOffset;
+
         if (speed > 0.1f)
         {
             m_timer += Time.deltaTime * m_bobFrequency * speed * m_speedMultiplier;
@@ -63,17 +74,17 @@ public class PlayerCamera : MonoBehaviour
             float horizontalOffset = Mathf.Cos(m_timer * 0.5f) * m_bobHorizontalAmplitude;
 
             Vector3 bobOffset = new Vector3(horizontalOffset, verticalOffset, 0f);
-            m_cameraRoot.transform.localPosition = m_initialLocalPos + bobOffset;
+
+            m_cameraRoot.transform.localPosition = basePosition + bobOffset;
         }
         else
         {
-            // Smoothly return to original position when idle
             m_timer = 0f;
+
             m_cameraRoot.transform.localPosition = Vector3.Lerp(
                 m_cameraRoot.transform.localPosition,
-                m_initialLocalPos,
-                Time.deltaTime * m_idleReturnSpeed
-            );
+                basePosition,
+                Time.deltaTime * m_idleReturnSpeed);
         }
     }
 
@@ -99,7 +110,7 @@ public class PlayerCamera : MonoBehaviour
     {
         if (m_shakeTimer <= 0f)
         {
-            m_cameraRoot.localPosition = m_initialLocalPos;
+            //m_cameraRoot.localPosition = m_initialLocalPos;
             return;
         }
 
