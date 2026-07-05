@@ -4582,7 +4582,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1193579357
 Transform:
   m_ObjectHideFlags: 0
@@ -34253,6 +34253,10 @@ PrefabInstance:
     - target: {fileID: 1975296561327070431, guid: 0db751b71dfe9204bab5986ceaa3f38e, type: 3}
       propertyPath: m_Name
       value: Ladder
+      objectReference: {fileID: 0}
+    - target: {fileID: 1975296561327070431, guid: 0db751b71dfe9204bab5986ceaa3f38e, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1978050369991847099, guid: 0db751b71dfe9204bab5986ceaa3f38e, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'

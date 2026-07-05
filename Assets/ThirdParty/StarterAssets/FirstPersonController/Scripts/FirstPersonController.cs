@@ -91,10 +91,15 @@ namespace StarterAssets
         [Header("Level references")]
         private LevelManager m_manager;
 
+        [Header("Melee")]
+        [SerializeField] private float m_weakForce = 5.0f;
+        [SerializeField] private float m_strongForce = 15.0f;
+
         [Header("Dash")]
         [SerializeField] private float m_dashSpeed = 20f;
         [SerializeField] private float m_dashDuration = 0.2f;
         private bool m_isDashing;
+        public bool IsDashing() { return m_isDashing; }
         private float m_dashTimer;
         private float m_dashSpeedMultiplier;
         private Vector3 m_dashDirection;
@@ -464,6 +469,7 @@ namespace StarterAssets
                 m_dashSpeedMultiplier = 0.8f; // weaker air dash for control
             }
 
+            GetPlayerCamera().GetPlayerAnimator().SetTrigger("Dash");
             m_isDashing = true;
         }
         #endregion
@@ -522,6 +528,7 @@ namespace StarterAssets
 
             m_slideTimer = m_slideDuration;
             m_isSliding = true;
+            m_playerCamera.GetPlayerAnimator().SetTrigger("Slide");
         }
         #endregion
 
@@ -748,17 +755,17 @@ namespace StarterAssets
             {
                 case 0:
                     anim.SetTrigger("Attack01");
+                    DoMeleeHit(m_weakForce); // Weaker attack
                     break;
 
                 case 1:
                     anim.SetTrigger("Attack02");
+                    DoMeleeHit(m_strongForce); // Stronger attack
                     break;
             }
-
-            DoMeleeHit();
         }
 
-        private void DoMeleeHit()
+        private void DoMeleeHit(float force)
         {
             Camera cam = GetPlayerCamera().GetCamera();
 
@@ -772,7 +779,7 @@ namespace StarterAssets
                     Vector3 dir = transform.forward;
                     dir.y = 0f;
                     dir.Normalize();
-                    enemy.ApplyKnockback(dir * 15f, 0.5f);
+                    enemy.ApplyKnockback(dir * force, 0.5f);
 
                     enemy.GetHealth().SetHealthRelative(-10);
                 }

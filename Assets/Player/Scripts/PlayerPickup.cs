@@ -289,7 +289,7 @@ public class PlayerPickup : MonoBehaviour
             return;
         }
 
-        if (!m_player.IsAttacking())
+        if (!m_player.IsAttacking() && !m_player.IsDashing() && !m_player.IsSliding())
         {
             Vector3 localVelocity = transform.InverseTransformDirection(m_player.GetPlayerVelocity());
             Vector3 targetOffset = Vector3.zero;
