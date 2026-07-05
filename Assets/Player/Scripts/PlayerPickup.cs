@@ -302,11 +302,13 @@ public class PlayerPickup : MonoBehaviour
                     localVelocity.z
                 ).normalized * m_moveOffset;
 
-                m_anim.SetTrigger("Walk");
+                m_anim.SetBool("Walk_Bool", true);
+                m_anim.SetBool("Idle_Bool", false);
             }
             else
             {
-                m_anim.SetTrigger("Idle");
+                m_anim.SetBool("Idle_Bool", true);
+                m_anim.SetBool("Walk_Bool", false);
             }
 
             m_model.localPosition = Vector3.Lerp(
