@@ -115,6 +115,12 @@ namespace StarterAssets
         private float m_slideQueueTime;
         [SerializeField] private float m_slideBufferTime = 0.2f;
 
+        [Header("Velocity Boost from Jump Slide")]
+        [SerializeField] private float m_slideJumpBoost = 6f;
+        [SerializeField] private float m_slidePopBoost = 12f;
+        [SerializeField] private float m_slidePopWindow = 0.15f;
+        private Vector3 m_jumpMomentum;
+
         private const float _threshold = 0.01f;
 
         #region - GETTERS -
@@ -412,9 +418,11 @@ namespace StarterAssets
                                  transform.forward * _input.move.y;
             }
 
-            _controller.Move(
-                inputDirection.normalized * (_speed * Time.deltaTime) +
-                Vector3.up * (_verticalVelocity * Time.deltaTime));
+            Vector3 movement = inputDirection.normalized * _speed + m_jumpMomentum;
+            _controller.Move(movement * Time.deltaTime + Vector3.up * (_verticalVelocity * Time.deltaTime));
+
+            // Make sure we are zeroing out our jump momentum.
+            m_jumpMomentum = Vector3.Lerp(m_jumpMomentum, Vector3.zero, Time.deltaTime * 6f);
         }
 
         #region - DASHING -
@@ -577,15 +585,32 @@ namespace StarterAssets
 					_verticalVelocity = -2f;
 				}
 
-				// Jump
-				if (_input.jump && _jumpTimeoutDelta <= 0.0f)
-				{
-					// the square root of H * -2 * G = how much velocity needed to reach desired height
-					_verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
-				}
+                // Jump
+                if (_input.jump && _jumpTimeoutDelta <= 0.0f)
+                {
+                    // Normal jump
+                    _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
 
-				// jump timeout
-				if (_jumpTimeoutDelta >= 0.0f)
+                    // Sliding jump momentum
+                    if (m_isSliding)
+                    {
+                        float boost = m_slideJumpBoost;
+
+                        // Bigger boost if jumping right before slide ends
+                        if (m_slideTimer <= m_slidePopWindow)
+                        {
+                            boost = m_slidePopBoost;
+                        }
+
+                        m_jumpMomentum = m_slideDirection * boost;
+
+                        // End the slide immediately
+                        m_isSliding = false;
+                    }
+                }
+
+                // jump timeout
+                if (_jumpTimeoutDelta >= 0.0f)
 				{
 					_jumpTimeoutDelta -= Time.deltaTime;
 				}
@@ -692,6 +717,10 @@ namespace StarterAssets
             }
 
             if (m_playerPickup.GetGunCount() != 0)
+                return;
+
+            // Cant attack while in these states.
+            if (m_isDashing || m_isSliding)
                 return;
 
             // Already attacking, try to queue combo.

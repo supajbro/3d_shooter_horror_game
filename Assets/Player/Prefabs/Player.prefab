@@ -225,6 +225,9 @@ MonoBehaviour:
   m_slideSpeed: 50
   m_slideDuration: 1
   m_slideBufferTime: 0.5
+  m_slideJumpBoost: 5
+  m_slidePopBoost: 25
+  m_slidePopWindow: 0.25
   m_attackRange: 25
   m_enemyLayer:
     serializedVersion: 2
