@@ -314,7 +314,6 @@ public abstract class BaseGunController : MonoBehaviour
     {
         // move backwards in local space
         m_targetLocalPos += Vector3.forward * recoilKickback;
-        m_camera?.Shake(m_strength, m_duration);
         m_manager.GetGameplayUI().GetCrosshair().ExpandCrosshair(crosshairRecoil);
     }
 

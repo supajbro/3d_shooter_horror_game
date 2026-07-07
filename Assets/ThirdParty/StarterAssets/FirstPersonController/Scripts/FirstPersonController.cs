@@ -215,17 +215,17 @@ namespace StarterAssets
             _playerInput.actions["Dash"].performed  += OnStartDash;
             _playerInput.actions["Slide"].performed += OnStartSlide;
 
-            // get a reference to our main camera
-            if (m_playerCamera == null)
-			{
-				m_playerCamera = Instantiate(m_playerCameraPrefab);
-				m_playerCamera.Init(this, CinemachineCameraTarget.transform);
-            }
-
             if (m_playerFollowCamera == null)
             {
                 m_playerFollowCamera = Instantiate(m_playerFollowCameraPrefab);
                 m_playerFollowCamera.Follow = CinemachineCameraTarget.transform;
+            }
+
+            // get a reference to our main camera
+            if (m_playerCamera == null)
+            {
+                m_playerCamera = Instantiate(m_playerCameraPrefab);
+                m_playerCamera.Init(this, CinemachineCameraTarget.transform, m_playerFollowCamera);
             }
 
             m_health = gameObject.AddComponent<PlayerHealth>();
@@ -342,10 +342,11 @@ namespace StarterAssets
 				_cinemachineTargetPitch = ClampAngle(_cinemachineTargetPitch, BottomClamp, TopClamp);
 
 				// Update Cinemachine camera target pitch
-				CinemachineCameraTarget.transform.localRotation = Quaternion.Euler(_cinemachineTargetPitch, 0.0f, 0.0f);
+				//CinemachineCameraTarget.transform.localRotation = Quaternion.Euler(_cinemachineTargetPitch, 0.0f, 0.0f);
+                m_playerCamera.SetPitch(_cinemachineTargetPitch);
 
-				// rotate the player left and right
-				transform.Rotate(Vector3.up * _rotationVelocity);
+                // rotate the player left and right
+                transform.Rotate(Vector3.up * _rotationVelocity);
 			}
 
             if (m_isSliding)
@@ -360,6 +361,8 @@ namespace StarterAssets
                 pos.y = 0.0f; // Normal height
                 m_playerFollowCamera.transform.localPosition = pos;
             }
+
+            GetPlayerCamera().UpdateCamera();
         }
 
         private void Move()
@@ -695,11 +698,14 @@ namespace StarterAssets
         [SerializeField] private float m_attackDuration = 0.6f;
         [SerializeField] private float m_comboWindow = 0.25f;
 
+        [Header("Attack Visuals")]
+        [SerializeField] private Vector3 m_cameraPunchPosition_NoHit = new Vector3(0f, 0.015f, -0.05f);
+        [SerializeField] private Vector3 m_cameraPunchRotation_NoHit = new Vector3(-7.5f, 0f, 0f);
+        [SerializeField] private float m_fovPunchKick = 5.0f;
+
         private bool m_attacking;
         private bool m_comboQueued;
-
         private int m_attackIndex;
-
         private float m_attackTimer;
         private float m_lastAttackTime;
 
@@ -812,6 +818,11 @@ namespace StarterAssets
 
                     enemy.GetHealth().SetHealthRelative(-10);
                 }
+            }
+            else
+            {
+                GetPlayerCamera().CameraPunch(m_cameraPunchPosition_NoHit, m_cameraPunchRotation_NoHit);
+                GetPlayerCamera().AddFOVKick(m_fovPunchKick);
             }
         }
         #endregion

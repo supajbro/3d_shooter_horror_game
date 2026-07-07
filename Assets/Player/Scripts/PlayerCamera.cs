@@ -1,13 +1,32 @@
 using StarterAssets;
+using Unity.Cinemachine;
 using UnityEngine;
 
 public class PlayerCamera : MonoBehaviour
 {
+    /*
+      CameraPunch(
+        new Vector3(0f, 0.015f, -0.025f),
+        new Vector3(-1f, 0f, 0f)
+    );
+
+    CameraPunch(
+    new Vector3(0f, 0.03f, -0.08f),
+    new Vector3(-3f, 0.25f, 0f)
+    );
+
+    CameraPunch(
+    new Vector3(0f, 0.04f, -0.13f),
+    new Vector3(-5f, 0.4f, 0f)
+    );
+    */
+
     [Header("References")]
     [SerializeField] private Camera m_camera;
     [SerializeField] private Transform m_weaponHoldPoint;
     [SerializeField] private Animator m_playerAnim;
     private Transform m_cameraRoot;
+    private CinemachineCamera m_cinemachineCamera;
 
     [Header("Head Bob Settings")]
     [SerializeField] private bool m_enableHeadBob = true;
@@ -17,11 +36,20 @@ public class PlayerCamera : MonoBehaviour
     [SerializeField] private float m_speedMultiplier = 1f;
     [SerializeField] private float m_idleReturnSpeed = 5f;
 
-    [Header("Camera Shake Settings")]
-    [SerializeField] private AnimationCurve m_shakeCurve;
-    private float m_shakeTimer;
-    private float m_shakeDuration;
-    private float m_shakeStrength;
+    private float m_pitch;
+    public void SetPitch(float pitch){m_pitch = pitch;}
+
+    [Header("Impulse Settings")]
+    private Vector3 m_targetPositionImpulse;
+    private Vector3 m_targetRotationImpulse;
+    private Vector3 m_cameraImpulsePosition;
+    private Vector3 m_cameraImpulseVelocity;
+    private Vector3 m_cameraImpulseRotation;
+    private Vector3 m_cameraImpulseRotationVelocity;
+
+    [Header("FOV Settings")]
+    private float m_initialFOV      = -1;
+    private float m_fovKickValue    = 2.0f;
 
     private Vector3 m_initialLocalPos;
     private float m_timer;
@@ -31,7 +59,7 @@ public class PlayerCamera : MonoBehaviour
     [SerializeField] private float m_slideCameraSmoothSpeed = 10f;
     private float m_currentSlideOffset;
 
-    public void Init(FirstPersonController player, Transform cameraRoot)
+    public void Init(FirstPersonController player, Transform cameraRoot, CinemachineCamera cinemachine)
     {
         if (m_camera != null)
         {
@@ -40,99 +68,120 @@ public class PlayerCamera : MonoBehaviour
 
         m_player = player;
         m_cameraRoot = cameraRoot;
+        m_cinemachineCamera = cinemachine;
+        m_initialFOV = m_cinemachineCamera.Lens.FieldOfView;
     }
 
-    private void Update()
+    public void UpdateCamera()
     {
-        HeadboppingUpdate();
-    }
+        if(m_camera == null)
+        {
+            Debug.LogError("Missing something pretty crucial here.");
+            return;
+        }
 
-    private void LateUpdate()
-    {
-        CameraShakeUpdate();
-    }
+        UpdateCameraImpulse();
+        UpdateFOV();
 
-    private void HeadboppingUpdate()
-    {
-        if (!m_enableHeadBob || m_camera == null)
+        if (!m_enableHeadBob)
             return;
 
         float speed = GetMovementSpeed();
 
-        // Smoothly move camera down while sliding
         float targetSlideOffset = m_player.IsSliding() ? m_slideCameraOffset : 0f;
-
-        m_currentSlideOffset = Mathf.Lerp(m_currentSlideOffset, targetSlideOffset, Time.deltaTime * m_slideCameraSmoothSpeed);
+        m_currentSlideOffset = Mathf.Lerp(
+            m_currentSlideOffset,
+            targetSlideOffset,
+            Time.deltaTime * m_slideCameraSmoothSpeed);
 
         Vector3 basePosition = m_initialLocalPos + Vector3.up * m_currentSlideOffset;
+        Vector3 bobOffset = Vector3.zero;
 
         if (speed > 0.1f)
         {
             m_timer += Time.deltaTime * m_bobFrequency * speed * m_speedMultiplier;
 
-            float verticalOffset = Mathf.Sin(m_timer) * m_bobAmplitude;
-            float horizontalOffset = Mathf.Cos(m_timer * 0.5f) * m_bobHorizontalAmplitude;
-
-            Vector3 bobOffset = new Vector3(horizontalOffset, verticalOffset, 0f);
-
-            m_cameraRoot.transform.localPosition = basePosition + bobOffset;
+            bobOffset.x = Mathf.Cos(m_timer * 0.5f) * m_bobHorizontalAmplitude;
+            bobOffset.y = Mathf.Sin(m_timer) * m_bobAmplitude;
         }
         else
         {
             m_timer = 0f;
-
-            m_cameraRoot.transform.localPosition = Vector3.Lerp(
-                m_cameraRoot.transform.localPosition,
-                basePosition,
-                Time.deltaTime * m_idleReturnSpeed);
-        }
-    }
-
-    #region - SHAKE - 
-    private float m_noiseSeedX;
-    private float m_noiseSeedY;
-    private float m_noiseTime;
-
-    public void Shake(float strength, float duration)
-    {
-        m_shakeStrength = strength;
-        m_shakeDuration = duration;
-        m_shakeTimer = duration;
-
-        // random seeds so each shake feels different
-        m_noiseSeedX = Random.Range(0f, 1000f);
-        m_noiseSeedY = Random.Range(0f, 1000f);
-
-        m_noiseTime = 0f;
-    }
-
-    private void CameraShakeUpdate()
-    {
-        if (m_shakeTimer <= 0f)
-        {
-            //m_cameraRoot.localPosition = m_initialLocalPos;
-            return;
         }
 
-        m_shakeTimer -= Time.deltaTime;
-        m_noiseTime += Time.deltaTime;
+        Vector3 targetPosition = basePosition + bobOffset + m_cameraImpulsePosition;
 
-        float t = 1f - (m_shakeTimer / m_shakeDuration);
+        m_cameraRoot.localPosition = Vector3.Lerp(
+            m_cameraRoot.localPosition,
+            targetPosition,
+            Time.deltaTime * m_idleReturnSpeed);
 
-        // optional fade out (keeps shake from ending abruptly)
-        float falloff = m_shakeCurve != null ? m_shakeCurve.Evaluate(t) : 1f;
+        m_cameraRoot.localRotation = Quaternion.Euler(
+            m_pitch + m_cameraImpulseRotation.x,
+            m_cameraImpulseRotation.y,
+            m_cameraImpulseRotation.z);
+    }
 
-        float time = m_noiseTime * 10f; // frequency control (tweak this)
+    #region - IMPULSE SETTINGS -
+    public void CameraPunch(Vector3 positionKick, Vector3 rotationKick)
+    {
+        m_targetPositionImpulse += positionKick;
+        m_targetRotationImpulse += rotationKick;
+    }
 
-        float x = (Mathf.PerlinNoise(m_noiseSeedX, time) - 0.5f) * 2f;
-        float y = (Mathf.PerlinNoise(m_noiseSeedY, time) - 0.5f) * 2f;
+    private void UpdateCameraImpulse()
+    {
+        const float MOVE_SPEED = 25f;
 
-        Vector3 noiseOffset = new Vector3(x, y, 0f) * m_shakeStrength * falloff;
+        m_cameraImpulsePosition = Vector3.Lerp(
+            m_cameraImpulsePosition,
+            m_targetPositionImpulse,
+            Time.deltaTime * MOVE_SPEED);
 
-        m_cameraRoot.localPosition = m_initialLocalPos + noiseOffset;
+        m_cameraImpulseRotation = Vector3.Lerp(
+            m_cameraImpulseRotation,
+            m_targetRotationImpulse,
+            Time.deltaTime * MOVE_SPEED);
+
+        m_targetPositionImpulse = Vector3.SmoothDamp(
+            m_cameraImpulsePosition,
+            Vector3.zero,
+            ref m_cameraImpulseVelocity,
+            0.08f);
+
+        m_targetRotationImpulse = Vector3.SmoothDamp(
+            m_cameraImpulseRotation,
+            Vector3.zero,
+            ref m_cameraImpulseRotationVelocity,
+            0.1f);
     }
     #endregion
 
+    #region - FOV KICK -
+    public void AddFOVKick(float power)
+    {
+        m_fovKickValue += power;
+    }
+
+    private void UpdateFOV()
+    {
+        const float KICK_RETURN_SPEED = 10f;
+        const float FOV_SPEED = 20f;
+
+        m_fovKickValue = Mathf.Lerp(
+            m_fovKickValue,
+            0f,
+            Time.deltaTime * KICK_RETURN_SPEED);
+
+        m_cinemachineCamera.Lens.FieldOfView = Mathf.Lerp(
+             m_cinemachineCamera.Lens.FieldOfView,
+            m_initialFOV + m_fovKickValue,
+            Time.deltaTime * FOV_SPEED);
+        Debug.Log("KICK: " + m_fovKickValue);
+    }
+    #endregion
+
+    #region - GETTERS -
     private float GetMovementSpeed()
     {
         if(m_player == null)
@@ -172,4 +221,5 @@ public class PlayerCamera : MonoBehaviour
         }
         return m_playerAnim;
     }
+    #endregion
 }
