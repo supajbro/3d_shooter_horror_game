@@ -131,7 +131,7 @@ public class PlayerCamera : MonoBehaviour
 
     private void UpdateCameraImpulse()
     {
-        const float MOVE_SPEED = 25f;
+        const float MOVE_SPEED = 15f;
 
         m_cameraImpulsePosition = Vector3.Lerp(
             m_cameraImpulsePosition,

@@ -48,7 +48,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 960099947910297601}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -235,8 +235,8 @@ MonoBehaviour:
   m_attackDuration: 0.5
   m_comboWindow: 0.6
   m_cameraPunchPosition_NoHit: {x: 0, y: 0.015, z: -0.05}
-  m_cameraPunchRotation_NoHit: {x: -5, y: 0, z: 0}
-  m_fovPunchKick: 3.5
+  m_cameraPunchRotation_NoHit: {x: -50, y: 0, z: 0}
+  m_fovPunchKick: 7.5
 --- !u!114 &1403715470486944011
 MonoBehaviour:
   m_ObjectHideFlags: 0
