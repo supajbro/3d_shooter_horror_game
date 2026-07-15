@@ -281,12 +281,22 @@ public class PlayerPickup : MonoBehaviour
             Debug.LogError("Woah! Missing your animations buddy.");
             return;
         }
-        //var prefix = m_guns.Length == 0 ? GetAnimationPrefix(AnimationType.MELEE) : GetAnimationPrefix(AnimationType.PISTOL);
         
         if(GetGunCount() != 0)
         {
             Debug.Log("We have a gun, don't animate these as these are for melee only.");
+
+            // If we have a gun and our hand model is active, disable it now.
+            if(m_model.gameObject.activeInHierarchy)
+            {
+                m_model.gameObject.SetActive(false);
+            }
+
             return;
+        }
+        else if(!m_model.gameObject.activeInHierarchy)
+        {
+            m_model.gameObject.SetActive(true);
         }
 
         if (!m_player.IsAttacking() && !m_player.IsDashing() && !m_player.IsSliding())

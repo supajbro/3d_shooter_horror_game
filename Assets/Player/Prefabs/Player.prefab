@@ -235,7 +235,7 @@ MonoBehaviour:
   m_attackDuration: 0.5
   m_comboWindow: 0.6
   m_cameraPunchPosition_NoHit: {x: 0, y: 0.015, z: -0.05}
-  m_cameraPunchRotation_NoHit: {x: -50, y: 0, z: 0}
+  m_cameraPunchRotation_NoHit: {x: 0, y: 0, z: 0}
   m_fovPunchKick: 7.5
 --- !u!114 &1403715470486944011
 MonoBehaviour:
@@ -383,7 +383,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a93114c35dd1ae4ea3a7d3fcfc60eb9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerPickup
-  m_pickupRange: 3
+  m_pickupRange: 10
   m_pickupLayer:
     serializedVersion: 2
     m_Bits: 64

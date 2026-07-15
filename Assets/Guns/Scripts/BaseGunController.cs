@@ -37,7 +37,7 @@ public abstract class BaseGunController : MonoBehaviour
     private Vector3 m_modelInitialLocalPos;
 
     [Header("Animation References")]
-    [SerializeField] protected Animator m_reloadAnim;
+    [SerializeField] protected Animator m_anim;
 
     [Header("Gun Settings")]
     [SerializeField] protected float m_fireRate = 5f;           // <- Bullets per second
@@ -301,6 +301,7 @@ public abstract class BaseGunController : MonoBehaviour
 
         // Update the ammo count UI
         m_manager.GetGameplayUI().SetAmmoText(m_currentAmmo + "/" + GetAvailableAmmo());
+        m_anim.SetTrigger("Shoot");
     }
 
     protected virtual void OnShoot(Bullet bullet, Vector3 direction)
@@ -330,7 +331,7 @@ public abstract class BaseGunController : MonoBehaviour
     #region - RELOAD -
     protected virtual void Reloading()
     {
-        if(m_reloadAnim == null)
+        if(m_anim == null)
         {
             Debug.LogError("No reload animation set, reload will not start.");
             return;
@@ -348,7 +349,7 @@ public abstract class BaseGunController : MonoBehaviour
         if(!m_startedReloading)
         {
             m_startedReloading = true;
-            m_reloadAnim.SetTrigger("Reload");
+            m_anim.SetTrigger("Reload");
         }
 
         m_reloadTimer += Time.deltaTime;
