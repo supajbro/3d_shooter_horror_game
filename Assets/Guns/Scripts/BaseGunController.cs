@@ -16,6 +16,15 @@ public abstract class BaseGunController : MonoBehaviour
     [SerializeField] private GunType m_gunType;
     public GunType GetGunType() { return m_gunType; }
 
+    public enum GunAnimationState
+    {
+        Idle,
+        Shoot,
+        Reload
+    }
+    private GunAnimationState m_state = GunAnimationState.Idle;
+    private GunAnimationState m_previousState = GunAnimationState.Idle;
+
     public enum FireMode
     {
         Projectile,
@@ -129,6 +138,8 @@ public abstract class BaseGunController : MonoBehaviour
         DrawDebug();
         UpdateGunSway();
         UpdateRecoil();
+
+        UpdateAnimationState();
     }
 
     protected virtual void HandleInput()
@@ -163,6 +174,51 @@ public abstract class BaseGunController : MonoBehaviour
             }
         }
     }
+
+    #region - STATES -
+
+    [SerializeField] private float m_shootAnimationLength = 0.25f; // <- Animation length of the shoot
+    private float m_animationTimer;
+
+    protected void SetAnimationState(GunAnimationState state)
+    {
+        if (m_state == state)
+            return;
+
+        m_previousState = m_state;
+        m_state = state;
+
+        switch (m_state)
+        {
+            case GunAnimationState.Idle:
+                m_anim.SetTrigger("Idle");
+                break;
+
+            case GunAnimationState.Shoot:
+                m_animationTimer = m_shootAnimationLength;
+                m_anim.SetTrigger("Shoot");
+                break;
+
+            case GunAnimationState.Reload:
+                m_animationTimer = m_reloadSpeed; // or another reload animation length
+                m_anim.SetTrigger("Reload");
+                break;
+        }
+    }
+
+    private void UpdateAnimationState()
+    {
+        if (m_state == GunAnimationState.Idle)
+            return;
+
+        m_animationTimer -= Time.deltaTime;
+
+        if (m_animationTimer <= 0f)
+        {
+            SetAnimationState(GunAnimationState.Idle);
+        }
+    }
+    #endregion
 
     #region - HELPERS -
     protected virtual bool IsFiring()
@@ -253,7 +309,7 @@ public abstract class BaseGunController : MonoBehaviour
             }
         }
 
-        SpawnTracer(m_firePoint.position, finalHitPoint, m_firePoint);
+        SpawnTracer(finalHitPoint, m_firePoint);
 
         if (m_debugDraw)
         {
@@ -301,7 +357,7 @@ public abstract class BaseGunController : MonoBehaviour
 
         // Update the ammo count UI
         m_manager.GetGameplayUI().SetAmmoText(m_currentAmmo + "/" + GetAvailableAmmo());
-        m_anim.SetTrigger("Shoot");
+        SetAnimationState(GunAnimationState.Shoot);
     }
 
     protected virtual void OnShoot(Bullet bullet, Vector3 direction)
@@ -349,7 +405,7 @@ public abstract class BaseGunController : MonoBehaviour
         if(!m_startedReloading)
         {
             m_startedReloading = true;
-            m_anim.SetTrigger("Reload");
+            SetAnimationState(GunAnimationState.Reload);
         }
 
         m_reloadTimer += Time.deltaTime;
@@ -389,11 +445,15 @@ public abstract class BaseGunController : MonoBehaviour
     #endregion
 
     #region - TRAIL -
-    private void SpawnTracer(Vector3 start, Vector3 end, Transform muzzle)
+    private void SpawnTracer(Vector3 end, Transform muzzle)
     {
         GameObject tracer = Instantiate(m_tracerPrefab, muzzle);
 
         tracer.transform.localPosition = Vector3.zero;
+        var pos = transform.transform.localPosition;
+        pos.y += 0.1f;
+        tracer.transform.localPosition = pos;
+
         tracer.transform.localRotation = Quaternion.identity;
 
         Vector3 localEnd = muzzle.InverseTransformPoint(end);
@@ -407,7 +467,10 @@ public abstract class BaseGunController : MonoBehaviour
         scale.z = distance;
         tracer.transform.localScale = scale;
 
-        StartCoroutine(DestroyTracer(tracer, 0.05f));
+        // Push the tracer forward by half its length
+        tracer.transform.localPosition += Vector3.forward * (distance * 0.5f);
+
+        StartCoroutine(DestroyTracer(tracer, 0.075f));
     }
 
     private IEnumerator DestroyTracer(GameObject tracer, float delay)

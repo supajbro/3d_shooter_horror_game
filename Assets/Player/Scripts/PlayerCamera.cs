@@ -177,7 +177,6 @@ public class PlayerCamera : MonoBehaviour
              m_cinemachineCamera.Lens.FieldOfView,
             m_initialFOV + m_fovKickValue,
             Time.deltaTime * FOV_SPEED);
-        Debug.Log("KICK: " + m_fovKickValue);
     }
     #endregion
 
