@@ -191,17 +191,15 @@ public abstract class BaseGunController : MonoBehaviour
         switch (m_state)
         {
             case GunAnimationState.Idle:
-                m_anim.SetTrigger("Idle");
+                IdleState();
                 break;
 
             case GunAnimationState.Shoot:
-                m_animationTimer = m_shootAnimationLength;
-                m_anim.SetTrigger("Shoot");
+                ShootState();
                 break;
 
             case GunAnimationState.Reload:
-                m_animationTimer = m_reloadSpeed; // or another reload animation length
-                m_anim.SetTrigger("Reload");
+                ReloadState();
                 break;
         }
     }
@@ -217,6 +215,23 @@ public abstract class BaseGunController : MonoBehaviour
         {
             SetAnimationState(GunAnimationState.Idle);
         }
+    }
+
+    protected virtual void IdleState()
+    {
+        m_anim.SetTrigger("Idle");
+    }
+
+    protected virtual void ShootState()
+    {
+        m_animationTimer = m_shootAnimationLength;
+        m_anim.SetTrigger("Shoot");
+    }
+
+    protected virtual void ReloadState()
+    {
+        m_animationTimer = m_reloadSpeed;
+        m_anim.SetTrigger("Reload");
     }
     #endregion
 

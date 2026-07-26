@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class Pistol : BaseGunController
 {
+    [SerializeField] protected Animator m_craneAnim;
+
     public override void Init()
     {
         base.Init();
@@ -60,6 +62,23 @@ public class Pistol : BaseGunController
             ),
             "Pistol"
         );
+    }
+
+    protected override void IdleState()
+    {
+        base.IdleState();
+        m_craneAnim.SetTrigger("Idle");
+    }
+
+    protected override void ShootState()
+    {
+        base.ShootState();
+    }
+
+    protected override void ReloadState()
+    {
+        base.ReloadState();
+        m_craneAnim.SetTrigger("Reload");
     }
 
     protected override bool IsFiring()
