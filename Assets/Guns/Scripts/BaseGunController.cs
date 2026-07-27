@@ -150,6 +150,11 @@ public abstract class BaseGunController : MonoBehaviour
             Reloading();
             return;
         }
+        // Make sure we know the animation has ended.
+        else if(m_anim.GetBool("Reloading"))
+        {
+            m_anim.SetBool("Reloading", false);
+        }
 
         if (!IsFiring())
         {
@@ -220,6 +225,7 @@ public abstract class BaseGunController : MonoBehaviour
     protected virtual void IdleState()
     {
         m_anim.SetTrigger("Idle");
+        m_anim.SetBool("Reloading", false);
     }
 
     protected virtual void ShootState()
@@ -230,7 +236,7 @@ public abstract class BaseGunController : MonoBehaviour
 
     protected virtual void ReloadState()
     {
-        m_animationTimer = m_reloadSpeed;
+        m_animationTimer = m_reloadSpeed - 0.5f;
         m_anim.SetTrigger("Reload");
     }
     #endregion
@@ -421,6 +427,7 @@ public abstract class BaseGunController : MonoBehaviour
         {
             m_startedReloading = true;
             SetAnimationState(GunAnimationState.Reload);
+            m_anim.SetBool("Reloading", true);
         }
 
         m_reloadTimer += Time.deltaTime;

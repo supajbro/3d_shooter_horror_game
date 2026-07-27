@@ -602,11 +602,11 @@ MonoBehaviour:
   crosshairRecoil: 2
   m_strength: 0.075
   m_duration: 0.1
-  m_maxAmmo: 14
+  m_maxAmmo: 6
   m_inifiniteAmmo: 1
   m_availableAmmo: 0
-  m_maxAvailableAmmo: 42
-  m_reloadSpeed: 1.35
+  m_maxAvailableAmmo: 24
+  m_reloadSpeed: 3
   m_damage: 25
   m_hitscanRange: 100
   m_requiresTriggerRelease: 1
