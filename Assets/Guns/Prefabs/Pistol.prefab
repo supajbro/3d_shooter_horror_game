@@ -616,6 +616,10 @@ MonoBehaviour:
   m_debugRange: 100
   m_shootAnimationLength: 0.25
   m_craneAnim: {fileID: 4727770389342793771}
+  m_cylinder: {fileID: 4425501593163607473}
+  m_chambers: 6
+  m_rotationSpeed: 800
+  m_rotationAxis: {x: 0, y: 0, z: 1}
 --- !u!1 &4341109386158054337
 GameObject:
   m_ObjectHideFlags: 0
@@ -845,6 +849,11 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 4727770389342793771}
   m_SourcePrefab: {fileID: 100100000, guid: 58bb4eae1d8d24f47b2b183b5483a663, type: 3}
+--- !u!4 &4425501593163607473 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5711507227912455303, guid: 58bb4eae1d8d24f47b2b183b5483a663, type: 3}
+  m_PrefabInstance: {fileID: 8226339086667704630}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &5666612006708432288 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -4861061540529527658, guid: 58bb4eae1d8d24f47b2b183b5483a663, type: 3}

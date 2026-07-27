@@ -4,9 +4,22 @@ public class Pistol : BaseGunController
 {
     [SerializeField] protected Animator m_craneAnim;
 
+    [Header("Cylinder")]
+    [SerializeField] private Transform m_cylinder;
+    [SerializeField] private int m_chambers = 6;
+    [SerializeField] private float m_rotationSpeed = 800f;
+    [SerializeField] private Vector3 m_rotationAxis = Vector3.forward;
+
+    private Quaternion m_initialRotation;
+    private int m_currentChamber;
+    private float m_targetAngle;
+    private float m_currentAngle;
+
     public override void Init()
     {
         base.Init();
+
+        m_initialRotation = m_cylinder.localRotation;
 
         DebugManager.Instance.RegisterFloat(
             new DebugFloat(
@@ -68,6 +81,38 @@ public class Pistol : BaseGunController
     {
         base.IdleState();
         m_craneAnim.SetTrigger("Idle");
+    }
+
+    protected override void Update()
+    {
+        base.Update();
+        RotateCylinder();
+    }
+
+    private void RotateCylinder()
+    {
+        m_currentAngle = Mathf.MoveTowardsAngle(
+            m_currentAngle,
+            m_targetAngle,
+            m_rotationSpeed * Time.deltaTime);
+
+        m_cylinder.localRotation =
+            m_initialRotation *
+            Quaternion.AngleAxis(m_currentAngle, m_rotationAxis);
+    }
+
+    private void AdvanceCylinder()
+    {
+        m_currentChamber = (m_currentChamber + 1) % m_chambers;
+
+        float step = 360f / m_chambers;
+        m_targetAngle = m_currentChamber * step;
+    }
+
+    protected override void OnShoot()
+    {
+        base.OnShoot();
+        AdvanceCylinder();
     }
 
     protected override void ShootState()
