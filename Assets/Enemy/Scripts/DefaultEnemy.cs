@@ -2,28 +2,22 @@ using UnityEngine;
 
 public class DefaultEnemy : Enemy
 {
-    protected override void Update()
+    protected override void UpdateWalk()
     {
-        base.Update();
-
-        if(m_attacking)
+        if (!CanSeePlayer())
         {
+            ChangeState(EnemyState.Idle);
             return;
         }
+
+        m_agent.SetDestination(m_player.position);
+        FaceTarget();
 
         float distance = Vector3.Distance(transform.position, m_player.position);
 
         if (distance <= m_attackRange)
         {
             StartAttack();
-        }
-        else if (distance <= m_chaseRange && CanSeePlayer())
-        {
-            ChasePlayer();
-        }
-        else
-        {
-            Idle();
         }
     }
 }

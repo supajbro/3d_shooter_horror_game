@@ -1,10 +1,21 @@
 using System.Collections;
 using System.Linq;
+using TMPro;
 using UnityEngine;
 using UnityEngine.AI;
 
 public class Enemy : MonoBehaviour, IPoolable
 {
+    public enum EnemyState
+    {
+        Idle,
+        Walk,
+        Stun,
+        Recover
+    }
+    private EnemyState m_state = EnemyState.Idle;
+    private float m_stateTimer;
+
     [Header("References")]
     [SerializeField] protected Animator m_anim;
     private EnemyHealth m_health;
@@ -51,6 +62,7 @@ public class Enemy : MonoBehaviour, IPoolable
     private bool m_active = false;
 
     [SerializeField] private bool m_debug = false;
+    private TextMeshPro m_debugStateText;
 
     public virtual void Activate(EnemySpawner enemySpawner)
     {
@@ -89,6 +101,11 @@ public class Enemy : MonoBehaviour, IPoolable
 
         if(m_drops == null)
             m_drops = GetComponents<IDropable>();
+
+        if (m_debug)
+        {
+            CreateDebugStateText();
+        }
     }
 
     public void Deactivate()
@@ -98,46 +115,125 @@ public class Enemy : MonoBehaviour, IPoolable
 
     protected virtual void Update()
     {
-        if (m_isKnockedBack)
-        {
-            HandleKnockback();
+        if (!m_active)
             return;
-        }
 
         if (GameStateManager.Instance.GetFreezeGame())
         {
-            if(!m_agent.isStopped)
-            {
-                m_agent.isStopped = true;
-                m_anim.SetTrigger("Idle");
-            }
-
+            m_agent.isStopped = true;
             return;
         }
 
-        if (!m_active)
+        switch (m_state)
         {
-            return;
+            case EnemyState.Idle:
+                UpdateIdle();
+                break;
+
+            case EnemyState.Walk:
+                UpdateWalk();
+                break;
+
+            case EnemyState.Stun:
+                UpdateStun();
+                break;
+
+            case EnemyState.Recover:
+                UpdateRecover();
+                break;
         }
 
-        if(m_anim == null)
+        if (m_debugStateText != null && Camera.main != null)
         {
-            Debug.LogError("Missing reference to enemy animation.");
-            return;
-        }
-
-        if (m_player == null)
-        {
-            Debug.LogError("Missing reference to player.");
-            return;
+            m_debugStateText.transform.forward = Camera.main.transform.forward;
         }
     }
 
-    protected virtual void ChasePlayer()
+    protected void ChangeState(EnemyState newState)
     {
-        m_agent.isStopped = m_isKnockedBack;
+        if (m_state == newState)
+            return;
+
+        m_state = newState;
+
+        switch (m_state)
+        {
+            case EnemyState.Idle:
+                m_agent.isStopped = true;
+                m_anim.SetTrigger("Idle");
+                break;
+
+            case EnemyState.Walk:
+                m_agent.isStopped = false;
+                m_anim.SetTrigger("Run");
+                break;
+
+            case EnemyState.Stun:
+                m_agent.isStopped = true;
+                break;
+
+            case EnemyState.Recover:
+                m_agent.isStopped = true;
+                m_anim.SetTrigger("Recover"); // or StaggerRecover
+                m_stateTimer = 0.3f;
+                break;
+        }
+
+        if (m_debugStateText != null)
+        {
+            m_debugStateText.text = m_state.ToString();
+        }
+    }
+
+    protected virtual void UpdateIdle()
+    {
+        if (CanSeePlayer())
+        {
+            ChangeState(EnemyState.Walk);
+        }
+
+        // TODO:
+        // Patrol waypoint reached?
+        // Wait?
+        // Choose next waypoint?
+    }
+
+    protected virtual void UpdateWalk()
+    {
+        if (!CanSeePlayer())
+        {
+            ChangeState(EnemyState.Idle);
+            return;
+        }
+
         m_agent.SetDestination(m_player.position);
-        m_anim.SetTrigger("Run");
+
+        FaceTarget();
+
+        float distance = Vector3.Distance(transform.position, m_player.position);
+
+        if (distance <= m_attackRange)
+        {
+            StartAttack();
+        }
+    }
+
+    protected virtual void UpdateStun()
+    {
+        HandleKnockback();
+    }
+
+    protected virtual void UpdateRecover()
+    {
+        m_stateTimer -= Time.deltaTime;
+
+        if (m_stateTimer <= 0)
+        {
+            if (CanSeePlayer())
+                ChangeState(EnemyState.Walk);
+            else
+                ChangeState(EnemyState.Idle);
+        }
     }
 
     protected virtual void StartAttack()
@@ -195,17 +291,14 @@ public class Enemy : MonoBehaviour, IPoolable
 
     public void ApplyKnockback(Vector3 velocity, float duration)
     {
-        m_isKnockedBack = true;
-
-        if (m_agent != null)
-            m_agent.isStopped = true;
+        ChangeState(EnemyState.Stun);
 
         m_knockbackVelocity = new Vector3(velocity.x, 0f, velocity.z);
 
         m_knockbackDuration = duration;
         m_knockbackTimer = 0f;
 
-        m_knockbackStartY = transform.position.y * 2.5f;
+        m_knockbackStartY = transform.position.y;
         m_knockbackVerticalStrength = m_knockbackForce * 0.5f;
     }
 
@@ -227,7 +320,7 @@ public class Enemy : MonoBehaviour, IPoolable
                 m_agent.isStopped = false;
             }
 
-            m_isKnockedBack = false;
+            ChangeState(EnemyState.Recover);
             return;
         }
 
@@ -304,5 +397,26 @@ public class Enemy : MonoBehaviour, IPoolable
         {
             m_enemySpawner.GetLevelManager().GetWeaponSpawner().SpawnWeaponRandom(transform, null);
         }
+    }
+
+    private void CreateDebugStateText()
+    {
+        if (m_debugStateText != null)
+            return;
+
+        GameObject go = new GameObject("Debug State");
+        go.transform.SetParent(transform);
+        go.transform.localPosition = Vector3.up * 2.5f;
+
+        m_debugStateText = go.AddComponent<TextMeshPro>();
+
+        m_debugStateText.fontSize = 20;
+        m_debugStateText.alignment = TextAlignmentOptions.Center;
+        m_debugStateText.color = Color.white;
+        m_debugStateText.text = m_state.ToString();
+
+        MeshRenderer renderer = m_debugStateText.GetComponent<MeshRenderer>();
+        renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        renderer.receiveShadows = false;
     }
 }

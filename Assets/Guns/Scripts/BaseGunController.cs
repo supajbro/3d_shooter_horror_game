@@ -326,7 +326,12 @@ public abstract class BaseGunController : MonoBehaviour
 
             if (hit.transform.TryGetComponent<Enemy>(out var enemy))
             {
+                Vector3 dir = transform.forward;
+                dir.y = 0f;
+                dir.Normalize();
+
                 enemy.GetHealth().SetHealthRelative(-m_damage);
+                enemy.ApplyKnockback(dir * 15.0f, 0.5f);
             }
         }
 
