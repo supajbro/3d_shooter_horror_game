@@ -3,6 +3,7 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.ProBuilder;
 
 public class Enemy : MonoBehaviour, IPoolable
 {
@@ -11,6 +12,7 @@ public class Enemy : MonoBehaviour, IPoolable
         Idle,
         Walk,
         Stun,
+        Fallen,
         Recover
     }
     private EnemyState m_state = EnemyState.Idle;
@@ -18,6 +20,7 @@ public class Enemy : MonoBehaviour, IPoolable
 
     [Header("References")]
     [SerializeField] protected Animator m_anim;
+    [SerializeField] protected Animator m_testAnim; // <- What will be the future animator when i make my own model.
     private EnemyHealth m_health;
     private EnemyUtils m_utils;
     private EnemySpawner m_enemySpawner;
@@ -53,6 +56,12 @@ public class Enemy : MonoBehaviour, IPoolable
 
     [Header("Items enemy can drop")]
     private IDropable[] m_drops;
+
+    [Header("Fallover")]
+    [SerializeField] private float m_fallOverChance = 0.25f;
+    [SerializeField] private float m_getUpDuration = 1.5f;
+    private bool m_hasFallen;
+    private Vector3 m_fallDirection;
 
     protected NavMeshAgent m_agent;
     private string m_poolKey;
@@ -138,6 +147,10 @@ public class Enemy : MonoBehaviour, IPoolable
                 UpdateStun();
                 break;
 
+            case EnemyState.Fallen:
+                UpdateFallen();
+                break;
+
             case EnemyState.Recover:
                 UpdateRecover();
                 break;
@@ -172,17 +185,31 @@ public class Enemy : MonoBehaviour, IPoolable
                 m_agent.isStopped = true;
                 break;
 
+            case EnemyState.Fallen:
+                m_agent.isStopped = true;
+                m_anim.SetTrigger("Fall");
+                m_stateTimer = 2f; // Time spent on the floor
+                break;
+
             case EnemyState.Recover:
                 m_agent.isStopped = true;
-                m_anim.SetTrigger("Recover"); // or StaggerRecover
-                m_stateTimer = 0.3f;
+
+                if (m_hasFallen)
+                {
+                    m_anim.SetTrigger("GetUp");
+                    m_stateTimer = m_getUpDuration;
+                }
+                else
+                {
+                    m_anim.SetTrigger("Recover");
+                    m_stateTimer = 0.35f;
+                }
+
                 break;
         }
 
         if (m_debugStateText != null)
-        {
             m_debugStateText.text = m_state.ToString();
-        }
     }
 
     protected virtual void UpdateIdle()
@@ -191,6 +218,8 @@ public class Enemy : MonoBehaviour, IPoolable
         {
             ChangeState(EnemyState.Walk);
         }
+
+        m_testAnim.SetTrigger("Idle");
 
         // TODO:
         // Patrol waypoint reached?
@@ -223,11 +252,53 @@ public class Enemy : MonoBehaviour, IPoolable
         HandleKnockback();
     }
 
-    protected virtual void UpdateRecover()
+    protected virtual void UpdateFallen()
     {
         m_stateTimer -= Time.deltaTime;
 
-        if (m_stateTimer <= 0)
+        if (m_stateTimer <= 0f)
+        {
+            m_hasFallen = false;
+            ChangeState(EnemyState.Recover);
+        }
+
+        // Lay the enemy onto the ground in the direction they were knocked.
+        Vector3 fallDir = m_fallDirection;
+        fallDir.y = 0f;
+
+        if (fallDir.sqrMagnitude > 0.001f)
+        {
+            Quaternion face = Quaternion.LookRotation(fallDir);
+
+            // Rotate so the enemy lies on its back/side.
+            // Change the axis/angle depending on your model's forward axis.
+            Quaternion fallenRotation = face * Quaternion.Euler(90f, 0f, 0f);
+
+            m_testAnim.gameObject.transform.rotation = Quaternion.Slerp(
+                 m_testAnim.gameObject.transform.rotation,
+                fallenRotation,
+                Time.deltaTime * 8f);
+        }
+    }
+
+    protected virtual void UpdateRecover()
+    {
+        if (m_hasFallen)
+        {
+            ChangeState(EnemyState.Fallen);
+
+            Quaternion fallenRotation = Quaternion.Euler(0f, 0f, 0f);
+            m_testAnim.gameObject.transform.rotation = Quaternion.Slerp(
+             m_testAnim.gameObject.transform.rotation,
+            fallenRotation,
+            Time.deltaTime * 8f);
+
+            return;
+        }
+
+        m_stateTimer -= Time.deltaTime;
+
+        if (m_stateTimer <= 0f)
         {
             if (CanSeePlayer())
                 ChangeState(EnemyState.Walk);
@@ -300,6 +371,8 @@ public class Enemy : MonoBehaviour, IPoolable
 
         m_knockbackStartY = transform.position.y;
         m_knockbackVerticalStrength = m_knockbackForce * 0.5f;
+
+        m_fallDirection = velocity.normalized;
     }
 
     private void HandleKnockback()
@@ -319,6 +392,8 @@ public class Enemy : MonoBehaviour, IPoolable
                 m_agent.Warp(transform.position);
                 m_agent.isStopped = false;
             }
+
+            m_hasFallen = Random.value <= m_fallOverChance;
 
             ChangeState(EnemyState.Recover);
             return;
