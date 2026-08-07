@@ -349,19 +349,6 @@ namespace StarterAssets
                 transform.Rotate(Vector3.up * _rotationVelocity);
 			}
 
-            if (m_isSliding)
-            {
-                Vector3 pos = m_playerFollowCamera.transform.localPosition;
-                pos.y = -2.0f; // Desired slide height
-                m_playerFollowCamera.transform.localPosition = pos;
-            }
-            else
-            {
-                Vector3 pos = m_playerFollowCamera.transform.localPosition;
-                pos.y = 0.0f; // Normal height
-                m_playerFollowCamera.transform.localPosition = pos;
-            }
-
             GetPlayerCamera().UpdateCamera();
         }
 

@@ -36,6 +36,9 @@ public class PlayerCamera : MonoBehaviour
     [SerializeField] private float m_speedMultiplier = 1f;
     [SerializeField] private float m_idleReturnSpeed = 5f;
 
+    // runtime bob state
+    private float m_bobBlend = 0f;
+
     private float m_pitch;
     public void SetPitch(float pitch){m_pitch = pitch;}
 
@@ -59,6 +62,10 @@ public class PlayerCamera : MonoBehaviour
     [SerializeField] private float m_slideCameraSmoothSpeed = 10f;
     private float m_currentSlideOffset;
 
+    [Header("Spring Settings")]
+    [SerializeField] private float m_cameraSpringSmoothTime = 0.06f; // lower = snappier
+    private Vector3 m_cameraPositionVelocity;
+
     public void Init(FirstPersonController player, Transform cameraRoot, CinemachineCamera cinemachine)
     {
         if (m_camera != null)
@@ -70,6 +77,9 @@ public class PlayerCamera : MonoBehaviour
         m_cameraRoot = cameraRoot;
         m_cinemachineCamera = cinemachine;
         m_initialFOV = m_cinemachineCamera.Lens.FieldOfView;
+
+        // ensure bob blend initial state
+        m_bobBlend = 0f;
     }
 
     public void UpdateCamera()
@@ -88,33 +98,41 @@ public class PlayerCamera : MonoBehaviour
 
         float speed = GetMovementSpeed();
 
+        // Slide offset handled and smoothed here (no external writer)
         float targetSlideOffset = m_player.IsSliding() ? m_slideCameraOffset : 0f;
         m_currentSlideOffset = Mathf.Lerp(
             m_currentSlideOffset,
             targetSlideOffset,
             Time.deltaTime * m_slideCameraSmoothSpeed);
 
+        // Maintain bob phase continuity but fade amplitude smoothly.
+        // Keep timer advancing slightly even when stopped to avoid phase reset.
+        float minPhaseAdvance = 0.05f; // small advance when idle
+        float effectiveSpeed = Mathf.Max(speed, minPhaseAdvance);
+        m_timer += Time.deltaTime * m_bobFrequency * effectiveSpeed * m_speedMultiplier;
+
+        // Blend amplitude to 1 when moving, to 0 when stopped (smooth)
+        const float speedThreshold = 0.1f;
+        float targetBobBlend = speed > speedThreshold ? 1f : 0f;
+        m_bobBlend = Mathf.Lerp(m_bobBlend, targetBobBlend, Time.deltaTime * m_idleReturnSpeed);
+
         Vector3 basePosition = m_initialLocalPos + Vector3.up * m_currentSlideOffset;
         Vector3 bobOffset = Vector3.zero;
 
-        if (speed > 0.1f)
+        if (m_bobBlend > 0.001f)
         {
-            m_timer += Time.deltaTime * m_bobFrequency * speed * m_speedMultiplier;
-
-            bobOffset.x = Mathf.Cos(m_timer * 0.5f) * m_bobHorizontalAmplitude;
-            bobOffset.y = Mathf.Sin(m_timer) * m_bobAmplitude;
-        }
-        else
-        {
-            m_timer = 0f;
+            bobOffset.x = Mathf.Cos(m_timer * 0.5f) * m_bobHorizontalAmplitude * m_bobBlend;
+            bobOffset.y = Mathf.Sin(m_timer) * m_bobAmplitude * m_bobBlend;
         }
 
         Vector3 targetPosition = basePosition + bobOffset + m_cameraImpulsePosition;
 
-        m_cameraRoot.localPosition = Vector3.Lerp(
+        // Use SmoothDamp as a simple critically-feeling spring to follow targetPosition
+        m_cameraRoot.localPosition = Vector3.SmoothDamp(
             m_cameraRoot.localPosition,
             targetPosition,
-            Time.deltaTime * m_idleReturnSpeed);
+            ref m_cameraPositionVelocity,
+            m_cameraSpringSmoothTime);
 
         m_cameraRoot.localRotation = Quaternion.Euler(
             m_pitch + m_cameraImpulseRotation.x,
