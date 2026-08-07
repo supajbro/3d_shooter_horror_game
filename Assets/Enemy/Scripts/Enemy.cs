@@ -65,6 +65,7 @@ public class Enemy : MonoBehaviour, IPoolable
     private Transform m_fallVisual;
     private Quaternion m_uprightVisualRotation;
     private Quaternion m_fallenVisualRotation;
+    private bool m_testAnimatorDisabledForFall;
 
     protected NavMeshAgent m_agent;
     private string m_poolKey;
@@ -215,8 +216,13 @@ public class Enemy : MonoBehaviour, IPoolable
                 m_agent.isStopped = true;
                 PrepareFallRotation();
 
+                // Fallover.anim owns this transform and includes a baked sideways
+                // movement. Disable it so m_fallDirection is authoritative.
                 if (m_testAnim != null)
-                    m_testAnim.SetTrigger("Fallover");
+                {
+                    m_testAnim.enabled = false;
+                    m_testAnimatorDisabledForFall = true;
+                }
 
                 m_stateTimer = 2f; // Time spent on the floor
                 break;
@@ -226,10 +232,10 @@ public class Enemy : MonoBehaviour, IPoolable
 
                 if (m_hasFallen)
                 {
-                    m_anim.SetTrigger("GetUp");
+/*                    m_anim.SetTrigger("GetUp");
 
                     if (m_testAnim != null)
-                        m_testAnim.SetTrigger("GetUp");
+                        m_testAnim.SetTrigger("GetUp");*/
 
                     m_stateTimer = m_getUpDuration;
                 }
@@ -303,6 +309,7 @@ public class Enemy : MonoBehaviour, IPoolable
         if (m_stateTimer <= 0f)
         {
             m_hasFallen = false;
+            RestoreTestAnimatorAfterFall();
 
             if (CanSeePlayer())
                 ChangeState(EnemyState.Walk);
@@ -435,6 +442,18 @@ public class Enemy : MonoBehaviour, IPoolable
         // Align the visual's up vector with the horizontal knockback direction.
         // The projectile supplies that direction, so the enemy falls away from the shot.
         m_fallenVisualRotation = Quaternion.FromToRotation(m_fallVisual.up, fallDirection) * m_fallVisual.rotation;
+    }
+
+    private void RestoreTestAnimatorAfterFall()
+    {
+        if (!m_testAnimatorDisabledForFall || m_testAnim == null)
+            return;
+
+        // Return to the upright pose before giving transform control back to Animator.
+        m_testAnim.transform.localRotation = m_uprightVisualRotation;
+        m_testAnim.enabled = true;
+        m_testAnim.Rebind();
+        m_testAnimatorDisabledForFall = false;
     }
 
     protected virtual bool CanSeePlayer()

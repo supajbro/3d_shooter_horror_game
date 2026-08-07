@@ -326,7 +326,9 @@ public abstract class BaseGunController : MonoBehaviour
 
             if (hit.transform.TryGetComponent<Enemy>(out var enemy))
             {
-                Vector3 dir = transform.forward;
+                // Use the ray that hit the enemy. The gun transform can differ from
+                // the camera/muzzle trajectory, which caused sideways fall directions.
+                Vector3 dir = shootDirection;
                 dir.y = 0f;
                 dir.Normalize();
 

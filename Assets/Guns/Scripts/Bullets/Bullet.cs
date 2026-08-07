@@ -83,7 +83,9 @@ public class Bullet : MonoBehaviour
         {
             if (other.gameObject.transform.TryGetComponent<Enemy>(out var enemy))
             {
-                Vector3 dir = transform.forward;
+                // BulletUpdate moves along -m_direction, so this is the actual
+                // incoming trajectory rather than the bullet model's forward axis.
+                Vector3 dir = -m_direction;
                 dir.y = 0f;
                 dir.Normalize();
 
