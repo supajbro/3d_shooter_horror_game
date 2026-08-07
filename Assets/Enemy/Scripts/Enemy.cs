@@ -62,6 +62,9 @@ public class Enemy : MonoBehaviour, IPoolable
     [SerializeField] private float m_getUpDuration = 1.5f;
     private bool m_hasFallen;
     private Vector3 m_fallDirection;
+    private Transform m_fallVisual;
+    private Quaternion m_uprightVisualRotation;
+    private Quaternion m_fallenVisualRotation;
 
     protected NavMeshAgent m_agent;
     private string m_poolKey;
@@ -162,6 +165,29 @@ public class Enemy : MonoBehaviour, IPoolable
         }
     }
 
+    private void LateUpdate()
+    {
+        // Animators update after Update. Apply the visual rotation here so an animation
+        // clip cannot overwrite the direction the enemy was hit from.
+        if (m_fallVisual == null)
+            return;
+
+        if (m_state == EnemyState.Fallen)
+        {
+            m_fallVisual.rotation = Quaternion.Slerp(
+                m_fallVisual.rotation,
+                m_fallenVisualRotation,
+                Time.deltaTime * 8f);
+        }
+        else if (m_state == EnemyState.Recover && m_hasFallen)
+        {
+            m_fallVisual.localRotation = Quaternion.Slerp(
+                m_fallVisual.localRotation,
+                m_uprightVisualRotation,
+                Time.deltaTime * 8f);
+        }
+    }
+
     protected void ChangeState(EnemyState newState)
     {
         if (m_state == newState)
@@ -187,7 +213,11 @@ public class Enemy : MonoBehaviour, IPoolable
 
             case EnemyState.Fallen:
                 m_agent.isStopped = true;
-                m_anim.SetTrigger("Fall");
+                PrepareFallRotation();
+
+                if (m_testAnim != null)
+                    m_testAnim.SetTrigger("Fallover");
+
                 m_stateTimer = 2f; // Time spent on the floor
                 break;
 
@@ -197,6 +227,10 @@ public class Enemy : MonoBehaviour, IPoolable
                 if (m_hasFallen)
                 {
                     m_anim.SetTrigger("GetUp");
+
+                    if (m_testAnim != null)
+                        m_testAnim.SetTrigger("GetUp");
+
                     m_stateTimer = m_getUpDuration;
                 }
                 else
@@ -258,48 +292,18 @@ public class Enemy : MonoBehaviour, IPoolable
 
         if (m_stateTimer <= 0f)
         {
-            m_hasFallen = false;
             ChangeState(EnemyState.Recover);
-        }
-
-        // Lay the enemy onto the ground in the direction they were knocked.
-        Vector3 fallDir = m_fallDirection;
-        fallDir.y = 0f;
-
-        if (fallDir.sqrMagnitude > 0.001f)
-        {
-            Quaternion face = Quaternion.LookRotation(fallDir);
-
-            // Rotate so the enemy lies on its back/side.
-            // Change the axis/angle depending on your model's forward axis.
-            Quaternion fallenRotation = face * Quaternion.Euler(90f, 0f, 0f);
-
-            m_testAnim.gameObject.transform.rotation = Quaternion.Slerp(
-                 m_testAnim.gameObject.transform.rotation,
-                fallenRotation,
-                Time.deltaTime * 8f);
         }
     }
 
     protected virtual void UpdateRecover()
     {
-        if (m_hasFallen)
-        {
-            ChangeState(EnemyState.Fallen);
-
-            Quaternion fallenRotation = Quaternion.Euler(0f, 0f, 0f);
-            m_testAnim.gameObject.transform.rotation = Quaternion.Slerp(
-             m_testAnim.gameObject.transform.rotation,
-            fallenRotation,
-            Time.deltaTime * 8f);
-
-            return;
-        }
-
         m_stateTimer -= Time.deltaTime;
 
         if (m_stateTimer <= 0f)
         {
+            m_hasFallen = false;
+
             if (CanSeePlayer())
                 ChangeState(EnemyState.Walk);
             else
@@ -362,17 +366,17 @@ public class Enemy : MonoBehaviour, IPoolable
 
     public void ApplyKnockback(Vector3 velocity, float duration)
     {
-        ChangeState(EnemyState.Stun);
-
         m_knockbackVelocity = new Vector3(velocity.x, 0f, velocity.z);
-
         m_knockbackDuration = duration;
         m_knockbackTimer = 0f;
-
         m_knockbackStartY = transform.position.y;
         m_knockbackVerticalStrength = m_knockbackForce * 0.5f;
-
         m_fallDirection = velocity.normalized;
+
+        // Choose the reaction when the hit occurs. Stun and Fallen are now parallel
+        // reactions, and both transition to Recover when their own duration ends.
+        m_hasFallen = Random.value <= m_fallOverChance;
+        ChangeState(m_hasFallen ? EnemyState.Fallen : EnemyState.Stun);
     }
 
     private void HandleKnockback()
@@ -393,8 +397,6 @@ public class Enemy : MonoBehaviour, IPoolable
                 m_agent.isStopped = false;
             }
 
-            m_hasFallen = Random.value <= m_fallOverChance;
-
             ChangeState(EnemyState.Recover);
             return;
         }
@@ -411,6 +413,28 @@ public class Enemy : MonoBehaviour, IPoolable
         pos.y = m_knockbackStartY + height;
 
         transform.position = pos;
+    }
+
+    private void PrepareFallRotation()
+    {
+        Animator fallAnimator = m_testAnim != null ? m_testAnim : m_anim;
+        if (fallAnimator == null)
+            return;
+
+        m_fallVisual = fallAnimator.transform;
+        m_uprightVisualRotation = m_fallVisual.localRotation;
+
+        Vector3 fallDirection = m_fallDirection;
+        fallDirection.y = 0f;
+
+        if (fallDirection.sqrMagnitude <= 0.001f)
+            fallDirection = transform.forward;
+
+        fallDirection.Normalize();
+
+        // Align the visual's up vector with the horizontal knockback direction.
+        // The projectile supplies that direction, so the enemy falls away from the shot.
+        m_fallenVisualRotation = Quaternion.FromToRotation(m_fallVisual.up, fallDirection) * m_fallVisual.rotation;
     }
 
     protected virtual bool CanSeePlayer()
