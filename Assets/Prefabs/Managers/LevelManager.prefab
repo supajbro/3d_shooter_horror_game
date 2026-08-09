@@ -134,10 +134,10 @@ MonoBehaviour:
   m_roomPrefabs:
   - {fileID: 5256344564332166496, guid: 7995b6f06c71dcf4e958164e1930e3a3, type: 3}
   m_startRoomPrefab: {fileID: 0}
-  m_exitRoomPrefab: {fileID: 0}
+  m_exitRoomPrefab: {fileID: 5256344564332166496, guid: 372e928ab08e14a469f332403454e26b, type: 3}
   m_parent: {fileID: 0}
-  m_minRooms: 7
-  m_maxRooms: 12
+  m_minRooms: 50
+  m_maxRooms: 250
   m_tileSize: 50
   m_seed: 0
   m_autoBuildNavMesh: 1

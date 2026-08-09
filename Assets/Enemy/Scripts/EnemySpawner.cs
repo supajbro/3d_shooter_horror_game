@@ -50,244 +50,266 @@ public class EnemySpawner : MonoBehaviour
     {
         m_manager = manager;
 
-        if (m_running) return;
-
-        m_running = true;
-        m_currentWaveIndex = 0;
-
-        if(m_spawnOnLoad)
-            StartWave();
-    }
-
-    private void Update()
-    {
-        if (!m_running || m_state == WaveState.Idle || m_state == WaveState.Completed)
-            return;
-
-        switch (m_state)
+        // If a procedural level generator exists and waves have no spawnPoints configured,
+        // fill the waves' spawnPoints with the generator RoomCenters for distributed spawns.
+        try
         {
-            case WaveState.Spawning:
-                UpdateSpawning();
-                break;
-
-            case WaveState.WaitingForClear:
-                if (m_activeEnemyCount <= 0)
+            var gen = m_manager?.GetLevelGenerator();
+            if (gen != null && gen.RoomCenters != null && gen.RoomCenters.Count > 0 && m_waves != null)
+            {
+                foreach (var wave in m_waves)
                 {
-                    OnWaveFinished(m_waves[m_currentWaveIndex]);
-                    EnterNextWaveDelay();
-                }
-                break;
+                    if (wave.spawnPoints == null || wave.spawnPoints.Count == 0)
+                    {
+                        // copy the list to avoid referencing the generator's list directly
+                        wave.spawnPoints = new List<Transform>(gen.RoomCenters);
+                      }
+                  }
+              }
+          }
+          catch (Exception ex)
+          {
+              Debug.LogWarning($"EnemySpawner: failed to auto-assign spawn points from generator: {ex.Message}");
+          }
 
-            case WaveState.WaitingForNextWave:
-                UpdateNextWaveWait();
-                break;
-        }
-    }
+          if (m_running) return;
 
-    /// <summary>
-    /// Other classes can reference this to start a new wave.
-    /// </summary>
-    public void SpawnWave()
-    {
-        StartWave();
-    }
+          m_running = true;
+          m_currentWaveIndex = 0;
 
-    #region --- WAVE FLOW ---
+          if(m_spawnOnLoad)
+              StartWave();
+      }
 
-    private void StartWave()
-    {
-        if (m_currentWaveIndex >= m_waves.Count)
-        {
-            m_state = WaveState.Completed;
-            OnAllWavesComplete();
-            return;
-        }
+      private void Update()
+      {
+          if (!m_running || m_state == WaveState.Idle || m_state == WaveState.Completed)
+              return;
 
-        StartSpawning(m_waves[m_currentWaveIndex]);
-    }
+          switch (m_state)
+          {
+              case WaveState.Spawning:
+                  UpdateSpawning();
+                  break;
 
-    private void EnterNextWaveDelay()
-    {
-        if (m_waveStartMode == WaveStartMode.AutoAfterClear)
-        {
-            m_stateTimer = m_timeBetweenWaves;
-            m_state = WaveState.WaitingForNextWave;
-        }
-        else
-        {
-            m_waitingForNextWave = true;
-            m_state = WaveState.WaitingForNextWave;
-        }
-    }
+              case WaveState.WaitingForClear:
+                  if (m_activeEnemyCount <= 0)
+                  {
+                      OnWaveFinished(m_waves[m_currentWaveIndex]);
+                      EnterNextWaveDelay();
+                  }
+                  break;
 
-    private void UpdateNextWaveWait()
-    {
-        if (m_waveStartMode == WaveStartMode.AutoAfterClear)
-        {
-            m_stateTimer -= Time.deltaTime;
+              case WaveState.WaitingForNextWave:
+                  UpdateNextWaveWait();
+                  break;
+          }
+      }
 
-            if (m_stateTimer <= 0f)
-            {
-                m_currentWaveIndex++;
-                StartWave();
-            }
-        }
-        else
-        {
-            if (!m_waitingForNextWave)
-            {
-                m_currentWaveIndex++;
-                StartWave();
-            }
-        }
-    }
+      /// <summary>
+      /// Other classes can reference this to start a new wave.
+      /// </summary>
+      public void SpawnWave()
+      {
+          StartWave();
+      }
 
-    #endregion
+      #region --- WAVE FLOW ---
 
-    #region --- SPAWNING ---
+      private void StartWave()
+      {
+          if (m_currentWaveIndex >= m_waves.Count)
+          {
+              m_state = WaveState.Completed;
+              OnAllWavesComplete();
+              return;
+          }
 
-    private void StartSpawning(Wave wave)
-    {
-        m_groupIndex = 0;
-        m_enemyIndexInGroup = 0;
-        m_spawnTimer = 0f;
+          StartSpawning(m_waves[m_currentWaveIndex]);
+      }
 
-        m_state = WaveState.Spawning;
-    }
+      private void EnterNextWaveDelay()
+      {
+          if (m_waveStartMode == WaveStartMode.AutoAfterClear)
+          {
+              m_stateTimer = m_timeBetweenWaves;
+              m_state = WaveState.WaitingForNextWave;
+          }
+          else
+          {
+              m_waitingForNextWave = true;
+              m_state = WaveState.WaitingForNextWave;
+          }
+      }
 
-    private void UpdateSpawning()
-    {
-        Wave wave = m_waves[m_currentWaveIndex];
+      private void UpdateNextWaveWait()
+      {
+          if (m_waveStartMode == WaveStartMode.AutoAfterClear)
+          {
+              m_stateTimer -= Time.deltaTime;
 
-        if (wave.enemies == null || wave.enemies.Count == 0)
-        {
-            m_state = WaveState.WaitingForClear;
-            return;
-        }
+              if (m_stateTimer <= 0f)
+              {
+                  m_currentWaveIndex++;
+                  StartWave();
+              }
+          }
+          else
+          {
+              if (!m_waitingForNextWave)
+              {
+                  m_currentWaveIndex++;
+                  StartWave();
+              }
+          }
+      }
 
-        m_spawnTimer -= Time.deltaTime;
+      #endregion
 
-        if (m_spawnTimer > 0f)
-            return;
+      #region --- SPAWNING ---
 
-        if (m_groupIndex >= wave.enemies.Count)
-        {
-            m_state = WaveState.WaitingForClear;
-            return;
-        }
+      private void StartSpawning(Wave wave)
+      {
+          m_groupIndex = 0;
+          m_enemyIndexInGroup = 0;
+          m_spawnTimer = 0f;
 
-        var group = wave.enemies[m_groupIndex];
+          m_state = WaveState.Spawning;
+      }
 
-        // Spawn enemy
-        SpawnEnemy(group.poolKey, wave.spawnPoints);
-        m_activeEnemyCount++;
+      private void UpdateSpawning()
+      {
+          Wave wave = m_waves[m_currentWaveIndex];
 
-        m_enemyIndexInGroup++;
-        m_spawnTimer = wave.spawnDelay;
+          if (wave.enemies == null || wave.enemies.Count == 0)
+          {
+              m_state = WaveState.WaitingForClear;
+              return;
+          }
 
-        // Move to next group if done
-        if (m_enemyIndexInGroup >= group.count)
-        {
-            m_groupIndex++;
-            m_enemyIndexInGroup = 0;
-        }
-    }
+          m_spawnTimer -= Time.deltaTime;
 
-    #endregion
+          if (m_spawnTimer > 0f)
+              return;
 
-    #region --- ENEMY HANDLING ---
+          if (m_groupIndex >= wave.enemies.Count)
+          {
+              m_state = WaveState.WaitingForClear;
+              return;
+          }
 
-    private void SpawnEnemy(string key, List<Transform> spawnPoints)
-    {
-        if (spawnPoints == null || spawnPoints.Count == 0)
-        {
-            Debug.LogError("No spawn points assigned!");
-            return;
-        }
+          var group = wave.enemies[m_groupIndex];
 
-        Transform spawn = spawnPoints[UnityEngine.Random.Range(0, spawnPoints.Count)];
+          // Spawn enemy
+          SpawnEnemy(group.poolKey, wave.spawnPoints);
+          m_activeEnemyCount++;
 
-        var obj = ObjectPooler.Instance.Spawn(key, spawn.position, spawn.rotation);
+          m_enemyIndexInGroup++;
+          m_spawnTimer = wave.spawnDelay;
 
-        if (obj.TryGetComponent<Enemy>(out var enemy))
-        {
-            enemy.Activate(this);
-        }
-    }
+          // Move to next group if done
+          if (m_enemyIndexInGroup >= group.count)
+          {
+              m_groupIndex++;
+              m_enemyIndexInGroup = 0;
+          }
+      }
 
-    public void RemoveEnemy(string key, GameObject obj)
-    {
-        ObjectPooler.Instance.ReturnToPool(key, obj);
-        m_activeEnemyCount--;
-        if (obj.TryGetComponent<Enemy>(out var enemy))
-        {
-            enemy.Deactivate();
-        }
-    }
+      #endregion
 
-    #endregion
+      #region --- ENEMY HANDLING ---
 
-    #region --- EVENTS ---
+      private void SpawnEnemy(string key, List<Transform> spawnPoints)
+      {
+          if (spawnPoints == null || spawnPoints.Count == 0)
+          {
+              Debug.LogError("No spawn points assigned!");
+              return;
+          }
 
-    private void OnWaveFinished(Wave currentWave)
-    {
-        currentWave.OnWaveCompleted?.Invoke(m_currentWaveIndex);
-        Debug.Log($"Wave {m_currentWaveIndex} complete");
-    }
+          Transform spawn = spawnPoints[UnityEngine.Random.Range(0, spawnPoints.Count)];
 
-    private void OnAllWavesComplete()
-    {
-        Debug.Log("All waves complete!");
-        OnAllWavesCompleted?.Invoke();
-    }
+          var obj = ObjectPooler.Instance.Spawn(key, spawn.position, spawn.rotation);
 
-    #endregion
+          if (obj.TryGetComponent<Enemy>(out var enemy))
+          {
+              enemy.Activate(this);
+          }
+      }
 
-    #region --- PUBLIC API ---
+      public void RemoveEnemy(string key, GameObject obj)
+      {
+          ObjectPooler.Instance.ReturnToPool(key, obj);
+          m_activeEnemyCount--;
+          if (obj.TryGetComponent<Enemy>(out var enemy))
+          {
+              enemy.Deactivate();
+          }
+      }
 
-    public void StartNextWave()
-    {
-        if (m_waveStartMode != WaveStartMode.Manual)
-            return;
+      #endregion
 
-        if (!m_waitingForNextWave)
-            return;
+      #region --- EVENTS ---
 
-        Debug.Log("Next wave has started");
+      private void OnWaveFinished(Wave currentWave)
+      {
+          currentWave.OnWaveCompleted?.Invoke(m_currentWaveIndex);
+          Debug.Log($"Wave {m_currentWaveIndex} complete");
+      }
 
-        m_waitingForNextWave = false;
-    }
+      private void OnAllWavesComplete()
+      {
+          Debug.Log("All waves complete!");
+          OnAllWavesCompleted?.Invoke();
+      }
 
-    public LevelManager GetLevelManager()
-    {
-        if (m_manager == null)
-        {
-            Debug.LogError("Missing level manager reference.");
-            return null;
-        }
-        return m_manager;
-    }
+      #endregion
 
-    #endregion
-}
+      #region --- PUBLIC API ---
 
-[System.Serializable]
-public class Wave
-{
-    public string waveName;
+      public void StartNextWave()
+      {
+          if (m_waveStartMode != WaveStartMode.Manual)
+              return;
 
-    [System.Serializable]
-    public class EnemyGroup
-    {
-        public string poolKey;
-        public int count;
-    }
+          if (!m_waitingForNextWave)
+              return;
 
-    public List<EnemyGroup> enemies;
+          Debug.Log("Next wave has started");
 
-    public List<Transform> spawnPoints;
+          m_waitingForNextWave = false;
+      }
 
-    public float spawnDelay = 0.5f;
+      public LevelManager GetLevelManager()
+      {
+          if (m_manager == null)
+          {
+              Debug.LogError("Missing level manager reference.");
+              return null;
+          }
+          return m_manager;
+      }
 
-    public UnityEvent<int> OnWaveCompleted;
-}
+      #endregion
+  }
+
+  [System.Serializable]
+  public class Wave
+  {
+      public string waveName;
+
+      [System.Serializable]
+      public class EnemyGroup
+      {
+          public string poolKey;
+          public int count;
+      }
+
+      public List<EnemyGroup> enemies;
+
+      public List<Transform> spawnPoints;
+
+      public float spawnDelay = 0.5f;
+
+      public UnityEvent<int> OnWaveCompleted;
+  }

@@ -55,9 +55,15 @@ public class LevelManager : MonoBehaviour
             // Place spawn point at the generator's start position (if available)
             if (m_spawnPoint != null)
             {
-                m_spawnPoint.position = m_levelGenerator.StartPosition;
+                // preserve inspector Y if set
+                Vector3 start = m_levelGenerator.StartPosition;
+                start.y = m_spawnPoint.position.y;
+                m_spawnPoint.position = start;
                 m_spawnPoint.rotation = Quaternion.identity;
             }
+
+            // Create an Exit trigger at the ExitPosition
+            CreateExitAt(m_levelGenerator.ExitPosition);
         }
 
         // Now spawn player and init systems
@@ -76,6 +82,9 @@ public class LevelManager : MonoBehaviour
         m_weaponSpawner = gameObject.AddComponent<WeaponSpawner>();
         m_weaponSpawner.Init();
 
+        // Spawn a few initial random weapon pickups distributed across room centers
+        TrySpawnInitialPickups();
+
         m_weaponPads = FindObjectsByType<WeaponPad>(FindObjectsSortMode.None);
         foreach (var pad in m_weaponPads)
         {
@@ -84,6 +93,63 @@ public class LevelManager : MonoBehaviour
 
         m_ui = GameStateManager.Instance.GetUIStateHandler().m_gameplayUI;
         m_ui.Init(this);
+    }
+
+    private void CreateExitAt(Vector3 exitPosition)
+    {
+        if (m_levelGenerator == null)
+            return;
+
+        // create exit root
+        GameObject exitGO = new GameObject("Exit");
+        exitGO.transform.SetParent(m_levelGenerator.LevelRoot, false);
+        exitGO.transform.position = exitPosition + Vector3.up * 0.5f;
+
+        // trigger collider
+        SphereCollider sc = exitGO.AddComponent<SphereCollider>();
+        sc.isTrigger = true;
+        sc.radius = 1.25f;
+
+        // add exit behavior
+        exitGO.AddComponent<ExitTrigger>();
+
+        // visual marker (simple)
+        GameObject marker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        marker.name = "ExitMarker";
+        marker.transform.SetParent(exitGO.transform, false);
+        marker.transform.localPosition = Vector3.zero;
+        marker.transform.localScale = new Vector3(1f, 0.15f, 1f);
+        // remove marker collider (we're using the parent collider)
+        Collider markerCol = marker.GetComponent<Collider>();
+        if (markerCol != null)
+            Destroy(markerCol);
+    }
+
+    private void TrySpawnInitialPickups()
+    {
+        if (m_levelGenerator == null || m_weaponSpawner == null)
+            return;
+
+        var centers = m_levelGenerator.RoomCenters;
+        if (centers == null || centers.Count == 0)
+            return;
+
+        // spawn roughly one pickup per 4 rooms (min 1)
+        int spawnCount = Mathf.Max(1, centers.Count / 4);
+        HashSet<int> used = new HashSet<int>();
+        for (int i = 0; i < spawnCount; i++)
+        {
+            int idx = Random.Range(0, centers.Count);
+            int tries = 0;
+            while (used.Contains(idx) && tries < 10)
+            {
+                idx = Random.Range(0, centers.Count);
+                tries++;
+            }
+            used.Add(idx);
+            Transform chosen = centers[idx];
+            m_weaponSpawner.SpawnWeaponRandom(chosen, null);
+        }
     }
 
     public void SpawnPlayer()
@@ -166,5 +232,16 @@ public class LevelManager : MonoBehaviour
                 Debug.LogError("Unable to find gun type.");
                 return null;
         }
+    }
+
+    // Expose generator to other systems
+    public ProceduralLevelGenerator GetLevelGenerator()
+    {
+        if (m_levelGenerator == null)
+            m_levelGenerator = FindObjectOfType<ProceduralLevelGenerator>();
+
+        if (m_levelGenerator == null)
+            Debug.LogError("Missing ProceduralLevelGenerator reference.");
+        return m_levelGenerator;
     }
 }
