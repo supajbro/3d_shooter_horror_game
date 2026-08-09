@@ -189,7 +189,7 @@ MonoBehaviour:
   - waveName: 01
     enemies:
     - poolKey: BASE_ENEMY
-      count: 5
+      count: 0
     spawnPoints: []
     spawnDelay: 2
     OnWaveCompleted:
@@ -198,6 +198,7 @@ MonoBehaviour:
   m_waveStartMode: 0
   m_timeBetweenWaves: 3
   m_spawnOnLoad: 0
+  m_platformSpawnChance: 0.25
   OnAllWavesCompleted:
     m_PersistentCalls:
       m_Calls: []

@@ -148,7 +148,10 @@ public class LevelManager : MonoBehaviour
             }
             used.Add(idx);
             Transform chosen = centers[idx];
-            m_weaponSpawner.SpawnWeaponRandom(chosen, null);
+            //m_weaponSpawner.SpawnWeaponRandom(chosen, null);
+
+            // TEMP: Always spawn pistol atm.
+            m_weaponSpawner.SpawnWeapon(BaseGunController.GunType.PISTOL, chosen, null);
         }
     }
 

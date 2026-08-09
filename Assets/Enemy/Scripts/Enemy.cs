@@ -459,6 +459,7 @@ public class Enemy : MonoBehaviour, IPoolable
     protected virtual bool CanSeePlayer()
     {
         Ray ray = new Ray(transform.position + Vector3.up, (m_player.position - transform.position).normalized);
+        Debug.DrawLine(transform.position + Vector3.up, (m_player.position - transform.position).normalized, Color.red);
         RaycastHit hit;
 
         if (Physics.Raycast(ray, out hit, m_chaseRange))
