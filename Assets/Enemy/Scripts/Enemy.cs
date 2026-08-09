@@ -77,6 +77,14 @@ public class Enemy : MonoBehaviour, IPoolable
     [SerializeField] private bool m_debug = false;
     private TextMeshPro m_debugStateText;
 
+    // Vision / memory
+    [Header("Vision")]
+    [SerializeField] private float m_visionAngle = 90f; // total cone angle
+    [SerializeField] private float m_eyeHeight = 1.5f; // origin height for raycasts
+    [SerializeField] private float m_memoryMin = 3f;
+    [SerializeField] private float m_memoryMax = 10f;
+    protected float m_memoryTimer = 0f;
+
     public virtual void Activate(EnemySpawner enemySpawner)
     {
         m_active = true;
@@ -269,7 +277,7 @@ public class Enemy : MonoBehaviour, IPoolable
 
     protected virtual void UpdateWalk()
     {
-        if (!CanSeePlayer())
+        if (!CanSeePlayer() && m_memoryTimer <= 0.0f)
         {
             ChangeState(EnemyState.Idle);
             return;
@@ -295,6 +303,8 @@ public class Enemy : MonoBehaviour, IPoolable
     protected virtual void UpdateFallen()
     {
         m_stateTimer -= Time.deltaTime;
+
+        HandleKnockback();
 
         if (m_stateTimer <= 0f)
         {
@@ -458,13 +468,72 @@ public class Enemy : MonoBehaviour, IPoolable
 
     protected virtual bool CanSeePlayer()
     {
-        Ray ray = new Ray(transform.position + Vector3.up, (m_player.position - transform.position).normalized);
-        Debug.DrawLine(transform.position + Vector3.up, (m_player.position - transform.position).normalized, Color.red);
-        RaycastHit hit;
+        if (m_player == null)
+            return false;
 
-        if (Physics.Raycast(ray, out hit, m_chaseRange))
+        // If we still remember the player's location, count down timer and keep "seeing" them
+        if (m_memoryTimer > 0f)
         {
-            return hit.transform == m_player;
+            m_memoryTimer -= Time.deltaTime;
+            return true;
+        }
+
+        Vector3 origin = transform.position + Vector3.up * m_eyeHeight;
+        Vector3 toPlayer = m_player.position - origin;
+        float distance = toPlayer.magnitude;
+
+        if (distance > m_chaseRange)
+            return false;
+
+        // Angle check - don't attempt raycasts if player is outside vision cone
+        Vector3 flatForward = transform.forward;
+        flatForward.y = 0f;
+        flatForward.Normalize();
+
+        Vector3 flatToPlayer = (m_player.position - transform.position);
+        flatToPlayer.y = 0f;
+        flatToPlayer.Normalize();
+
+        float angleToPlayer = Vector3.Angle(flatForward, flatToPlayer);
+        if (angleToPlayer > (m_visionAngle * 0.5f))
+            return false;
+
+        // Perform multiple raycasts towards different points on the player to be more robust
+        // against partial occlusion. If any ray hits the player, we have vision.
+        Vector3[] targetOffsets = new Vector3[]
+        {
+            Vector3.up * 1.0f,                  // chest/center
+            Vector3.up * 1.75f,                 // head
+            Vector3.up * 0.5f,                  // lower torso
+            m_player.right * 0.3f + Vector3.up * 1.0f,  // right shoulder
+            -m_player.right * 0.3f + Vector3.up * 1.0f, // left shoulder
+        };
+
+        bool canSee = false;
+        foreach (var offset in targetOffsets)
+        {
+            Vector3 targetPoint = m_player.position + offset;
+            Vector3 dir = (targetPoint - origin).normalized;
+
+            if (m_debug)
+                Debug.DrawLine(origin, targetPoint, Color.red);
+
+            if (Physics.Raycast(origin, dir, out RaycastHit hit, m_chaseRange))
+            {
+                // consider the root in case colliders are on child objects
+                if (hit.transform.root == m_player)
+                {
+                    canSee = true;
+                    break;
+                }
+            }
+        }
+
+        if (canSee)
+        {
+            // remember player for a short random duration so enemy doesn't immediately lose track
+            m_memoryTimer = Random.Range(m_memoryMin, m_memoryMax);
+            return true;
         }
 
         return false;

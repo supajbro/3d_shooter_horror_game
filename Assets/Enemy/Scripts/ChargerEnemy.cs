@@ -10,7 +10,7 @@ public class ChargerEnemy : Enemy
 
     protected override void UpdateWalk()
     {
-        if (!CanSeePlayer())
+        if (!CanSeePlayer() && m_memoryTimer <= 0.0f)
         {
             ChangeState(EnemyState.Idle);
             return;
