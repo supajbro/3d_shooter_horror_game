@@ -32,6 +32,7 @@ Transform:
   m_Children:
   - {fileID: 1965457712917085962}
   - {fileID: 729411053510147709}
+  - {fileID: 4458289340352016651}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &572718352043572325
@@ -49,10 +50,12 @@ MonoBehaviour:
   m_managerPrefab: {fileID: 7737220106135987868, guid: 9362fe8d33f903a499dbb8dac1bbb98e, type: 3}
   m_playerPrefab: {fileID: 6555680441361901652, guid: 5a05932ef196f544586bba341ea1bdc6, type: 3}
   m_spawnPoint: {fileID: 1965457712917085962}
+  m_levelGenerator: {fileID: 0}
   m_autoRiflePickup: {fileID: 6353214498802673558, guid: af3470f4dd19a9447b5e4548f0e84461, type: 3}
   m_shotgunPickup: {fileID: 6353214498802673558, guid: 384ec95c1cb0ea947a574820ec70aa40, type: 3}
   m_pistolPickup: {fileID: 6353214498802673558, guid: 0ceb7d8e798d4a241aadc00a37ca0c36, type: 3}
   m_rocketLauncherPickup: {fileID: 6353214498802673558, guid: 3bf4b2ade33f1994998b31decbae2c9e, type: 3}
+  m_ui: {fileID: 0}
 --- !u!1 &1284022344557332623
 GameObject:
   m_ObjectHideFlags: 0
@@ -84,6 +87,60 @@ Transform:
   m_Children: []
   m_Father: {fileID: 5246410929537568086}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1432202141097508213
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4458289340352016651}
+  - component: {fileID: 2866472854059253831}
+  m_Layer: 0
+  m_Name: ProceduralGeneration
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4458289340352016651
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1432202141097508213}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5246410929537568086}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2866472854059253831
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1432202141097508213}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6175561d2718b4741bc002f97f939287, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProceduralLevelGenerator
+  m_roomPrefabs:
+  - {fileID: 5256344564332166496, guid: 7995b6f06c71dcf4e958164e1930e3a3, type: 3}
+  m_startRoomPrefab: {fileID: 0}
+  m_exitRoomPrefab: {fileID: 0}
+  m_parent: {fileID: 0}
+  m_minRooms: 7
+  m_maxRooms: 12
+  m_tileSize: 50
+  m_seed: 0
+  m_autoBuildNavMesh: 1
 --- !u!1 &8019854034769910944
 GameObject:
   m_ObjectHideFlags: 0
@@ -135,5 +192,12 @@ MonoBehaviour:
       count: 5
     spawnPoints: []
     spawnDelay: 2
+    OnWaveCompleted:
+      m_PersistentCalls:
+        m_Calls: []
   m_waveStartMode: 0
   m_timeBetweenWaves: 3
+  m_spawnOnLoad: 0
+  OnAllWavesCompleted:
+    m_PersistentCalls:
+      m_Calls: []

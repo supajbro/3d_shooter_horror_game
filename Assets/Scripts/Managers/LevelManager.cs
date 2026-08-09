@@ -16,6 +16,9 @@ public class LevelManager : MonoBehaviour
     private GameObject m_currentPlayer;
     private FirstPersonController m_fpsPlayer;
 
+    [Header("Procedural Level")]
+    [SerializeField] private ProceduralLevelGenerator m_levelGenerator;
+
     [Header("Enemy")]
     private EnemySpawner m_enemySpawner;
     private CollisionStartsNextEnemyWave[] m_collisionStartsNextEnemyWave; // <- array is inserted at runtime
@@ -40,10 +43,29 @@ public class LevelManager : MonoBehaviour
 
         GameStateManager.Instance.SetLevelManager(this);
 
+        // If a level generator isn't assigned in inspector, try to find one in scene
+        if (m_levelGenerator == null)
+            m_levelGenerator = FindObjectOfType<ProceduralLevelGenerator>();
+
+        if (m_levelGenerator != null)
+        {
+            // Generate synchronously (keeps code simple). You can pass a seed if desired.
+            m_levelGenerator.Generate();
+
+            // Place spawn point at the generator's start position (if available)
+            if (m_spawnPoint != null)
+            {
+                m_spawnPoint.position = m_levelGenerator.StartPosition;
+                m_spawnPoint.rotation = Quaternion.identity;
+            }
+        }
+
+        // Now spawn player and init systems
         SpawnPlayer();
 
         m_enemySpawner = GetComponentInChildren<EnemySpawner>();
-        m_enemySpawner.Init(this);
+        if (m_enemySpawner != null)
+            m_enemySpawner.Init(this);
 
         m_collisionStartsNextEnemyWave = FindObjectsByType<CollisionStartsNextEnemyWave>(FindObjectsSortMode.None);
         foreach (var enemyWave in m_collisionStartsNextEnemyWave)
