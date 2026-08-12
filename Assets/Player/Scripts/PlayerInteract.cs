@@ -1,4 +1,7 @@
 using UnityEngine;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 public interface IInteractable
 {
@@ -21,11 +24,13 @@ public class PlayerInteract : MonoBehaviour
 
     private void Update()
     {
+//#if !ENABLE_INPUT_SYSTEM
         // TODO: Change this to use new input system
         if (Input.GetKeyDown(m_interactKey))
         {
             CheckForInteractable();
         }
+//#endif
     }
 
     private void CheckForInteractable()
@@ -40,4 +45,22 @@ public class PlayerInteract : MonoBehaviour
             }
         }
     }
+
+    // Public method so input system callbacks or other callers can attempt an interaction
+    public void TryInteract()
+    {
+        if (m_playerCamera == null)
+            return;
+
+        CheckForInteractable();
+    }
+
+/*#if ENABLE_INPUT_SYSTEM
+    // Optional callback for Unity Input System "Interact" action. Hook this in the PlayerInput component.
+    public void OnInteract(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+            TryInteract();
+    }
+#endif*/
 }

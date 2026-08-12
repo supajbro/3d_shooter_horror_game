@@ -300,8 +300,9 @@ GameObject:
   - component: {fileID: 2160691401514750700}
   - component: {fileID: 988249173161211774}
   - component: {fileID: 7841008008778265657}
-  m_Layer: 0
-  m_Name: Cube
+  - component: {fileID: 3528981272870063454}
+  m_Layer: 9
+  m_Name: Door
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -400,6 +401,24 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &3528981272870063454
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2700596056132179524}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f93294810ae14734fb804bd017773c91, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Door
+  m_hinge: {fileID: 0}
+  m_animator: {fileID: 0}
+  m_openTrigger: Open
+  m_closeTrigger: Close
+  m_openAngle: 90
+  m_openSpeed: 6
 --- !u!1 &4364432662506646045
 GameObject:
   m_ObjectHideFlags: 0
