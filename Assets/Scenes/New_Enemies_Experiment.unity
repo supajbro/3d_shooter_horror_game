@@ -1432,6 +1432,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: LevelManager
       objectReference: {fileID: 0}
+    - target: {fileID: 2866472854059253831, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: m_maxRooms
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 2866472854059253831, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: m_minRooms
+      value: 25
+      objectReference: {fileID: 0}
+    - target: {fileID: 2866472854059253831, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
+      propertyPath: m_floorTilePrefab
+      value: 
+      objectReference: {fileID: 5256344564332166496, guid: defaaf9be5e5ac141b5ebe28444a0a16, type: 3}
     - target: {fileID: 5246410929537568086, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
       propertyPath: m_LocalPosition.x
       value: -2.3353
@@ -34497,6 +34509,10 @@ PrefabInstance:
     - target: {fileID: 5564404647993832259, guid: 41d75ade2f53ed34c820718fbbe00b96, type: 3}
       propertyPath: m_Name
       value: Rain
+      objectReference: {fileID: 0}
+    - target: {fileID: 5564404647993832259, guid: 41d75ade2f53ed34c820718fbbe00b96, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 9221900924464541772, guid: 41d75ade2f53ed34c820718fbbe00b96, type: 3}
       propertyPath: m_LocalPosition.x

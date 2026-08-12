@@ -25,12 +25,25 @@ public class ProceduralLevelGenerator : MonoBehaviour
     [SerializeField] private float m_tileSize = 10f;
     [SerializeField] private int m_seed = 0; // 0 = random
 
+    // Hallway-specific settings
+    [Header("Hallway")]
+    [Tooltip("Prefab used to build the hallway/floor tiles. If empty a simple cube will be used.")]
+    [SerializeField] private GameObject m_floorTilePrefab;
+    [SerializeField] private int m_hallMinLength = 8;
+    [SerializeField] private int m_hallMaxLength = 16;
+    [Range(0f, 1f)]
+    [SerializeField] private float m_sideRoomChance = 0.5f; // chance to spawn a room on either side of a hall segment
+
     [Header("NavMesh (requires NavMeshComponents)")]
     [Tooltip("If true the generator will add/ensure a NavMeshSurface on the level root and call BuildNavMesh() after generation.")]
     [SerializeField] private bool m_autoBuildNavMesh = true;
 
     private System.Random m_rng;
     private readonly Dictionary<Vector2Int, GameObject> m_rooms = new Dictionary<Vector2Int, GameObject>();
+
+    // remember hallway layout for instantiation
+    private bool m_hallHorizontal = true;
+    private int m_hallLength = 0;
 
     public Action OnLevelGenerated;
     public Vector3 StartPosition { get; private set; }
@@ -81,33 +94,74 @@ public class ProceduralLevelGenerator : MonoBehaviour
         RoomCenters.Clear();
         StartPosition = Vector3.zero;
         ExitPosition = Vector3.zero;
+
+        m_hallLength = 0;
+        m_hallHorizontal = true;
     }
 
     private void BuildLayout()
     {
-        int roomCount = Mathf.Clamp(m_rng.Next(m_minRooms, m_maxRooms + 1), 1, 1000);
+        // Create a single long hallway and attach rooms to the sides.
+        // Hallway length is independent from min/max rooms so the hallway can be long.
+        m_hallLength = Mathf.Clamp(m_rng.Next(m_hallMinLength, m_hallMaxLength + 1), 1, 1000);
+        m_hallHorizontal = m_rng.Next(0, 2) == 0; // choose orientation randomly
 
         List<Vector2Int> positions = new List<Vector2Int>();
-        positions.Add(Vector2Int.zero);
 
+        // Build hallway starting at origin and extending in the positive axis
+        for (int i = 0; i < m_hallLength; i++)
+        {
+            Vector2Int p = m_hallHorizontal ? new Vector2Int(i, 0) : new Vector2Int(0, i);
+            positions.Add(p);
+        }
+
+        // For each hallway tile, attempt to spawn rooms on the two sides
+        Vector2Int sideA = m_hallHorizontal ? Vector2Int.up : Vector2Int.left;
+        Vector2Int sideB = m_hallHorizontal ? Vector2Int.down : Vector2Int.right;
+
+        foreach (var hallCell in positions.ToList())
+        {
+            if (positions.Count >= m_maxRooms)
+                break;
+
+            if (m_rng.NextDouble() <= m_sideRoomChance)
+            {
+                Vector2Int roomPos = hallCell + sideA;
+                if (!positions.Contains(roomPos))
+                    positions.Add(roomPos);
+            }
+
+            if (positions.Count >= m_maxRooms)
+                break;
+
+            if (m_rng.NextDouble() <= m_sideRoomChance)
+            {
+                Vector2Int roomPos = hallCell + sideB;
+                if (!positions.Contains(roomPos))
+                    positions.Add(roomPos);
+            }
+        }
+
+        // If we still have fewer than m_minRooms total, grow outward from hallway ends or random hallway cells
+        int idx = 0;
         Vector2Int[] dirs = new[] { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
-
-        // Random walk / growth until we have roomCount unique cells
-        while (positions.Count < roomCount)
+        while (positions.Count < m_minRooms)
         {
             Vector2Int basePos = positions[m_rng.Next(positions.Count)];
             Vector2Int dir = dirs[m_rng.Next(dirs.Length)];
             Vector2Int newPos = basePos + dir;
             if (!positions.Contains(newPos))
                 positions.Add(newPos);
+            if (++idx > m_minRooms * 4) // safety
+                break;
         }
 
         foreach (var p in positions)
             m_rooms[p] = null;
 
-        // Precompute start and exit positions
+        // Start is origin; exit is the far end of the hallway
         StartPosition = GridToWorld(Vector2Int.zero);
-        Vector2Int exitKey = m_rooms.Keys.OrderByDescending(k => Math.Abs(k.x) + Math.Abs(k.y)).FirstOrDefault();
+        Vector2Int exitKey = m_hallHorizontal ? new Vector2Int(m_hallLength - 1, 0) : new Vector2Int(0, m_hallLength - 1);
         ExitPosition = GridToWorld(exitKey);
     }
 
@@ -116,33 +170,51 @@ public class ProceduralLevelGenerator : MonoBehaviour
         if (m_rooms.Count == 0)
             return;
 
-        Vector2Int exitKey = m_rooms.Keys.OrderByDescending(k => Math.Abs(k.x) + Math.Abs(k.y)).FirstOrDefault();
+        Vector2Int exitKey = m_hallHorizontal ? new Vector2Int(m_hallLength - 1, 0) : new Vector2Int(0, m_hallLength - 1);
 
         foreach (var kv in m_rooms.ToList())
         {
             Vector2Int pos = kv.Key;
             Vector3 worldPos = GridToWorld(pos);
 
-            GameObject prefab = null;
-            if (pos == Vector2Int.zero && m_startRoomPrefab != null)
-                prefab = m_startRoomPrefab;
-            else if (pos == exitKey && m_exitRoomPrefab != null)
-                prefab = m_exitRoomPrefab;
-            else if (m_roomPrefabs != null && m_roomPrefabs.Length > 0)
-                prefab = m_roomPrefabs[m_rng.Next(m_roomPrefabs.Length)];
+            GameObject go = null;
 
-            GameObject go;
-            if (prefab != null)
+            // Start room override
+            if (pos == Vector2Int.zero && m_startRoomPrefab != null)
             {
-                go = Instantiate(prefab, worldPos, Quaternion.identity, m_parent);
+                go = Instantiate(m_startRoomPrefab, worldPos, Quaternion.identity, m_parent);
+            }
+            else if (pos == exitKey && m_exitRoomPrefab != null)
+            {
+                go = Instantiate(m_exitRoomPrefab, worldPos, Quaternion.identity, m_parent);
+            }
+            else if (IsHallwayCell(pos))
+            {
+                if (m_floorTilePrefab != null)
+                {
+                    go = Instantiate(m_floorTilePrefab, worldPos, Quaternion.identity, m_parent);
+                }
+                else
+                {
+                    // fallback thin cube as floor tile
+                    go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    go.transform.SetParent(m_parent, false);
+                    go.transform.position = worldPos;
+                    go.transform.localScale = new Vector3(m_tileSize, 0.2f, m_tileSize);
+                }
             }
             else
             {
-                // Fallback placeholder cube room (never fail generation)
-                go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                go.transform.SetParent(m_parent, false);
-                go.transform.position = worldPos;
-                go.transform.localScale = new Vector3(m_tileSize, 2f, m_tileSize);
+                // side room or extra room
+                if (m_roomPrefabs != null && m_roomPrefabs.Length > 0)
+                    go = Instantiate(m_roomPrefabs[m_rng.Next(m_roomPrefabs.Length)], worldPos, Quaternion.identity, m_parent);
+                else
+                {
+                    go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    go.transform.SetParent(m_parent, false);
+                    go.transform.position = worldPos;
+                    go.transform.localScale = new Vector3(m_tileSize, 2f, m_tileSize);
+                }
             }
 
             go.name = $"Room_{pos.x}_{pos.y}";
@@ -160,6 +232,14 @@ public class ProceduralLevelGenerator : MonoBehaviour
                 RoomCenters.Add(marker.transform);
             }
         }
+    }
+
+    private bool IsHallwayCell(Vector2Int pos)
+    {
+        if (m_hallHorizontal)
+            return pos.y == 0 && pos.x >= 0 && pos.x < m_hallLength;
+        else
+            return pos.x == 0 && pos.y >= 0 && pos.y < m_hallLength;
     }
 
     private Vector3 GridToWorld(Vector2Int grid) => new Vector3(grid.x * m_tileSize, 0f, grid.y * m_tileSize);

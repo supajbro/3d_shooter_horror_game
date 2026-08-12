@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 2320624818647405254}
   - component: {fileID: 8165155254486771825}
   m_Layer: 0
-  m_Name: FloorTile
+  m_Name: HallwayTile
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -68,7 +68,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: ca3298aa46e1f9e469bc0f20a5dc6b6c, type: 2}
+  - {fileID: 2100000, guid: e2de6fad73193cd4f8996b91c295e057, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
