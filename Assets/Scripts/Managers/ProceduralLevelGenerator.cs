@@ -34,6 +34,19 @@ public class ProceduralLevelGenerator : MonoBehaviour
     [Range(0f, 1f)]
     [SerializeField] private float m_sideRoomChance = 0.5f; // chance to spawn a room on either side of a hall segment
 
+    [Header("Walls")]
+    [Tooltip("Plain wall prefab (used when there is no room behind the wall).")]
+    [SerializeField] private GameObject m_wallPrefab;
+    [Tooltip("Wall prefab that contains a door opening facing the hallway (used when a room is behind the wall).")]
+    [SerializeField] private GameObject m_wallDoorPrefab;
+    [Tooltip("If no wall prefab is assigned a simple cube will be created with this height.")]
+    [SerializeField] private float m_wallHeight = 3f;
+    [Tooltip("Half-height / Y offset for spawned wall prefabs (default centers wall on floor).")]
+    [SerializeField] private float m_wallYOffset = 1.5f;
+    [Tooltip("Thickness used for fallback cube walls.")]
+    [SerializeField] private float m_wallThickness = 0.25f;
+    [SerializeField] private bool m_spawnHallwayWalls = true;
+
     [Header("NavMesh (requires NavMeshComponents)")]
     [Tooltip("If true the generator will add/ensure a NavMeshSurface on the level root and call BuildNavMesh() after generation.")]
     [SerializeField] private bool m_autoBuildNavMesh = true;
@@ -230,6 +243,74 @@ public class ProceduralLevelGenerator : MonoBehaviour
                 marker.transform.SetParent(go.transform, false);
                 marker.transform.localPosition = Vector3.zero;
                 RoomCenters.Add(marker.transform);
+            }
+        }
+
+        // After placing floors and rooms, spawn walls along the hallway edges
+        SpawnHallwayWalls();
+    }
+
+    private void SpawnHallwayWalls()
+    {
+        if (!m_spawnHallwayWalls)
+            return;
+
+        // sides to consider relative to hallway cell
+        Vector2Int[] sides = m_hallHorizontal ? new[] { Vector2Int.up, Vector2Int.down } : new[] { Vector2Int.left, Vector2Int.right };
+
+        foreach (var kv in m_rooms.ToList())
+        {
+            Vector2Int pos = kv.Key;
+            if (!IsHallwayCell(pos))
+                continue;
+
+            foreach (var side in sides)
+            {
+                Vector2Int adjacent = pos + side;
+
+                // if the adjacent cell is also a hallway cell, do not place a wall there
+                if (IsHallwayCell(adjacent))
+                    continue;
+
+                // Decide whether there's a room behind the wall
+                bool hasRoomBehind = m_rooms.ContainsKey(adjacent) && !IsHallwayCell(adjacent);
+
+                GameObject chosenPrefab = null;
+                if (hasRoomBehind)
+                    chosenPrefab = m_wallDoorPrefab ?? m_wallPrefab;
+                else
+                    chosenPrefab = m_wallPrefab;
+
+                Vector3 spawnPos = GridToWorld(pos) + new Vector3(side.x * m_tileSize * 0.5f, m_wallYOffset, side.y * m_tileSize * 0.5f);
+
+                if (chosenPrefab == null)
+                {
+                    // fallback cube wall
+                    GameObject wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    wall.transform.SetParent(m_parent, false);
+                    wall.transform.position = spawnPos;
+
+                    if (m_hallHorizontal)
+                    {
+                        // wall runs along X
+                        wall.transform.localScale = new Vector3(m_tileSize, m_wallHeight, m_wallThickness);
+                    }
+                    else
+                    {
+                        // wall runs along Z
+                        wall.transform.localScale = new Vector3(m_wallThickness, m_wallHeight, m_tileSize);
+                    }
+
+                    wall.name = $"Wall_{pos.x}_{pos.y}_{side.x}_{side.y}";
+                }
+                else
+                {
+                    // rotate so the wall's forward aligns with the hallway axis (length along hallway)
+                    Vector3 forward = m_hallHorizontal ? Vector3.right : Vector3.forward;
+                    Quaternion rot = Quaternion.LookRotation(forward);
+                    GameObject wall = Instantiate(chosenPrefab, spawnPos, rot, m_parent);
+                    wall.name = $"Wall_{pos.x}_{pos.y}_{side.x}_{side.y}";
+                }
             }
         }
     }
