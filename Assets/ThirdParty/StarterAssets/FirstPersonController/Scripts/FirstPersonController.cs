@@ -782,12 +782,12 @@ namespace StarterAssets
 
                 case 1:
                     anim.SetTrigger("Attack02");
-                    DoMeleeHit(m_strongForce); // Stronger attack
+                    DoMeleeHit(m_strongForce, true); // Stronger attack
                     break;
             }
         }
 
-        private void DoMeleeHit(float force)
+        private void DoMeleeHit(float force, bool allowRicochet = false)
         {
             Camera cam = GetPlayerCamera().GetCamera();
 

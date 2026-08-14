@@ -37,12 +37,23 @@ public class Enemy : MonoBehaviour, IPoolable
 
     [Header("Knockback")]
     private bool m_isKnockedBack;
-    private Vector3 m_knockbackVelocity;
+    private Vector3 m_knockbackVelocity; // original horizontal input vector
     private float m_knockbackForce = 2.0f;
     private float m_knockbackTimer;
     private float m_knockbackDuration;
     private float m_knockbackStartY;
     private float m_knockbackVerticalStrength;
+
+    // Ricochet / bounce configuration
+    [SerializeField] private float m_ricochetRadius = 0.35f; // radius for spherecast when checking walls
+    [SerializeField] private float m_ricochetBounceDamping = 0.6f; // fraction of speed kept after bounce
+    [SerializeField] private float m_ricochetDrag = 5f; // how quickly horizontal velocity decays per second
+    [SerializeField] private LayerMask m_ricochetLayerMask = (LayerMask)(-1); // which layers to collide with
+    [SerializeField] private float m_minRicochetSpeed = 0.5f; // below this speed stop ricocheting
+
+    // Dynamic ricochet state
+    private bool m_allowRicochet = false;
+    private Vector3 m_currentVelocity; // horizontal velocity used for ricochet simulation
 
     [Header("Health Stats")]
     [SerializeField] protected float m_maxHealth = 100.0f;
@@ -381,7 +392,11 @@ public class Enemy : MonoBehaviour, IPoolable
         m_anim.SetTrigger("Idle");
     }
 
-    public void ApplyKnockback(Vector3 velocity, float duration)
+    /// <summary>
+    /// Apply a knockback to the enemy.
+    /// New parameter allowRicochet enables wall-bouncing behaviour when true.
+    /// </summary>
+    public void ApplyKnockback(Vector3 velocity, float duration, bool allowRicochet = false)
     {
         // Use the incoming velocity magnitude to scale knockback forces so different
         // weapons feel distinct. Strong hits (e.g. revolver / bullets) should feel
@@ -407,13 +422,27 @@ public class Enemy : MonoBehaviour, IPoolable
         }
         else
         {
-            // Slightly bias fall chance to depend on force so stronger punches feel more satisfying.
-            // Maximum bias is 50% at 11f, tapering off to 0% at 0f and 3f.
+            // Slightly bias fall chance by force so stronger punches feel more satisfying.
             float biasedChance = Mathf.Clamp01(m_fallOverChance + (incomingForce - 3f) * 0.05f);
             m_hasFallen = Random.value <= biasedChance;
         }
 
-        // For very strong impacts extend the time on the floor so it feels impactful.
+        // Ricochet: prepare a horizontal velocity used for collisions and reflection.
+        m_allowRicochet = allowRicochet;
+        if (m_allowRicochet)
+        {
+            // Compute an initial horizontal speed similar to previous behavior's initial push
+            float horizontalMultiplier = Mathf.Lerp(5f, 20f, Mathf.Clamp01(m_knockbackForce / 15f));
+            m_currentVelocity = m_knockbackVelocity * horizontalMultiplier;
+        }
+        else
+        {
+            // keep currentVelocity zero so non-ricochet path uses legacy behaviour
+            m_currentVelocity = Vector3.zero;
+        }
+
+        // Choose the reaction when the hit occurs. Stun and Fallen are now parallel
+        // reactions, and both transition to Recover when their own duration ends.
         ChangeState(m_hasFallen ? EnemyState.Fallen : EnemyState.Stun);
 
         if (m_hasFallen && m_knockbackForce >= 12f)
@@ -421,6 +450,8 @@ public class Enemy : MonoBehaviour, IPoolable
             // Give big hits a longer floor time
             m_stateTimer = Mathf.Max(m_stateTimer, 3.0f);
         }
+
+        m_isKnockedBack = true;
     }
 
     private void HandleKnockback()
@@ -441,25 +472,95 @@ public class Enemy : MonoBehaviour, IPoolable
                 m_agent.isStopped = false;
             }
 
+            // reset ricochet state
+            m_allowRicochet = false;
+            m_currentVelocity = Vector3.zero;
+            m_isKnockedBack = false;
+
             ChangeState(EnemyState.Recover);
             return;
         }
 
-        // horizontal decay - use a stronger initial impulse and scale by incoming force
-        float curve = Mathf.Pow(1f - t, 2f); // stronger initial push
-
-        // horizontal multiplier increases with force so bullets feel much stronger
-        float horizontalMultiplier = Mathf.Lerp(5f, 20f, Mathf.Clamp01(m_knockbackForce / 15f));
-        Vector3 horizontal = m_knockbackVelocity * horizontalMultiplier * curve;
-
-        // vertical arc (jump feel)
+        // vertical arc (jump feel) - remains the same for both modes
         float height = Mathf.Sin(t * Mathf.PI) * m_knockbackVerticalStrength;
 
-        Vector3 pos = transform.position;
-        pos += horizontal * Time.deltaTime;
-        pos.y = m_knockbackStartY + height;
+        if (m_allowRicochet && m_currentVelocity.sqrMagnitude > 0.0001f)
+        {
+            // Ricochet-enabled path: integrate horizontal velocity and handle wall collisions
+            Vector3 horizontalMove = m_currentVelocity;
+            float moveDistance = horizontalMove.magnitude * Time.deltaTime;
 
-        transform.position = pos;
+            if (moveDistance > 0f)
+            {
+                Vector3 dir = horizontalMove.normalized;
+                Vector3 castOrigin = transform.position + Vector3.up * 0.5f; // cast around mid-height
+
+                if (Physics.SphereCast(castOrigin, m_ricochetRadius, dir, out RaycastHit hit, moveDistance + 0.01f, m_ricochetLayerMask.value, QueryTriggerInteraction.Ignore))
+                {
+                    // ignore collisions with own root
+                    if (hit.collider != null && hit.collider.transform.root != transform)
+                    {
+                        // Move to impact point (offset slightly from wall)
+                        Vector3 impactPoint = hit.point + hit.normal * (m_ricochetRadius + 0.01f);
+                        Vector3 pos = transform.position;
+                        pos.x = impactPoint.x;
+                        pos.z = impactPoint.z;
+                        pos.y = m_knockbackStartY + height;
+                        transform.position = pos;
+
+                        // Reflect horizontal velocity and damp it
+                        m_currentVelocity = Vector3.Reflect(m_currentVelocity, hit.normal) * m_ricochetBounceDamping;
+
+                        // Small random deflection to avoid perfectly repeating bounces
+                        float jitter = 0.05f * Mathf.Clamp01(m_knockbackForce / 15f);
+                        if (jitter > 0f)
+                        {
+                            m_currentVelocity = Quaternion.Euler(0f, Random.Range(-jitter, jitter) * 180f, 0f) * m_currentVelocity;
+                        }
+
+                        // If speed is too low after bounce, stop ricocheting so legacy code can finish
+                        if (m_currentVelocity.magnitude < m_minRicochetSpeed)
+                        {
+                            m_currentVelocity = Vector3.zero;
+                            m_allowRicochet = false;
+                        }
+                    }
+                    else
+                    {
+                        // Hit ourself (rare) - just move without reflecting
+                        Vector3 pos = transform.position;
+                        pos += m_currentVelocity * Time.deltaTime;
+                        pos.y = m_knockbackStartY + height;
+                        transform.position = pos;
+                    }
+                }
+                else
+                {
+                    // No collision this frame - move normally
+                    Vector3 pos = transform.position;
+                    pos += m_currentVelocity * Time.deltaTime;
+                    pos.y = m_knockbackStartY + height;
+                    transform.position = pos;
+                }
+            }
+
+            // Apply drag so horizontal velocity decays over time
+            m_currentVelocity = Vector3.Lerp(m_currentVelocity, Vector3.zero, Time.deltaTime * m_ricochetDrag);
+        }
+        else
+        {
+            // Legacy fallback: smooth rotate/decay behaviour used previously.
+            // horizontal decay
+            float curve = Mathf.Pow(1f - t, 2f); // stronger initial push
+            float horizontalMultiplier = Mathf.Lerp(5f, 20f, Mathf.Clamp01(m_knockbackForce / 15f));
+            Vector3 horizontal = m_knockbackVelocity * horizontalMultiplier * curve;
+
+            Vector3 pos = transform.position;
+            pos += horizontal * Time.deltaTime;
+            pos.y = m_knockbackStartY + height;
+
+            transform.position = pos;
+        }
     }
 
     private void PrepareFallRotation()

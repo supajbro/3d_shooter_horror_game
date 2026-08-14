@@ -90,7 +90,7 @@ public class Bullet : MonoBehaviour
                 dir.Normalize();
 
                 enemy.GetHealth().SetHealthRelative(-m_damage);
-                enemy.ApplyKnockback(dir * 15.0f, 0.5f);
+                enemy.ApplyKnockback(dir * 15.0f, 0.5f, true);
             }
         }
 

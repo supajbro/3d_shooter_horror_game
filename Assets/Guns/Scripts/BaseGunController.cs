@@ -333,7 +333,7 @@ public abstract class BaseGunController : MonoBehaviour
                 dir.Normalize();
 
                 enemy.GetHealth().SetHealthRelative(-m_damage);
-                enemy.ApplyKnockback(dir * 15.0f, 0.5f);
+                enemy.ApplyKnockback(dir * 30.0f, 0.5f, true);
             }
         }
 
