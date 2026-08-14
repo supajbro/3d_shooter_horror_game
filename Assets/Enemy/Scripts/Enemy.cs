@@ -383,17 +383,44 @@ public class Enemy : MonoBehaviour, IPoolable
 
     public void ApplyKnockback(Vector3 velocity, float duration)
     {
+        // Use the incoming velocity magnitude to scale knockback forces so different
+        // weapons feel distinct. Strong hits (e.g. revolver / bullets) should feel
+        // much more powerful and are more likely to make the enemy fall over.
+        float incomingForce = velocity.magnitude;
+
         m_knockbackVelocity = new Vector3(velocity.x, 0f, velocity.z);
-        m_knockbackDuration = duration;
+        m_knockbackForce = incomingForce;
+
+        // Ensure duration scales reasonably with force so heavier hits feel heavier.
+        m_knockbackDuration = Mathf.Max(duration, 0.25f + incomingForce * 0.03f);
         m_knockbackTimer = 0f;
         m_knockbackStartY = transform.position.y;
-        m_knockbackVerticalStrength = m_knockbackForce * 0.5f;
+
+        // Vertical strength scales with force but is clamped to avoid extreme pops.
+        m_knockbackVerticalStrength = Mathf.Clamp(m_knockbackForce * 0.6f, 0.5f, 8f);
         m_fallDirection = velocity.normalized;
 
-        // Choose the reaction when the hit occurs. Stun and Fallen are now parallel
-        // reactions, and both transition to Recover when their own duration ends.
-        m_hasFallen = Random.value <= m_fallOverChance;
+        // Strong hits more likely (or guaranteed) to cause a fall.
+        if (incomingForce >= 12f)
+        {
+            m_hasFallen = true; // e.g. revolver/bullet
+        }
+        else
+        {
+            // Slightly bias fall chance to depend on force so stronger punches feel more satisfying.
+            // Maximum bias is 50% at 11f, tapering off to 0% at 0f and 3f.
+            float biasedChance = Mathf.Clamp01(m_fallOverChance + (incomingForce - 3f) * 0.05f);
+            m_hasFallen = Random.value <= biasedChance;
+        }
+
+        // For very strong impacts extend the time on the floor so it feels impactful.
         ChangeState(m_hasFallen ? EnemyState.Fallen : EnemyState.Stun);
+
+        if (m_hasFallen && m_knockbackForce >= 12f)
+        {
+            // Give big hits a longer floor time
+            m_stateTimer = Mathf.Max(m_stateTimer, 3.0f);
+        }
     }
 
     private void HandleKnockback()
@@ -418,9 +445,12 @@ public class Enemy : MonoBehaviour, IPoolable
             return;
         }
 
-        // horizontal decay
+        // horizontal decay - use a stronger initial impulse and scale by incoming force
         float curve = Mathf.Pow(1f - t, 2f); // stronger initial push
-        Vector3 horizontal = m_knockbackVelocity * 7.5f * curve;
+
+        // horizontal multiplier increases with force so bullets feel much stronger
+        float horizontalMultiplier = Mathf.Lerp(5f, 20f, Mathf.Clamp01(m_knockbackForce / 15f));
+        Vector3 horizontal = m_knockbackVelocity * horizontalMultiplier * curve;
 
         // vertical arc (jump feel)
         float height = Mathf.Sin(t * Mathf.PI) * m_knockbackVerticalStrength;
