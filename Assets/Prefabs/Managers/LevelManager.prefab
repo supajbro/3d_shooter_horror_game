@@ -206,13 +206,13 @@ MonoBehaviour:
   m_startRoomPrefab: {fileID: 0}
   m_exitRoomPrefab: {fileID: 5256344564332166496, guid: 372e928ab08e14a469f332403454e26b, type: 3}
   m_parent: {fileID: 0}
-  m_minRooms: 50
-  m_maxRooms: 250
+  m_minRooms: 25
+  m_maxRooms: 150
   m_tileSize: 50
   m_seed: 0
   m_floorTilePrefab: {fileID: 5256344564332166496, guid: defaaf9be5e5ac141b5ebe28444a0a16, type: 3}
   m_hallMinLength: 25
-  m_hallMaxLength: 250
+  m_hallMaxLength: 100
   m_sideRoomChance: 0.25
   m_wallPrefab: {fileID: 5256344564332166496, guid: 0905db349c107474c81abe150d7e4b29, type: 3}
   m_wallDoorPrefab: {fileID: 5256344564332166496, guid: 6bf7f3f7b93d9c846a4b6d6ef46f6fba, type: 3}

@@ -55,8 +55,8 @@ public class ProceduralLevelGenerator : MonoBehaviour
     private readonly Dictionary<Vector2Int, GameObject> m_rooms = new Dictionary<Vector2Int, GameObject>();
 
     // remember hallway layout for instantiation
-    private bool m_hallHorizontal = true;
-    private int m_hallLength = 0;
+    private List<Vector2Int> m_hallCells = new List<Vector2Int>();
+    private HashSet<Vector2Int> m_hallCellSet = new HashSet<Vector2Int>();
 
     public Action OnLevelGenerated;
     public Vector3 StartPosition { get; private set; }
@@ -108,64 +108,140 @@ public class ProceduralLevelGenerator : MonoBehaviour
         StartPosition = Vector3.zero;
         ExitPosition = Vector3.zero;
 
-        m_hallLength = 0;
-        m_hallHorizontal = true;
+        m_hallCells.Clear();
+        m_hallCellSet.Clear();
     }
 
     private void BuildLayout()
     {
-        // Create a single long hallway and attach rooms to the sides.
-        // Hallway length is independent from min/max rooms so the hallway can be long.
-        m_hallLength = Mathf.Clamp(m_rng.Next(m_hallMinLength, m_hallMaxLength + 1), 1, 1000);
-        m_hallHorizontal = m_rng.Next(0, 2) == 0; // choose orientation randomly
+        // Build a hallway composed of straight segments. Each segment is a "long" straight run
+        // (length in [m_hallMinLength, m_hallMaxLength]) then optionally turns left or right and continues.
+        m_hallCells.Clear();
+        m_hallCellSet.Clear();
 
-        List<Vector2Int> positions = new List<Vector2Int>();
+        // Choose how many segments to attempt (1 = straight, 2 = one turn, etc.).
+        // Keep this small so we don't blow past other room limits.
+        int minSegments = 1;
+        int maxSegments = 3; // allows up to 2 turns (3 segments)
+        int segments = m_rng.Next(minSegments, maxSegments + 1);
 
-        // Build hallway starting at origin and extending in the positive axis
-        for (int i = 0; i < m_hallLength; i++)
+        Vector2Int cur = Vector2Int.zero;
+        m_hallCells.Add(cur);
+        m_hallCellSet.Add(cur);
+
+        // Choose an initial forward direction (right or up)
+        Vector2Int dir = m_rng.Next(0, 2) == 0 ? Vector2Int.right : Vector2Int.up;
+
+        bool stopGenerating = false;
+
+        for (int seg = 0; seg < segments && !stopGenerating; seg++)
         {
-            Vector2Int p = m_hallHorizontal ? new Vector2Int(i, 0) : new Vector2Int(0, i);
-            positions.Add(p);
+            int segLen = Mathf.Clamp(m_rng.Next(m_hallMinLength, m_hallMaxLength + 1), 1, 1000);
+
+            for (int i = 0; i < segLen; i++)
+            {
+                Vector2Int candidate = cur + dir;
+
+                // Avoid self intersection
+                if (m_hallCellSet.Contains(candidate))
+                {
+                    stopGenerating = true;
+                    break;
+                }
+
+                cur = candidate;
+                m_hallCells.Add(cur);
+                m_hallCellSet.Add(cur);
+
+                // Safety guard
+                if (m_hallCells.Count > 1000)
+                {
+                    stopGenerating = true;
+                    break;
+                }
+            }
+
+            if (stopGenerating)
+                break;
+
+            // If this is not the last segment, choose a 90-degree turn (left or right)
+            if (seg < segments - 1)
+            {
+                bool turnLeft = m_rng.Next(0, 2) == 0;
+                Vector2Int leftDir = new Vector2Int(-dir.y, dir.x);
+                Vector2Int rightDir = new Vector2Int(dir.y, -dir.x);
+                Vector2Int newDir = turnLeft ? leftDir : rightDir;
+
+                // If chosen turn immediately collides, try the opposite turn. If both collide, stop.
+                if (m_hallCellSet.Contains(cur + newDir))
+                {
+                    Vector2Int other = turnLeft ? rightDir : leftDir;
+                    if (m_hallCellSet.Contains(cur + other))
+                    {
+                        stopGenerating = true;
+                        break;
+                    }
+                    else
+                    {
+                        newDir = other;
+                    }
+                }
+
+                dir = newDir;
+            }
         }
 
-        // For each hallway tile, attempt to spawn rooms on the two sides
-        Vector2Int sideA = m_hallHorizontal ? Vector2Int.up : Vector2Int.left;
-        Vector2Int sideB = m_hallHorizontal ? Vector2Int.down : Vector2Int.right;
+        // Build the list of positions starting with hallway cells
+        List<Vector2Int> positions = new List<Vector2Int>(m_hallCells);
 
-        foreach (var hallCell in positions.ToList())
+        // For each hallway tile, attempt to spawn rooms on the two sides (left/right relative to segment direction)
+        for (int idx = 0; idx < m_hallCells.Count; idx++)
         {
-            if (positions.Count >= m_maxRooms)
-                break;
+            var hallCell = m_hallCells[idx];
 
-            if (m_rng.NextDouble() <= m_sideRoomChance)
+            // Determine local segment direction: prefer next cell, else previous
+            Vector2Int segmentDir = Vector2Int.zero;
+            if (idx < m_hallCells.Count - 1)
+                segmentDir = m_hallCells[idx + 1] - hallCell;
+            else if (idx > 0)
+                segmentDir = hallCell - m_hallCells[idx - 1];
+            else
+                segmentDir = Vector2Int.right; // fallback
+
+            Vector2Int sideA = new Vector2Int(-segmentDir.y, segmentDir.x); // left
+            Vector2Int sideB = new Vector2Int(segmentDir.y, -segmentDir.x); // right
+
+            // attempt side A
+            if (positions.Count < m_maxRooms && m_rng.NextDouble() <= m_sideRoomChance)
             {
                 Vector2Int roomPos = hallCell + sideA;
-                if (!positions.Contains(roomPos))
+                if (!positions.Contains(roomPos) && !WouldRoomClipIntoHall(roomPos, hallCell))
+                    positions.Add(roomPos);
+            }
+
+            // attempt side B
+            if (positions.Count < m_maxRooms && m_rng.NextDouble() <= m_sideRoomChance)
+            {
+                Vector2Int roomPos = hallCell + sideB;
+                if (!positions.Contains(roomPos) && !WouldRoomClipIntoHall(roomPos, hallCell))
                     positions.Add(roomPos);
             }
 
             if (positions.Count >= m_maxRooms)
                 break;
-
-            if (m_rng.NextDouble() <= m_sideRoomChance)
-            {
-                Vector2Int roomPos = hallCell + sideB;
-                if (!positions.Contains(roomPos))
-                    positions.Add(roomPos);
-            }
         }
 
         // If we still have fewer than m_minRooms total, grow outward from hallway ends or random hallway cells
-        int idx = 0;
+        int growIdx = 0;
         Vector2Int[] dirs = new[] { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
         while (positions.Count < m_minRooms)
         {
             Vector2Int basePos = positions[m_rng.Next(positions.Count)];
-            Vector2Int dir = dirs[m_rng.Next(dirs.Length)];
-            Vector2Int newPos = basePos + dir;
-            if (!positions.Contains(newPos))
+            Vector2Int dirGrow = dirs[m_rng.Next(dirs.Length)];
+            Vector2Int newPos = basePos + dirGrow;
+            if (!positions.Contains(newPos) && !m_hallCellSet.Contains(newPos))
                 positions.Add(newPos);
-            if (++idx > m_minRooms * 4) // safety
+            if (++growIdx > m_minRooms * 6) // safety
                 break;
         }
 
@@ -173,17 +249,33 @@ public class ProceduralLevelGenerator : MonoBehaviour
             m_rooms[p] = null;
 
         // Start is origin; exit is the far end of the hallway
-        StartPosition = GridToWorld(Vector2Int.zero);
-        Vector2Int exitKey = m_hallHorizontal ? new Vector2Int(m_hallLength - 1, 0) : new Vector2Int(0, m_hallLength - 1);
-        ExitPosition = GridToWorld(exitKey);
+        StartPosition = GridToWorld(m_hallCells.First());
+        ExitPosition = GridToWorld(m_hallCells.Last());
+    }
+
+    // Check that placing a room at roomPos won't clip into other hallway cells besides anchorHallCell
+    private bool WouldRoomClipIntoHall(Vector2Int roomPos, Vector2Int anchorHallCell)
+    {
+        // If the position itself is a hall cell, it's invalid
+        if (m_hallCellSet.Contains(roomPos))
+            return true;
+
+        // If any neighbor is a hall cell other than the anchor, it would touch multiple hallway tiles -> clip
+        Vector2Int[] neighbors = new[] { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
+        foreach (var n in neighbors)
+        {
+            Vector2Int check = roomPos + n;
+            if (m_hallCellSet.Contains(check) && check != anchorHallCell)
+                return true;
+        }
+
+        return false;
     }
 
     private void InstantiateRooms()
     {
         if (m_rooms.Count == 0)
             return;
-
-        Vector2Int exitKey = m_hallHorizontal ? new Vector2Int(m_hallLength - 1, 0) : new Vector2Int(0, m_hallLength - 1);
 
         foreach (var kv in m_rooms.ToList())
         {
@@ -197,7 +289,7 @@ public class ProceduralLevelGenerator : MonoBehaviour
             {
                 go = Instantiate(m_startRoomPrefab, worldPos, Quaternion.identity, m_parent);
             }
-            else if (pos == exitKey && m_exitRoomPrefab != null)
+            else if (pos == m_hallCells.Last() && m_exitRoomPrefab != null)
             {
                 go = Instantiate(m_exitRoomPrefab, worldPos, Quaternion.identity, m_parent);
             }
@@ -255,21 +347,28 @@ public class ProceduralLevelGenerator : MonoBehaviour
         if (!m_spawnHallwayWalls)
             return;
 
-        // sides to consider relative to hallway cell
-        Vector2Int[] sides = m_hallHorizontal ? new[] { Vector2Int.up, Vector2Int.down } : new[] { Vector2Int.left, Vector2Int.right };
-
-        foreach (var kv in m_rooms.ToList())
+        // For each hallway cell, compute the segment direction and place walls on its sides (left/right relative to segment)
+        foreach (var hallCell in m_hallCells)
         {
-            Vector2Int pos = kv.Key;
-            if (!IsHallwayCell(pos))
-                continue;
+            int idx = m_hallCells.IndexOf(hallCell);
+
+            // Determine local segment direction: prefer next cell, else previous
+            Vector2Int segmentDir = Vector2Int.zero;
+            if (idx < m_hallCells.Count - 1)
+                segmentDir = m_hallCells[idx + 1] - hallCell;
+            else if (idx > 0)
+                segmentDir = hallCell - m_hallCells[idx - 1];
+            else
+                segmentDir = Vector2Int.right; // fallback
+
+            Vector2Int[] sides = new[] { new Vector2Int(-segmentDir.y, segmentDir.x), new Vector2Int(segmentDir.y, -segmentDir.x) };
 
             foreach (var side in sides)
             {
-                Vector2Int adjacent = pos + side;
+                Vector2Int adjacent = hallCell + side;
 
                 // if the adjacent cell is also a hallway cell, do not place a wall there
-                if (IsHallwayCell(adjacent))
+                if (m_hallCellSet.Contains(adjacent))
                     continue;
 
                 // Decide whether there's a room behind the wall
@@ -281,7 +380,7 @@ public class ProceduralLevelGenerator : MonoBehaviour
                 else
                     chosenPrefab = m_wallPrefab;
 
-                Vector3 spawnPos = GridToWorld(pos) + new Vector3(side.x * m_tileSize * 0.5f, m_wallYOffset, side.y * m_tileSize * 0.5f);
+                Vector3 spawnPos = GridToWorld(hallCell) + new Vector3(side.x * m_tileSize * 0.5f, m_wallYOffset, side.y * m_tileSize * 0.5f);
 
                 if (chosenPrefab == null)
                 {
@@ -290,26 +389,25 @@ public class ProceduralLevelGenerator : MonoBehaviour
                     wall.transform.SetParent(m_parent, false);
                     wall.transform.position = spawnPos;
 
-                    if (m_hallHorizontal)
+                    // if hallway runs along X (segmentDir.x != 0) wall length along X, else along Z
+                    if (Mathf.Abs(segmentDir.x) > 0)
                     {
-                        // wall runs along X
                         wall.transform.localScale = new Vector3(m_tileSize, m_wallHeight, m_wallThickness);
                     }
                     else
                     {
-                        // wall runs along Z
                         wall.transform.localScale = new Vector3(m_wallThickness, m_wallHeight, m_tileSize);
                     }
 
-                    wall.name = $"Wall_{pos.x}_{pos.y}_{side.x}_{side.y}";
+                    wall.name = $"Wall_{hallCell.x}_{hallCell.y}_{side.x}_{side.y}";
                 }
                 else
                 {
                     // rotate so the wall's forward aligns with the hallway axis (length along hallway)
-                    Vector3 forward = m_hallHorizontal ? Vector3.right : Vector3.forward;
+                    Vector3 forward = Math.Abs(segmentDir.x) > 0 ? Vector3.right : Vector3.forward;
                     Quaternion rot = Quaternion.LookRotation(forward);
                     GameObject wall = Instantiate(chosenPrefab, spawnPos, rot, m_parent);
-                    wall.name = $"Wall_{pos.x}_{pos.y}_{side.x}_{side.y}";
+                    wall.name = $"Wall_{hallCell.x}_{hallCell.y}_{side.x}_{side.y}";
                 }
             }
         }
@@ -317,10 +415,7 @@ public class ProceduralLevelGenerator : MonoBehaviour
 
     private bool IsHallwayCell(Vector2Int pos)
     {
-        if (m_hallHorizontal)
-            return pos.y == 0 && pos.x >= 0 && pos.x < m_hallLength;
-        else
-            return pos.x == 0 && pos.y >= 0 && pos.y < m_hallLength;
+        return m_hallCellSet.Contains(pos);
     }
 
     private Vector3 GridToWorld(Vector2Int grid) => new Vector3(grid.x * m_tileSize, 0f, grid.y * m_tileSize);
