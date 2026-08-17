@@ -131,6 +131,7 @@ namespace StarterAssets
         [SerializeField] private float m_wallJumpUpVelocity = 7.0f;
         [SerializeField] private float m_wallJumpForwardVelocity = 6.0f;
         [SerializeField] private float m_wallJumpKnockbackForce = 20f; // knockback when colliding with enemy after wall jump
+        [SerializeField] private float m_wallJumpFacingDotThreshold = 0.2f; // require dot(transform.forward, wallNormal) > this to allow wall-jump (facing away)
 
         private bool m_isWallGrabbing = false;
         private Vector3 m_wallNormal = Vector3.zero;
@@ -351,7 +352,7 @@ namespace StarterAssets
 
 		private void CameraRotation()
 		{
-			// if there is an input
+			// allow camera rotation while wall grabbing even if look input magnitude is low
 			if (_input.look.sqrMagnitude >= _threshold || m_isWallGrabbing)
 			{
 				//Don't multiply mouse input by Time.deltaTime
@@ -948,6 +949,19 @@ namespace StarterAssets
 
         private void PerformWallJump()
         {
+            // If we don't have a valid wall normal (shouldn't happen) allow jump
+            if (m_wallNormal.sqrMagnitude > 0.0001f)
+            {
+                float facingDot = Vector3.Dot(transform.forward, m_wallNormal);
+
+                // require player to be facing away from wall; facingDot should be greater than threshold
+                if (facingDot < m_wallJumpFacingDotThreshold)
+                {
+                    // not facing away enough - do not wall jump
+                    return;
+                }
+            }
+
             // detach
             m_isWallGrabbing = false;
 
