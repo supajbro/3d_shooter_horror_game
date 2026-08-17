@@ -43,6 +43,7 @@ public class Enemy : MonoBehaviour, IPoolable
     private float m_knockbackDuration;
     private float m_knockbackStartY;
     private float m_knockbackVerticalStrength;
+    private bool m_enemyHit = false;
 
     // Ricochet / bounce configuration
     [SerializeField] private float m_ricochetRadius = 0.35f; // radius for spherecast when checking walls
@@ -95,6 +96,10 @@ public class Enemy : MonoBehaviour, IPoolable
     [SerializeField] private float m_memoryMin = 3f;
     [SerializeField] private float m_memoryMax = 10f;
     protected float m_memoryTimer = 0f;
+
+    // Idle behavior
+    [Header("Idle")]
+    [SerializeField] private float m_idleRotateSpeed = 20f; // degrees per second while idle
 
     public virtual void Activate(EnemySpawner enemySpawner)
     {
@@ -278,6 +283,10 @@ public class Enemy : MonoBehaviour, IPoolable
             ChangeState(EnemyState.Walk);
         }
 
+        // Rotate while idle so player can spot enemies more easily.
+        // Increase `m_idleRotateSpeed` to make enemies rotate faster and be easier to spot visually.
+        transform.Rotate(0f, m_idleRotateSpeed * Time.deltaTime, 0f);
+
         m_testAnim.SetTrigger("Idle");
 
         // TODO:
@@ -332,10 +341,11 @@ public class Enemy : MonoBehaviour, IPoolable
             m_hasFallen = false;
             RestoreTestAnimatorAfterFall();
 
-            if (CanSeePlayer())
+            if (CanSeePlayer() || m_enemyHit)
                 ChangeState(EnemyState.Walk);
             else
                 ChangeState(EnemyState.Idle);
+            m_enemyHit = true;
         }
     }
 
@@ -452,6 +462,24 @@ public class Enemy : MonoBehaviour, IPoolable
         }
 
         m_isKnockedBack = true;
+
+        // Immediately mark player as spotted and remember their position so the
+        // enemy begins pursuing the player when hit by a bullet or the player
+        // dashes/slides into them.
+        if (m_player == null)
+        {
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null)
+            {
+                m_player = playerObj.transform;
+                m_playerHealth = playerObj.GetComponent<PlayerHealth>();
+            }
+        }
+
+        // Set memory so enemy does not immediately forget the player.
+        m_memoryTimer = m_memoryMax;
+
+        m_enemyHit = true;
     }
 
     private void HandleKnockback()

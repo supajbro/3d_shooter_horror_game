@@ -150,6 +150,13 @@ MonoBehaviour:
   m_damage: 25
   m_attacking: 0
   m_attackDelay: 0.5
+  m_ricochetRadius: 0.35
+  m_ricochetBounceDamping: 0.6
+  m_ricochetDrag: 5
+  m_ricochetLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_minRicochetSpeed: 0.5
   m_maxHealth: 1000
   shouldSpawnWeapon: 0
   m_fallOverChance: 0.25
@@ -159,6 +166,7 @@ MonoBehaviour:
   m_eyeHeight: 1.5
   m_memoryMin: 3
   m_memoryMax: 20
+  m_idleRotateSpeed: 20
 --- !u!195 &7557257208540048715
 NavMeshAgent:
   m_ObjectHideFlags: 0
