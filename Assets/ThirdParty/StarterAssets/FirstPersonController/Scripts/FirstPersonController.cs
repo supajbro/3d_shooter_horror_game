@@ -103,6 +103,8 @@ namespace StarterAssets
         private float m_dashTimer;
         private float m_dashSpeedMultiplier;
         private Vector3 m_dashDirection;
+        // Knockback applied when dashing into an enemy
+        [SerializeField] private float m_dashKnockbackForce = 25f;
 
         [Header("Slide")]
         [SerializeField] private float m_slideSpeed = 10f;
@@ -114,6 +116,8 @@ namespace StarterAssets
         private bool m_slideQueued;
         private float m_slideQueueTime;
         [SerializeField] private float m_slideBufferTime = 0.2f;
+        // Knockback applied when sliding into an enemy
+        [SerializeField] private float m_slideKnockbackForce = 8f;
 
         [Header("Velocity Boost from Jump Slide")]
         [SerializeField] private float m_slideJumpBoost = 6f;
@@ -664,6 +668,34 @@ namespace StarterAssets
         }
         #endregion
 
+        // Detect collisions with enemies while using CharacterController movement
+        private void OnControllerColliderHit(ControllerColliderHit hit)
+        {
+            if (hit.collider == null)
+                return;
+
+            Enemy enemy = hit.collider.GetComponent<Enemy>();
+            if (enemy == null)
+                return;
+
+            // Compute horizontal direction of the impact
+            Vector3 dir = hit.moveDirection;
+            dir.y = 0f;
+            if (dir.sqrMagnitude <= 0.0001f)
+                dir = transform.forward;
+            dir.Normalize();
+
+            // If dashing, apply a strong knockback
+            if (m_isDashing)
+            {
+                enemy.ApplyKnockback(dir * m_dashKnockbackForce, 0.5f);
+            }
+            // If sliding, apply a smaller knockback
+            else if (m_isSliding)
+            {
+                enemy.ApplyKnockback(dir * m_slideKnockbackForce, 0.5f);
+            }
+        }
         #region - CLIMBING -
         private void StartClimbing()
         {

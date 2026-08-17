@@ -222,9 +222,11 @@ MonoBehaviour:
   m_strongForce: 30
   m_dashSpeed: 125
   m_dashDuration: 0.5
+  m_dashKnockbackForce: 25
   m_slideSpeed: 50
   m_slideDuration: 1
   m_slideBufferTime: 0.5
+  m_slideKnockbackForce: 15
   m_slideJumpBoost: 5
   m_slidePopBoost: 25
   m_slidePopWindow: 0.25
