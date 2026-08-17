@@ -70,7 +70,7 @@ namespace StarterAssets
 		private float _jumpTimeoutDelta;
 		private float _fallTimeoutDelta;
 
-	
+		
 #if ENABLE_INPUT_SYSTEM
 		private UnityEngine.InputSystem.PlayerInput _playerInput;
 #endif
@@ -124,6 +124,17 @@ namespace StarterAssets
         [SerializeField] private float m_slidePopBoost = 12f;
         [SerializeField] private float m_slidePopWindow = 0.15f;
         private Vector3 m_jumpMomentum;
+
+        [Header("Wall Grab / Wall Jump")]
+        [SerializeField] private LayerMask m_wallLayerMask = (LayerMask)(-1);
+        [SerializeField] private float m_wallDetachOffset = 0.25f; // nudge away from wall to avoid camera clipping
+        [SerializeField] private float m_wallJumpUpVelocity = 7.0f;
+        [SerializeField] private float m_wallJumpForwardVelocity = 6.0f;
+        [SerializeField] private float m_wallJumpKnockbackForce = 20f; // knockback when colliding with enemy after wall jump
+
+        private bool m_isWallGrabbing = false;
+        private Vector3 m_wallNormal = Vector3.zero;
+        private float m_wallJumpActiveTimer = 0f; // short window where collisions will knockback enemies
 
         private const float _threshold = 0.01f;
 
@@ -312,6 +323,13 @@ namespace StarterAssets
 			Move();
 			AttackUpdate();
             UpdateQueuedActions();
+
+            // decrement wall-jump active timer used for applying knockback to enemies
+            if (m_wallJumpActiveTimer > 0f)
+            {
+                m_wallJumpActiveTimer -= Time.deltaTime;
+                if (m_wallJumpActiveTimer < 0f) m_wallJumpActiveTimer = 0f;
+            }
 		}
 
 		private void LateUpdate()
@@ -334,7 +352,7 @@ namespace StarterAssets
 		private void CameraRotation()
 		{
 			// if there is an input
-			if (_input.look.sqrMagnitude >= _threshold)
+			if (_input.look.sqrMagnitude >= _threshold || m_isWallGrabbing)
 			{
 				//Don't multiply mouse input by Time.deltaTime
 				float deltaTimeMultiplier = IsCurrentDeviceMouse ? 1.0f : Time.deltaTime;
@@ -376,6 +394,25 @@ namespace StarterAssets
                 Vector3 climbMovement = Vector3.up * (_input.move.y * m_ladderClimbSpeed);
 
                 _controller.Move(climbMovement * Time.deltaTime);
+
+                return;
+            }
+
+            // While wall grabbing, we don't do normal movement
+            if (m_isWallGrabbing)
+            {
+                // allow player to jump off the wall by pressing jump; player can still rotate (CameraRotation happens in LateUpdate)
+                if (_input.jump)
+                {
+                    PerformWallJump();
+                    _input.jump = false; // consume
+                }
+
+                // keep player stationary while attached (small position stabilization)
+                // ensure we remain slightly off the wall to avoid camera clipping
+                Vector3 pos = transform.position;
+                pos += m_wallNormal * 0.001f; // tiny nudge to keep consistent contacts
+                transform.position = pos;
 
                 return;
             }
@@ -568,6 +605,13 @@ namespace StarterAssets
                 return;
             }
 
+            // No gravity while wall grabbing
+            if (m_isWallGrabbing)
+            {
+                _verticalVelocity = 0f;
+                return;
+            }
+
             if (Grounded)
 			{
 				// reset the fall timeout timer
@@ -620,8 +664,9 @@ namespace StarterAssets
 					_fallTimeoutDelta -= Time.deltaTime;
 				}
 
-				// if we are not grounded, do not jump
-				_input.jump = false;
+				// if we are not grounded and not wall grabbing, do not jump
+				if(!m_isWallGrabbing)
+					_input.jump = false;
 			}
 
 			// apply gravity over time if under terminal (multiply by delta time twice to linearly speed up over time)
@@ -675,27 +720,82 @@ namespace StarterAssets
                 return;
 
             Enemy enemy = hit.collider.GetComponent<Enemy>();
-            if (enemy == null)
-                return;
-
-            // Compute horizontal direction of the impact
-            Vector3 dir = hit.moveDirection;
-            dir.y = 0f;
-            if (dir.sqrMagnitude <= 0.0001f)
-                dir = transform.forward;
-            dir.Normalize();
-
-            // If dashing, apply a strong knockback
-            if (m_isDashing)
+            if (enemy != null)
             {
-                enemy.ApplyKnockback(dir * m_dashKnockbackForce, 0.5f);
+                // Compute horizontal direction of the impact
+                Vector3 dir = hit.moveDirection;
+                dir.y = 0f;
+                if (dir.sqrMagnitude <= 0.0001f)
+                    dir = transform.forward;
+                dir.Normalize();
+
+                // If dashing, apply a strong knockback
+                if (m_isDashing)
+                {
+                    enemy.ApplyKnockback(dir * m_dashKnockbackForce, 0.5f);
+                }
+                // If sliding, apply a smaller knockback
+                else if (m_isSliding)
+                {
+                    enemy.ApplyKnockback(dir * m_slideKnockbackForce, 0.5f);
+                }
+                // If we just wall-jumped, apply knockback as well
+                else if (m_wallJumpActiveTimer > 0f)
+                {
+                    enemy.ApplyKnockback(dir * m_wallJumpKnockbackForce, 0.5f);
+                }
+
+                return; // don't treat enemy as wall for grabbing
             }
-            // If sliding, apply a smaller knockback
-            else if (m_isSliding)
+
+            // Wall grab detection: if we are in the air and hit a mostly vertical surface while moving toward it
+            if (!_controller.isGrounded && !m_isWallGrabbing)
             {
-                enemy.ApplyKnockback(dir * m_slideKnockbackForce, 0.5f);
+                // require surface to be reasonably vertical (normal y small)
+                if (Mathf.Abs(hit.normal.y) < 0.25f)
+                {
+                    // check layer mask
+                    int layer = hit.collider.gameObject.layer;
+                    if ((m_wallLayerMask.value & (1 << layer)) != 0)
+                    {
+                        // ensure player was moving into the wall
+                        float into = Vector3.Dot(-hit.normal, hit.moveDirection);
+                        if (into > 0.2f)
+                        {
+                            // If dashing into a wall, cancel dash momentum so movement feels correct
+                            if (m_isDashing)
+                            {
+                                m_isDashing = false;
+                                m_dashTimer = 0f;
+                                m_dashDirection = Vector3.zero;
+                                m_dashSpeedMultiplier = 1f;
+                            }
+
+                            // Start wall grab
+                            m_isWallGrabbing = true;
+                            m_wallNormal = hit.normal;
+
+                            // stop vertical motion
+                            _verticalVelocity = 0f;
+
+                            // Nudge player slightly away from the wall to avoid camera clipping and facing straight into wall
+                            transform.position += hit.normal * m_wallDetachOffset;
+
+                            // Optional: force camera pitch slightly down to avoid clipping view
+                            _cinemachineTargetPitch = Mathf.Clamp(_cinemachineTargetPitch, BottomClamp + 5f, TopClamp);
+
+                            // consume jump input so player can press again to wall-jump
+                            _input.jump = false;
+
+                            // disable head bob while attached
+                            if (m_playerCamera != null)
+                                m_playerCamera.SetHeadBobEnabled(false);
+                        }
+                    }
+                }
             }
         }
+
         #region - CLIMBING -
         private void StartClimbing()
         {
@@ -845,5 +945,32 @@ namespace StarterAssets
             }
         }
         #endregion
-    }
+
+        private void PerformWallJump()
+        {
+            // detach
+            m_isWallGrabbing = false;
+
+            // re-enable head bob now that we're airborne again
+            if (m_playerCamera != null)
+                m_playerCamera.SetHeadBobEnabled(true);
+
+            // set upward velocity and forward momentum based on where player is facing
+            _verticalVelocity = m_wallJumpUpVelocity;
+            // use player's forward direction for jump direction
+            Vector3 forward = transform.forward;
+            forward.y = 0f;
+            forward.Normalize();
+
+            m_jumpMomentum = forward * m_wallJumpForwardVelocity;
+
+            // Small timer window where hitting an enemy will apply knockback
+            m_wallJumpActiveTimer = 0.25f;
+
+            // Slight camera/anim feedback
+            if (m_playerCamera != null)
+                m_playerCamera.GetPlayerAnimator().SetTrigger("Jump");
+        }
+
+	}
 }

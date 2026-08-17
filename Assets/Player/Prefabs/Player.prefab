@@ -230,6 +230,14 @@ MonoBehaviour:
   m_slideJumpBoost: 5
   m_slidePopBoost: 25
   m_slidePopWindow: 0.25
+  m_wallLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_wallGrabDuration: 1.5
+  m_wallDetachOffset: 0.25
+  m_wallJumpUpVelocity: 15
+  m_wallJumpForwardVelocity: 25
+  m_wallJumpKnockbackForce: 5
   m_attackRange: 25
   m_enemyLayer:
     serializedVersion: 2

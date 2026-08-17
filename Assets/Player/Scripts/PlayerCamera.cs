@@ -93,13 +93,10 @@ public class PlayerCamera : MonoBehaviour
         UpdateCameraImpulse();
         UpdateFOV();
 
-        if (!m_enableHeadBob)
-            return;
-
         float speed = GetMovementSpeed();
 
         // Slide offset handled and smoothed here (no external writer)
-        float targetSlideOffset = m_player.IsSliding() ? m_slideCameraOffset : 0f;
+        float targetSlideOffset = m_player != null && m_player.IsSliding() ? m_slideCameraOffset : 0f;
         m_currentSlideOffset = Mathf.Lerp(
             m_currentSlideOffset,
             targetSlideOffset,
@@ -114,30 +111,44 @@ public class PlayerCamera : MonoBehaviour
         // Blend amplitude to 1 when moving, to 0 when stopped (smooth)
         const float speedThreshold = 0.1f;
         float targetBobBlend = speed > speedThreshold ? 1f : 0f;
-        m_bobBlend = Mathf.Lerp(m_bobBlend, targetBobBlend, Time.deltaTime * m_idleReturnSpeed);
 
         Vector3 basePosition = m_initialLocalPos + Vector3.up * m_currentSlideOffset;
         Vector3 bobOffset = Vector3.zero;
 
-        if (m_bobBlend > 0.001f)
+        if (m_enableHeadBob)
         {
-            bobOffset.x = Mathf.Cos(m_timer * 0.5f) * m_bobHorizontalAmplitude * m_bobBlend;
-            bobOffset.y = Mathf.Sin(m_timer) * m_bobAmplitude * m_bobBlend;
+            m_bobBlend = Mathf.Lerp(m_bobBlend, targetBobBlend, Time.deltaTime * m_idleReturnSpeed);
+
+            if (m_bobBlend > 0.001f)
+            {
+                bobOffset.x = Mathf.Cos(m_timer * 0.5f) * m_bobHorizontalAmplitude * m_bobBlend;
+                bobOffset.y = Mathf.Sin(m_timer) * m_bobAmplitude * m_bobBlend;
+            }
+        }
+        else
+        {
+            // When head bob is disabled ensure there is no residual motion
+            m_bobBlend = 0f;
+            m_timer = 0f;
+            bobOffset = Vector3.zero;
         }
 
         Vector3 targetPosition = basePosition + bobOffset + m_cameraImpulsePosition;
 
         // Use SmoothDamp as a simple critically-feeling spring to follow targetPosition
-        m_cameraRoot.localPosition = Vector3.SmoothDamp(
-            m_cameraRoot.localPosition,
-            targetPosition,
-            ref m_cameraPositionVelocity,
-            m_cameraSpringSmoothTime);
+        if (m_cameraRoot != null)
+        {
+            m_cameraRoot.localPosition = Vector3.SmoothDamp(
+                m_cameraRoot.localPosition,
+                targetPosition,
+                ref m_cameraPositionVelocity,
+                m_cameraSpringSmoothTime);
 
-        m_cameraRoot.localRotation = Quaternion.Euler(
-            m_pitch + m_cameraImpulseRotation.x,
-            m_cameraImpulseRotation.y,
-            m_cameraImpulseRotation.z);
+            m_cameraRoot.localRotation = Quaternion.Euler(
+                m_pitch + m_cameraImpulseRotation.x,
+                m_cameraImpulseRotation.y,
+                m_cameraImpulseRotation.z);
+        }
     }
 
     #region - IMPULSE SETTINGS -
@@ -239,4 +250,30 @@ public class PlayerCamera : MonoBehaviour
         return m_playerAnim;
     }
     #endregion
+
+    // Allow external code to toggle head bobbing (useful for wall-grab, ladders, cutscenes)
+    public void SetHeadBobEnabled(bool enabled)
+    {
+        m_enableHeadBob = enabled;
+
+        if (!m_enableHeadBob)
+        {
+            // Reset runtime bob state so there is no residual movement
+            m_bobBlend = 0f;
+            m_timer = 0f;
+
+            // Snap camera root to its base local position and clear velocity
+            if (m_cameraRoot != null)
+            {
+                m_cameraRoot.localPosition = m_initialLocalPos;
+                m_cameraPositionVelocity = Vector3.zero;
+            }
+
+            // Also clear any small impulses so camera doesn't drift
+            m_cameraImpulsePosition = Vector3.zero;
+            m_cameraImpulseRotation = Vector3.zero;
+            m_targetPositionImpulse = Vector3.zero;
+            m_targetRotationImpulse = Vector3.zero;
+        }
+    }
 }
