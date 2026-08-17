@@ -606,7 +606,7 @@ MonoBehaviour:
   m_inifiniteAmmo: 1
   m_availableAmmo: 0
   m_maxAvailableAmmo: 24
-  m_reloadSpeed: 3
+  m_reloadSpeed: 1.75
   m_damage: 25
   m_hitscanRange: 100
   m_requiresTriggerRelease: 1
