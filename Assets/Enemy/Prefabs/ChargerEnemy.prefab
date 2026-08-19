@@ -150,12 +150,12 @@ MonoBehaviour:
   m_damage: 25
   m_attacking: 0
   m_attackDelay: 0.5
-  m_ricochetRadius: 0.35
-  m_ricochetBounceDamping: 0.6
+  m_ricochetRadius: 1
+  m_ricochetBounceDamping: 1
   m_ricochetDrag: 5
   m_ricochetLayerMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 1024
   m_minRicochetSpeed: 0.5
   m_transferMomentumMultiplierRicochet: 0.8
   m_transferMomentumMultiplierLegacy: 0.6

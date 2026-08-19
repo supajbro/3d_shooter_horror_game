@@ -598,51 +598,103 @@ public class Enemy : MonoBehaviour, IPoolable
                         continue;
 
                     Enemy otherEnemy = hit.collider.GetComponentInParent<Enemy>();
-                    if (otherEnemy == null || otherEnemy == this)
-                        continue;
 
-                    // don't transfer if the other enemy was just hit
-                    if (otherEnemy.m_enemyCollisionImmunityTimer > 0f)
-                        continue;
+                    // If we hit another enemy, handle transfer as before
+                    if (otherEnemy != null && otherEnemy != this && otherEnemy.m_enemyCollisionImmunityTimer <= 0f)
+                    {
+                        // Compute impact velocity based on actual movement this frame (world units/sec)
+                        float impactSpeed = moveDist / Mathf.Max(Time.deltaTime, 1e-6f);
+                        Vector3 impactVel = (moveDir.sqrMagnitude > 0.0001f ? moveDir : (otherEnemy.transform.position - transform.position).normalized) * impactSpeed;
+                        impactVel.y = Mathf.Clamp(m_knockbackVerticalStrength * 0.5f, 0.2f, 3f);
 
-                    // Compute impact velocity based on actual movement this frame (world units/sec)
-                    float impactSpeed = moveDist / Mathf.Max(Time.deltaTime, 1e-6f);
-                    Vector3 impactVel = (moveDir.sqrMagnitude > 0.0001f ? moveDir : (otherEnemy.transform.position - transform.position).normalized) * impactSpeed;
-                    impactVel.y = Mathf.Clamp(m_knockbackVerticalStrength * 0.5f, 0.2f, 3f);
+                        // Start a brand-new ApplyKnockback on the other enemy — treat it as if shot
+                        otherEnemy.ApplyKnockback(impactVel * m_collisionTransferScale, Mathf.Max(0.35f, m_knockbackDuration * 0.5f), m_allowRicochet, true);
 
-                    // Start a brand-new ApplyKnockback on the other enemy — treat it as if shot
-                    otherEnemy.ApplyKnockback(impactVel * m_collisionTransferScale, Mathf.Max(0.35f, m_knockbackDuration * 0.5f), m_allowRicochet, true);
+                        // Give the other enemy a short immunity to further transfers
+                        otherEnemy.m_enemyCollisionImmunityTimer = m_enemyCollisionImmunityDuration;
 
-                    // Give the other enemy a short immunity to further transfers
-                    otherEnemy.m_enemyCollisionImmunityTimer = m_enemyCollisionImmunityDuration;
+                        // Resolve overlap minimally by nudging the other enemy along hit normal
+                        Vector3 otherPos = otherEnemy.transform.position + hit.normal * (sweepRadius + 0.01f);
+                        otherPos.y = otherEnemy.m_knockbackStartY + Mathf.Min(otherEnemy.m_knockbackVerticalStrength, 0.5f);
+                        otherEnemy.transform.position = otherPos;
+                        if (otherEnemy.m_agent != null && otherEnemy.m_agent.enabled)
+                            otherEnemy.m_agent.Warp(otherPos);
 
-                    // Resolve overlap minimally by nudging the other enemy along hit normal
-                    Vector3 otherPos = otherEnemy.transform.position + hit.normal * (sweepRadius + 0.01f);
-                    otherPos.y = otherEnemy.m_knockbackStartY + Mathf.Min(otherEnemy.m_knockbackVerticalStrength, 0.5f);
-                    otherEnemy.transform.position = otherPos;
-                    if (otherEnemy.m_agent != null && otherEnemy.m_agent.enabled)
-                        otherEnemy.m_agent.Warp(otherPos);
+                        // Stop our horizontal motion after hitting another enemy so we don't keep pushing
+                        if (m_allowRicochet)
+                            m_currentVelocity = Vector3.zero;
+                        m_allowRicochet = false;
 
-                    // Stop our horizontal motion after hitting another enemy so we don't keep pushing
-                    if (m_allowRicochet)
-                        m_currentVelocity = Vector3.zero;
-                    m_allowRicochet = false;
+                        // Place ourselves at the impact point (slightly offset) and update agent
+                        Vector3 impactPoint = hit.point + hit.normal * (sweepRadius + 0.01f);
+                        Vector3 selfPos = transform.position;
+                        selfPos.x = impactPoint.x;
+                        selfPos.z = impactPoint.z;
+                        selfPos.y = m_knockbackStartY + height;
+                        transform.position = selfPos;
+                        if (m_agent != null && m_agent.enabled)
+                            m_agent.Warp(selfPos);
 
-                    // Place ourselves at the impact point (slightly offset) and update agent
-                    Vector3 impactPoint = hit.point + hit.normal * (sweepRadius + 0.01f);
-                    Vector3 selfPos = transform.position;
-                    selfPos.x = impactPoint.x;
-                    selfPos.z = impactPoint.z;
-                    selfPos.y = m_knockbackStartY + height;
-                    transform.position = selfPos;
-                    if (m_agent != null && m_agent.enabled)
-                        m_agent.Warp(selfPos);
+                        // Update previous position for next sweep
+                        m_prevKnockbackPosition = transform.position;
 
-                    // Update previous position for next sweep
-                    m_prevKnockbackPosition = transform.position;
+                        transferred = true;
+                        break; // only transfer once per frame
+                    }
 
-                    transferred = true;
-                    break; // only transfer once per frame
+                    // Otherwise treat as a wall/obstacle and perform a ricochet if allowed
+                    if (m_allowRicochet && m_currentVelocity.sqrMagnitude > 0.0001f)
+                    {
+                        // Reflect horizontal velocity around the surface normal and apply damping
+                        Vector3 inVel = m_currentVelocity;
+                        inVel.y = 0f;
+                        Vector3 reflectDir = Vector3.Reflect(inVel.normalized, hit.normal);
+                        float newSpeed = Mathf.Clamp(m_currentVelocity.magnitude * m_ricochetBounceDamping, 0f, m_maxTransferSpeed);
+                        m_currentVelocity = reflectDir * newSpeed;
+
+                        // Move slightly off the wall so the enemy doesn't get stuck
+                        Vector3 impactPoint = hit.point + hit.normal * (sweepRadius + 0.01f);
+                        Vector3 selfPos = impactPoint;
+                        selfPos.y = m_knockbackStartY + height;
+                        transform.position = selfPos;
+                        if (m_agent != null && m_agent.enabled)
+                            m_agent.Warp(selfPos);
+
+                        // If the ricochet speed is too low, stop ricocheting
+                        if (m_currentVelocity.magnitude < m_minRicochetSpeed)
+                        {
+                            m_allowRicochet = false;
+                            m_currentVelocity = Vector3.zero;
+                        }
+
+                        m_prevKnockbackPosition = transform.position;
+                        transferred = true;
+                        break;
+                    }
+                    else
+                    {
+                        // Non-ricochet response: nudge away from obstacle and stop horizontal motion
+                        Vector3 impactPoint = hit.point + hit.normal * (sweepRadius + 0.01f);
+                        Vector3 selfPos = transform.position;
+                        selfPos.x = impactPoint.x;
+                        selfPos.z = impactPoint.z;
+                        selfPos.y = m_knockbackStartY + height;
+                        transform.position = selfPos;
+                        if (m_agent != null && m_agent.enabled)
+                            m_agent.Warp(selfPos);
+
+                        // Update previous position for next sweep
+                        m_prevKnockbackPosition = transform.position;
+
+                        if (m_allowRicochet)
+                        {
+                            m_allowRicochet = false;
+                            m_currentVelocity = Vector3.zero;
+                        }
+
+                        transferred = true;
+                        break;
+                    }
                 }
             }
             else
@@ -664,43 +716,87 @@ public class Enemy : MonoBehaviour, IPoolable
                         if (col == null) continue;
 
                         Enemy otherEnemy = col.GetComponentInParent<Enemy>();
-                        if (otherEnemy == null || otherEnemy == this) continue;
-                        if (otherEnemy.m_enemyCollisionImmunityTimer > 0f) continue;
+                        if (otherEnemy != null && otherEnemy != this && otherEnemy.m_enemyCollisionImmunityTimer <= 0f)
+                        {
+                            // Build a pseudo-normal and impact direction from centers
+                            Vector3 awayDir = (otherEnemy.transform.position - transform.position);
+                            if (awayDir.sqrMagnitude <= 0.0001f)
+                                awayDir = moveDir.sqrMagnitude > 0.0001f ? moveDir : transform.forward;
+                            awayDir.Normalize();
 
-                        // Build a pseudo-normal and impact direction from centers
-                        Vector3 awayDir = (otherEnemy.transform.position - transform.position);
-                        if (awayDir.sqrMagnitude <= 0.0001f)
-                            awayDir = moveDir.sqrMagnitude > 0.0001f ? moveDir : transform.forward;
-                        awayDir.Normalize();
+                            float impactSpeed = moveDist / Mathf.Max(Time.deltaTime, 1e-6f);
+                            Vector3 impactVel = awayDir * impactSpeed;
+                            impactVel.y = Mathf.Clamp(m_knockbackVerticalStrength * 0.5f, 0.2f, 3f);
 
-                        float impactSpeed = moveDist / Mathf.Max(Time.deltaTime, 1e-6f);
-                        Vector3 impactVel = awayDir * impactSpeed;
-                        impactVel.y = Mathf.Clamp(m_knockbackVerticalStrength * 0.5f, 0.2f, 3f);
+                            otherEnemy.ApplyKnockback(impactVel * m_collisionTransferScale, Mathf.Max(0.35f, m_knockbackDuration * 0.5f), m_allowRicochet, true);
+                            otherEnemy.m_enemyCollisionImmunityTimer = m_enemyCollisionImmunityDuration;
 
-                        otherEnemy.ApplyKnockback(impactVel * m_collisionTransferScale, Mathf.Max(0.35f, m_knockbackDuration * 0.5f), m_allowRicochet, true);
-                        otherEnemy.m_enemyCollisionImmunityTimer = m_enemyCollisionImmunityDuration;
+                            Vector3 otherPos = otherEnemy.transform.position + awayDir * (sweepRadius + 0.01f);
+                            otherPos.y = otherEnemy.m_knockbackStartY + Mathf.Min(otherEnemy.m_knockbackVerticalStrength, 0.5f);
+                            otherEnemy.transform.position = otherPos;
+                            if (otherEnemy.m_agent != null && otherEnemy.m_agent.enabled)
+                                otherEnemy.m_agent.Warp(otherPos);
 
-                        Vector3 otherPos = otherEnemy.transform.position + awayDir * (sweepRadius + 0.01f);
-                        otherPos.y = otherEnemy.m_knockbackStartY + Mathf.Min(otherEnemy.m_knockbackVerticalStrength, 0.5f);
-                        otherEnemy.transform.position = otherPos;
-                        if (otherEnemy.m_agent != null && otherEnemy.m_agent.enabled)
-                            otherEnemy.m_agent.Warp(otherPos);
+                            // Stop our movement
+                            if (m_allowRicochet)
+                                m_currentVelocity = Vector3.zero;
+                            m_allowRicochet = false;
 
-                        // Stop our movement
-                        if (m_allowRicochet)
-                            m_currentVelocity = Vector3.zero;
-                        m_allowRicochet = false;
+                            // nudge self
+                            Vector3 selfPos = transform.position + -awayDir * (sweepRadius * 0.5f);
+                            selfPos.y = m_knockbackStartY + height;
+                            transform.position = selfPos;
+                            if (m_agent != null && m_agent.enabled)
+                                m_agent.Warp(selfPos);
 
-                        // nudge self
-                        Vector3 selfPos = transform.position + -awayDir * (sweepRadius * 0.5f);
-                        selfPos.y = m_knockbackStartY + height;
-                        transform.position = selfPos;
-                        if (m_agent != null && m_agent.enabled)
-                            m_agent.Warp(selfPos);
+                            m_prevKnockbackPosition = transform.position;
+                            transferred = true;
+                            break;
+                        }
+                        else
+                        {
+                            // static obstacle overlap: compute a normal and ricochet if allowed
+                            Vector3 awayDir = (col.ClosestPoint(transform.position) - sweepOrigin);
+                            if (awayDir.sqrMagnitude <= 0.0001f)
+                                awayDir = moveDir.sqrMagnitude > 0.0001f ? moveDir : transform.forward;
+                            awayDir.Normalize();
 
-                        m_prevKnockbackPosition = transform.position;
-                        transferred = true;
-                        break;
+                            if (m_allowRicochet && m_currentVelocity.sqrMagnitude > 0.0001f)
+                            {
+                                Vector3 reflectDir = Vector3.Reflect(m_currentVelocity.normalized, awayDir);
+                                float newSpeed = Mathf.Clamp(m_currentVelocity.magnitude * m_ricochetBounceDamping, 0f, m_maxTransferSpeed);
+                                m_currentVelocity = reflectDir * newSpeed;
+
+                                Vector3 selfPos = transform.position + awayDir * (sweepRadius + 0.01f);
+                                selfPos.y = m_knockbackStartY + height;
+                                transform.position = selfPos;
+                                if (m_agent != null && m_agent.enabled)
+                                    m_agent.Warp(selfPos);
+
+                                if (m_currentVelocity.magnitude < m_minRicochetSpeed)
+                                {
+                                    m_allowRicochet = false;
+                                    m_currentVelocity = Vector3.zero;
+                                }
+
+                                m_prevKnockbackPosition = transform.position;
+                                transferred = true;
+                                break;
+                            }
+                            else
+                            {
+                                // fallback nudge
+                                Vector3 selfPos = transform.position + -awayDir * (sweepRadius * 0.5f);
+                                selfPos.y = m_knockbackStartY + height;
+                                transform.position = selfPos;
+                                if (m_agent != null && m_agent.enabled)
+                                    m_agent.Warp(selfPos);
+
+                                m_prevKnockbackPosition = transform.position;
+                                transferred = true;
+                                break;
+                            }
+                        }
                     }
                 }
             }
@@ -861,7 +957,7 @@ public class Enemy : MonoBehaviour, IPoolable
             m_agent.enabled = false;
         }
 
-        // Convert colliders into triggers so the corpse doesn't physically block players
+/*        // Convert colliders into triggers so the corpse doesn't physically block players
         // but can still be detected by raycasts if needed. This keeps it non-interactive.
         Collider[] cols = GetComponentsInChildren<Collider>(true);
         foreach (var c in cols)
@@ -871,7 +967,7 @@ public class Enemy : MonoBehaviour, IPoolable
                 c.enabled = true;
                 c.isTrigger = true;
             }
-        }
+        }*/
 
         // Make all rigidbodies kinematic so physics doesn't attempt to move the corpse.
         Rigidbody rb = GetComponent<Rigidbody>();
