@@ -100,6 +100,10 @@ public class Enemy : MonoBehaviour, IPoolable
 
     private bool m_active = false;
 
+    // Flag to indicate this enemy is dead (corpse). When true we prevent recovery but
+    // still allow knockback movement via code.
+    private bool m_isDead = false;
+
     [SerializeField] private bool m_debug = false;
     private TextMeshPro m_debugStateText;
 
@@ -171,7 +175,8 @@ public class Enemy : MonoBehaviour, IPoolable
 
         if (GameStateManager.Instance.GetFreezeGame())
         {
-            m_agent.isStopped = true;
+            if (m_agent != null && m_agent.enabled)
+                m_agent.isStopped = true;
             return;
         }
 
@@ -237,21 +242,25 @@ public class Enemy : MonoBehaviour, IPoolable
         switch (m_state)
         {
             case EnemyState.Idle:
-                m_agent.isStopped = true;
+                if (m_agent != null && m_agent.enabled)
+                    m_agent.isStopped = true;
                 m_anim.SetTrigger("Idle");
                 break;
 
             case EnemyState.Walk:
-                m_agent.isStopped = false;
+                if (m_agent != null && m_agent.enabled)
+                    m_agent.isStopped = false;
                 m_anim.SetTrigger("Run");
                 break;
 
             case EnemyState.Stun:
-                m_agent.isStopped = true;
+                if (m_agent != null && m_agent.enabled)
+                    m_agent.isStopped = true;
                 break;
 
             case EnemyState.Fallen:
-                m_agent.isStopped = true;
+                if (m_agent != null && m_agent.enabled)
+                    m_agent.isStopped = true;
                 PrepareFallRotation();
 
                 // Fallover.anim owns this transform and includes a baked sideways
@@ -266,7 +275,8 @@ public class Enemy : MonoBehaviour, IPoolable
                 break;
 
             case EnemyState.Recover:
-                m_agent.isStopped = true;
+                if (m_agent != null && m_agent.enabled)
+                    m_agent.isStopped = true;
 
                 if (m_hasFallen)
                 {
@@ -366,7 +376,7 @@ public class Enemy : MonoBehaviour, IPoolable
     protected virtual void StartAttack()
     {
         m_attacking = true;
-        m_agent.isStopped = true;
+        if (m_agent != null && m_agent.enabled) m_agent.isStopped = true;
         m_anim.SetTrigger("Attack");
         StartCoroutine(AttackRoutine());
     }
@@ -412,7 +422,7 @@ public class Enemy : MonoBehaviour, IPoolable
 
     protected virtual void Idle()
     {
-        m_agent.isStopped = true;
+        if (m_agent != null && m_agent.enabled) m_agent.isStopped = true;
         m_anim.SetTrigger("Idle");
     }
 
@@ -528,7 +538,7 @@ public class Enemy : MonoBehaviour, IPoolable
             finalPos.y = m_knockbackStartY;
             transform.position = finalPos;
 
-            if (m_agent != null)
+            if (m_agent != null && m_agent.enabled)
             {
                 m_agent.Warp(transform.position);
                 m_agent.isStopped = false;
@@ -539,7 +549,10 @@ public class Enemy : MonoBehaviour, IPoolable
             m_currentVelocity = Vector3.zero;
             m_isKnockedBack = false;
 
-            ChangeState(EnemyState.Recover);
+            // If the enemy is dead keep it Fallen (no recover). Otherwise go to Recover.
+            if (!m_isDead)
+                ChangeState(EnemyState.Recover);
+
             return;
         }
 
@@ -607,7 +620,7 @@ public class Enemy : MonoBehaviour, IPoolable
                     Vector3 otherPos = otherEnemy.transform.position + hit.normal * (sweepRadius + 0.01f);
                     otherPos.y = otherEnemy.m_knockbackStartY + Mathf.Min(otherEnemy.m_knockbackVerticalStrength, 0.5f);
                     otherEnemy.transform.position = otherPos;
-                    if (otherEnemy.m_agent != null)
+                    if (otherEnemy.m_agent != null && otherEnemy.m_agent.enabled)
                         otherEnemy.m_agent.Warp(otherPos);
 
                     // Stop our horizontal motion after hitting another enemy so we don't keep pushing
@@ -622,7 +635,7 @@ public class Enemy : MonoBehaviour, IPoolable
                     selfPos.z = impactPoint.z;
                     selfPos.y = m_knockbackStartY + height;
                     transform.position = selfPos;
-                    if (m_agent != null)
+                    if (m_agent != null && m_agent.enabled)
                         m_agent.Warp(selfPos);
 
                     // Update previous position for next sweep
@@ -670,7 +683,7 @@ public class Enemy : MonoBehaviour, IPoolable
                         Vector3 otherPos = otherEnemy.transform.position + awayDir * (sweepRadius + 0.01f);
                         otherPos.y = otherEnemy.m_knockbackStartY + Mathf.Min(otherEnemy.m_knockbackVerticalStrength, 0.5f);
                         otherEnemy.transform.position = otherPos;
-                        if (otherEnemy.m_agent != null)
+                        if (otherEnemy.m_agent != null && otherEnemy.m_agent.enabled)
                             otherEnemy.m_agent.Warp(otherPos);
 
                         // Stop our movement
@@ -682,7 +695,7 @@ public class Enemy : MonoBehaviour, IPoolable
                         Vector3 selfPos = transform.position + -awayDir * (sweepRadius * 0.5f);
                         selfPos.y = m_knockbackStartY + height;
                         transform.position = selfPos;
-                        if (m_agent != null)
+                        if (m_agent != null && m_agent.enabled)
                             m_agent.Warp(selfPos);
 
                         m_prevKnockbackPosition = transform.position;
@@ -826,8 +839,68 @@ public class Enemy : MonoBehaviour, IPoolable
 
     public virtual void KillEnemy()
     {
+        // Spawn drops as before
         SpawnWeapon();
-        m_enemySpawner.RemoveEnemy(m_poolKey, this.gameObject);
+
+        // Mark as dead and fallen and transition to Fallen state so visuals rotate into fallen pose
+        m_isDead = true;
+        m_hasFallen = true;
+        ChangeState(EnemyState.Fallen);
+
+        // Prevent automatic recovery
+        m_stateTimer = float.PositiveInfinity;
+
+        // Stop and disable NavMeshAgent so it doesn't move or interfere
+        if (m_agent != null)
+        {
+            if (m_agent.enabled)
+            {
+                m_agent.isStopped = true;
+            }
+            // keep component disabled to avoid NavMesh controlling the corpse
+            m_agent.enabled = false;
+        }
+
+        // Convert colliders into triggers so the corpse doesn't physically block players
+        // but can still be detected by raycasts if needed. This keeps it non-interactive.
+        Collider[] cols = GetComponentsInChildren<Collider>(true);
+        foreach (var c in cols)
+        {
+            if (c != null)
+            {
+                c.enabled = true;
+                c.isTrigger = true;
+            }
+        }
+
+        // Make all rigidbodies kinematic so physics doesn't attempt to move the corpse.
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.isKinematic = true;
+        }
+        foreach (var crb in GetComponentsInChildren<Rigidbody>(true))
+        {
+            crb.isKinematic = true;
+        }
+
+        // Unsubscribe from health events to avoid accidental re-entry
+        if (m_health != null)
+            m_health.OnDied -= KillEnemy;
+
+        // Inform spawner to deregister this enemy without returning it to the pool
+        if (m_enemySpawner != null)
+        {
+            m_enemySpawner.DeregisterEnemy(this.gameObject);
+        }
+        else
+        {
+            // Fallback: if no spawner reference, fall back to original behavior
+            // to avoid leaving spawn center occupied forever
+            Debug.LogWarning("Enemy.KillEnemy: no spawner reference, returning to pool as fallback.");
+            if (!string.IsNullOrEmpty(m_poolKey))
+                ObjectPooler.Instance.ReturnToPool(m_poolKey, this.gameObject);
+        }
     }
 
     private Vector3 GetFlatDirectionToTarget()

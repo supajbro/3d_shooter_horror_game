@@ -162,7 +162,8 @@ MonoBehaviour:
   m_maxTransferSpeed: 12
   m_enemyCollisionImmunityDuration: 0.12
   m_collisionTransferScale: 0.02
-  m_maxHealth: 1000
+  m_collisionSweepRadiusMultiplier: 1.6
+  m_maxHealth: 100
   shouldSpawnWeapon: 0
   m_fallOverChance: 0.25
   m_getUpDuration: 1.5

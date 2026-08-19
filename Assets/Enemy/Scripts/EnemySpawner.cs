@@ -406,6 +406,34 @@ public class EnemySpawner : MonoBehaviour
     }
 
     #endregion
+
+    #region --- NEW API ---
+
+    /// <summary>
+    /// Deregisters an enemy from the spawner without returning it to the pool.
+    /// Use this when you want the enemy GameObject to remain in the scene (eg. a dead body).
+    /// This frees the spawn center and decrements the active count but does not call ReturnToPool.
+    /// </summary>
+    /// <param name="obj">The enemy GameObject to deregister.</param>
+    public void DeregisterEnemy(GameObject obj)
+    {
+        // free occupied center if present
+        if (obj != null && m_enemyToSpawnCenter.TryGetValue(obj, out var center))
+        {
+            m_enemyToSpawnCenter.Remove(obj);
+            if (center != null)
+                m_occupiedSpawnCenters.Remove(center);
+        }
+
+        // just decrement active count. Do NOT deactivate the enemy here - leaving it
+        // active allows knockback/corpse behaviour to continue after death.
+        m_activeEnemyCount = Mathf.Max(0, m_activeEnemyCount - 1);
+
+        // Keep this object active in the scene as a corpse. Do not call enemy.Deactivate().
+        // (If callers truly need the Enemy reference they can still GetComponent<Enemy>().)
+    }
+
+    #endregion
 }
 
 [System.Serializable]
