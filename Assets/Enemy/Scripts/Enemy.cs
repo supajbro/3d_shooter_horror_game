@@ -59,6 +59,7 @@ public class Enemy : MonoBehaviour, IPoolable
     [SerializeField] private float m_maxTransferSpeed = 12f; // clamp transferred speed to avoid huge forces
     [SerializeField] private float m_enemyCollisionImmunityDuration = 0.12f; // short immunity after being hit by another enemy
     [SerializeField] private float m_collisionTransferScale = 0.6f; // scale applied to transferred impact velocity (tweak to reduce force)
+    [SerializeField] private float m_collisionSweepRadiusMultiplier = 1.6f; // multiplier for sweep radius to catch side grazes
 
     // Dynamic ricochet state
     private bool m_allowRicochet = false;
@@ -558,8 +559,9 @@ public class Enemy : MonoBehaviour, IPoolable
         // Sweep for collisions along the movement path so we detect hits reliably
         if (moveDist > 0.0001f)
         {
+            float sweepRadius = m_ricochetRadius * m_collisionSweepRadiusMultiplier;
             Vector3 sweepOrigin = m_prevKnockbackPosition + Vector3.up * 0.5f;
-            RaycastHit[] hits = Physics.SphereCastAll(sweepOrigin, m_ricochetRadius, moveDir, moveDist + 0.01f, m_ricochetLayerMask.value, QueryTriggerInteraction.Ignore);
+            RaycastHit[] hits = Physics.SphereCastAll(sweepOrigin, sweepRadius, moveDir, moveDist + 0.01f, m_ricochetLayerMask.value, QueryTriggerInteraction.Ignore);
 
             if (hits != null && hits.Length > 0)
             {
@@ -594,7 +596,7 @@ public class Enemy : MonoBehaviour, IPoolable
                     otherEnemy.m_enemyCollisionImmunityTimer = m_enemyCollisionImmunityDuration;
 
                     // Resolve overlap minimally by nudging the other enemy along hit normal
-                    Vector3 otherPos = otherEnemy.transform.position + hit.normal * (m_ricochetRadius + 0.01f);
+                    Vector3 otherPos = otherEnemy.transform.position + hit.normal * (sweepRadius + 0.01f);
                     otherPos.y = otherEnemy.m_knockbackStartY + Mathf.Min(otherEnemy.m_knockbackVerticalStrength, 0.5f);
                     otherEnemy.transform.position = otherPos;
                     if (otherEnemy.m_agent != null)
@@ -606,7 +608,7 @@ public class Enemy : MonoBehaviour, IPoolable
                     m_allowRicochet = false;
 
                     // Place ourselves at the impact point (slightly offset) and update agent
-                    Vector3 impactPoint = hit.point + hit.normal * (m_ricochetRadius + 0.01f);
+                    Vector3 impactPoint = hit.point + hit.normal * (sweepRadius + 0.01f);
                     Vector3 selfPos = transform.position;
                     selfPos.x = impactPoint.x;
                     selfPos.z = impactPoint.z;
@@ -620,6 +622,65 @@ public class Enemy : MonoBehaviour, IPoolable
 
                     transferred = true;
                     break; // only transfer once per frame
+                }
+            }
+            else
+            {
+                // No spherecast hits: fallback to an overlap check at our current position
+                Collider[] overlaps = Physics.OverlapSphere(transform.position + Vector3.up * 0.5f, sweepRadius, m_ricochetLayerMask.value, QueryTriggerInteraction.Ignore);
+                if (overlaps != null && overlaps.Length > 0)
+                {
+                    // sort overlaps by distance to sweep origin to pick nearest
+                    var ordered = overlaps
+                        .Where(c => c != null && c.transform.root != transform)
+                        .Select(c => new { col = c, dist = Vector3.Distance(sweepOrigin, c.ClosestPoint(sweepOrigin)) })
+                        .OrderBy(x => x.dist)
+                        .ToArray();
+
+                    foreach (var entry in ordered)
+                    {
+                        Collider col = entry.col;
+                        if (col == null) continue;
+
+                        Enemy otherEnemy = col.GetComponentInParent<Enemy>();
+                        if (otherEnemy == null || otherEnemy == this) continue;
+                        if (otherEnemy.m_enemyCollisionImmunityTimer > 0f) continue;
+
+                        // Build a pseudo-normal and impact direction from centers
+                        Vector3 awayDir = (otherEnemy.transform.position - transform.position);
+                        if (awayDir.sqrMagnitude <= 0.0001f)
+                            awayDir = moveDir.sqrMagnitude > 0.0001f ? moveDir : transform.forward;
+                        awayDir.Normalize();
+
+                        float impactSpeed = moveDist / Mathf.Max(Time.deltaTime, 1e-6f);
+                        Vector3 impactVel = awayDir * impactSpeed;
+                        impactVel.y = Mathf.Clamp(m_knockbackVerticalStrength * 0.5f, 0.2f, 3f);
+
+                        otherEnemy.ApplyKnockback(impactVel * m_collisionTransferScale, Mathf.Max(0.35f, m_knockbackDuration * 0.5f), m_allowRicochet, true);
+                        otherEnemy.m_enemyCollisionImmunityTimer = m_enemyCollisionImmunityDuration;
+
+                        Vector3 otherPos = otherEnemy.transform.position + awayDir * (sweepRadius + 0.01f);
+                        otherPos.y = otherEnemy.m_knockbackStartY + Mathf.Min(otherEnemy.m_knockbackVerticalStrength, 0.5f);
+                        otherEnemy.transform.position = otherPos;
+                        if (otherEnemy.m_agent != null)
+                            otherEnemy.m_agent.Warp(otherPos);
+
+                        // Stop our movement
+                        if (m_allowRicochet)
+                            m_currentVelocity = Vector3.zero;
+                        m_allowRicochet = false;
+
+                        // nudge self
+                        Vector3 selfPos = transform.position + -awayDir * (sweepRadius * 0.5f);
+                        selfPos.y = m_knockbackStartY + height;
+                        transform.position = selfPos;
+                        if (m_agent != null)
+                            m_agent.Warp(selfPos);
+
+                        m_prevKnockbackPosition = transform.position;
+                        transferred = true;
+                        break;
+                    }
                 }
             }
         }
