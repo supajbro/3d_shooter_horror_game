@@ -421,7 +421,8 @@ public class Enemy : MonoBehaviour, IPoolable
     /// New parameter allowRicochet enables wall-bouncing behaviour when true.
     /// Added forceFall to force the enemy to fall over regardless of incoming force.
     /// </summary>
-    public void ApplyKnockback(Vector3 velocity, float duration, bool allowRicochet = false, bool forceFall = false)
+    public void ApplyKnockback(Vector3 velocity, float duration, bool allowRicochet = false, 
+        bool forceFall = false, bool allowFall = true)
     {
         // Use the incoming velocity magnitude to scale knockback forces so different
         // weapons feel distinct. Strong hits (e.g. revolver / bullets) should feel
@@ -454,6 +455,13 @@ public class Enemy : MonoBehaviour, IPoolable
             // Slightly bias fall chance by force so stronger punches feel more satisfying.
             float biasedChance = Mathf.Clamp01(m_fallOverChance + (incomingForce - 3f) * 0.05f);
             m_hasFallen = Random.value <= biasedChance;
+        }
+
+        // Override the fall state to false if this knockback can't allow falling.
+        // This is useful for knockbacks that should not cause a fall, such as certain melee attacks or environmental effects.
+        if (!allowFall)
+        {
+            m_hasFallen = false;
         }
 
         // Ricochet: prepare a horizontal velocity used for collisions and reflection.

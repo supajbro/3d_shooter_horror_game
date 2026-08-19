@@ -376,7 +376,7 @@ namespace StarterAssets
         }
 
         private void Move()
-        {
+		{
             if (UpdateDash())
                 return;
 
@@ -910,17 +910,18 @@ namespace StarterAssets
             {
                 case 0:
                     anim.SetTrigger("Attack01");
-                    DoMeleeHit(m_weakForce); // Weaker attack
+                    DoMeleeHit(m_weakForce, false, false, false); // Weaker attack
                     break;
 
                 case 1:
                     anim.SetTrigger("Attack02");
-                    DoMeleeHit(m_strongForce, true); // Stronger attack
+                    DoMeleeHit(m_strongForce, true, true); // Stronger attack
                     break;
             }
         }
 
-        private void DoMeleeHit(float force, bool allowRicochet = false)
+        private void DoMeleeHit(float force, bool allowRicochet = false, 
+            bool forceFall = false, bool allowFall = true)
         {
             Camera cam = GetPlayerCamera().GetCamera();
 
@@ -934,7 +935,9 @@ namespace StarterAssets
                     Vector3 dir = transform.forward;
                     dir.y = 0f;
                     dir.Normalize();
-                    enemy.ApplyKnockback(dir * force, 0.5f);
+                    // Ensure boolean parameters map correctly to Enemy.ApplyKnockback's signature.
+                    // Using named parameters avoids accidental reordering.
+                    enemy.ApplyKnockback(dir * force, 0.5f, allowRicochet: allowRicochet, forceFall: forceFall, allowFall: allowFall);
 
                     enemy.GetHealth().SetHealthRelative(-10);
                 }
