@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.ProBuilder;
+using System.Collections.Generic;
 
 public class Enemy : MonoBehaviour, IPoolable
 {
@@ -52,9 +53,21 @@ public class Enemy : MonoBehaviour, IPoolable
     [SerializeField] private LayerMask m_ricochetLayerMask = (LayerMask)(-1); // which layers to collide with
     [SerializeField] private float m_minRicochetSpeed = 0.5f; // below this speed stop ricocheting
 
+    // Transfer / collision tuning
+    [SerializeField] private float m_transferMomentumMultiplierRicochet = 0.8f; // fraction of momentum passed in ricochet path
+    [SerializeField] private float m_transferMomentumMultiplierLegacy = 0.6f; // fraction in legacy path
+    [SerializeField] private float m_maxTransferSpeed = 12f; // clamp transferred speed to avoid huge forces
+    [SerializeField] private float m_enemyCollisionImmunityDuration = 0.12f; // short immunity after being hit by another enemy
+    [SerializeField] private float m_collisionTransferScale = 0.6f; // scale applied to transferred impact velocity (tweak to reduce force)
+
     // Dynamic ricochet state
     private bool m_allowRicochet = false;
     private Vector3 m_currentVelocity; // horizontal velocity used for ricochet simulation
+
+    // Track previous position while knocked back so we can sweep for collisions
+    private Vector3 m_prevKnockbackPosition;
+
+    private float m_enemyCollisionImmunityTimer = 0f;
 
     [Header("Health Stats")]
     [SerializeField] protected float m_maxHealth = 100.0f;
@@ -405,8 +418,9 @@ public class Enemy : MonoBehaviour, IPoolable
     /// <summary>
     /// Apply a knockback to the enemy.
     /// New parameter allowRicochet enables wall-bouncing behaviour when true.
+    /// Added forceFall to force the enemy to fall over regardless of incoming force.
     /// </summary>
-    public void ApplyKnockback(Vector3 velocity, float duration, bool allowRicochet = false)
+    public void ApplyKnockback(Vector3 velocity, float duration, bool allowRicochet = false, bool forceFall = false)
     {
         // Use the incoming velocity magnitude to scale knockback forces so different
         // weapons feel distinct. Strong hits (e.g. revolver / bullets) should feel
@@ -426,7 +440,11 @@ public class Enemy : MonoBehaviour, IPoolable
         m_fallDirection = velocity.normalized;
 
         // Strong hits more likely (or guaranteed) to cause a fall.
-        if (incomingForce >= 12f)
+        if (forceFall)
+        {
+            m_hasFallen = true;
+        }
+        else if (incomingForce >= 12f)
         {
             m_hasFallen = true; // e.g. revolver/bullet
         }
@@ -450,6 +468,9 @@ public class Enemy : MonoBehaviour, IPoolable
             // keep currentVelocity zero so non-ricochet path uses legacy behaviour
             m_currentVelocity = Vector3.zero;
         }
+
+        // set prev-knockback position for movement sweep detection
+        m_prevKnockbackPosition = transform.position;
 
         // Choose the reaction when the hit occurs. Stun and Fallen are now parallel
         // reactions, and both transition to Recover when their own duration ends.
@@ -484,6 +505,10 @@ public class Enemy : MonoBehaviour, IPoolable
 
     private void HandleKnockback()
     {
+        // decrement collision immunity timer so enemies can be hit again shortly after
+        if (m_enemyCollisionImmunityTimer > 0f)
+            m_enemyCollisionImmunityTimer = Mathf.Max(0f, m_enemyCollisionImmunityTimer - Time.deltaTime);
+
         m_knockbackTimer += Time.deltaTime;
 
         float t = m_knockbackTimer / m_knockbackDuration;
@@ -512,82 +537,104 @@ public class Enemy : MonoBehaviour, IPoolable
         // vertical arc (jump feel) - remains the same for both modes
         float height = Mathf.Sin(t * Mathf.PI) * m_knockbackVerticalStrength;
 
+        // Compute intended horizontal movement for this frame
+        Vector3 horizontalMove;
         if (m_allowRicochet && m_currentVelocity.sqrMagnitude > 0.0001f)
         {
-            // Ricochet-enabled path: integrate horizontal velocity and handle wall collisions
-            Vector3 horizontalMove = m_currentVelocity;
-            float moveDistance = horizontalMove.magnitude * Time.deltaTime;
-
-            if (moveDistance > 0f)
-            {
-                Vector3 dir = horizontalMove.normalized;
-                Vector3 castOrigin = transform.position + Vector3.up * 0.5f; // cast around mid-height
-
-                if (Physics.SphereCast(castOrigin, m_ricochetRadius, dir, out RaycastHit hit, moveDistance + 0.01f, m_ricochetLayerMask.value, QueryTriggerInteraction.Ignore))
-                {
-                    // ignore collisions with own root
-                    if (hit.collider != null && hit.collider.transform.root != transform)
-                    {
-                        // Move to impact point (offset slightly from wall)
-                        Vector3 impactPoint = hit.point + hit.normal * (m_ricochetRadius + 0.01f);
-                        Vector3 pos = transform.position;
-                        pos.x = impactPoint.x;
-                        pos.z = impactPoint.z;
-                        pos.y = m_knockbackStartY + height;
-                        transform.position = pos;
-
-                        // Reflect horizontal velocity and damp it
-                        m_currentVelocity = Vector3.Reflect(m_currentVelocity, hit.normal) * m_ricochetBounceDamping;
-
-                        // Small random deflection to avoid perfectly repeating bounces
-                        float jitter = 0.05f * Mathf.Clamp01(m_knockbackForce / 15f);
-                        if (jitter > 0f)
-                        {
-                            m_currentVelocity = Quaternion.Euler(0f, Random.Range(-jitter, jitter) * 180f, 0f) * m_currentVelocity;
-                        }
-
-                        // If speed is too low after bounce, stop ricocheting so legacy code can finish
-                        if (m_currentVelocity.magnitude < m_minRicochetSpeed)
-                        {
-                            m_currentVelocity = Vector3.zero;
-                            m_allowRicochet = false;
-                        }
-                    }
-                    else
-                    {
-                        // Hit ourself (rare) - just move without reflecting
-                        Vector3 pos = transform.position;
-                        pos += m_currentVelocity * Time.deltaTime;
-                        pos.y = m_knockbackStartY + height;
-                        transform.position = pos;
-                    }
-                }
-                else
-                {
-                    // No collision this frame - move normally
-                    Vector3 pos = transform.position;
-                    pos += m_currentVelocity * Time.deltaTime;
-                    pos.y = m_knockbackStartY + height;
-                    transform.position = pos;
-                }
-            }
-
-            // Apply drag so horizontal velocity decays over time
-            m_currentVelocity = Vector3.Lerp(m_currentVelocity, Vector3.zero, Time.deltaTime * m_ricochetDrag);
+            horizontalMove = m_currentVelocity * Time.deltaTime;
         }
         else
         {
-            // Legacy fallback: smooth rotate/decay behaviour used previously.
-            // horizontal decay
             float curve = Mathf.Pow(1f - t, 2f); // stronger initial push
             float horizontalMultiplier = Mathf.Lerp(5f, 20f, Mathf.Clamp01(m_knockbackForce / 15f));
-            Vector3 horizontal = m_knockbackVelocity * horizontalMultiplier * curve;
+            horizontalMove = m_knockbackVelocity * horizontalMultiplier * curve * Time.deltaTime;
+        }
 
-            Vector3 pos = transform.position;
-            pos += horizontal * Time.deltaTime;
+        bool transferred = false;
+
+        float moveDist = horizontalMove.magnitude;
+        Vector3 moveDir = moveDist > 0f ? horizontalMove / moveDist : Vector3.zero;
+
+        // Sweep for collisions along the movement path so we detect hits reliably
+        if (moveDist > 0.0001f)
+        {
+            Vector3 sweepOrigin = m_prevKnockbackPosition + Vector3.up * 0.5f;
+            RaycastHit[] hits = Physics.SphereCastAll(sweepOrigin, m_ricochetRadius, moveDir, moveDist + 0.01f, m_ricochetLayerMask.value, QueryTriggerInteraction.Ignore);
+
+            if (hits != null && hits.Length > 0)
+            {
+                System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+                foreach (var hit in hits)
+                {
+                    if (hit.collider == null)
+                        continue;
+
+                    // ignore self
+                    if (hit.collider.transform.root == transform)
+                        continue;
+
+                    Enemy otherEnemy = hit.collider.GetComponentInParent<Enemy>();
+                    if (otherEnemy == null || otherEnemy == this)
+                        continue;
+
+                    // don't transfer if the other enemy was just hit
+                    if (otherEnemy.m_enemyCollisionImmunityTimer > 0f)
+                        continue;
+
+                    // Compute impact velocity based on actual movement this frame (world units/sec)
+                    float impactSpeed = moveDist / Mathf.Max(Time.deltaTime, 1e-6f);
+                    Vector3 impactVel = (moveDir.sqrMagnitude > 0.0001f ? moveDir : (otherEnemy.transform.position - transform.position).normalized) * impactSpeed;
+                    impactVel.y = Mathf.Clamp(m_knockbackVerticalStrength * 0.5f, 0.2f, 3f);
+
+                    // Start a brand-new ApplyKnockback on the other enemy — treat it as if shot
+                    otherEnemy.ApplyKnockback(impactVel * m_collisionTransferScale, Mathf.Max(0.35f, m_knockbackDuration * 0.5f), m_allowRicochet, true);
+
+                    // Give the other enemy a short immunity to further transfers
+                    otherEnemy.m_enemyCollisionImmunityTimer = m_enemyCollisionImmunityDuration;
+
+                    // Resolve overlap minimally by nudging the other enemy along hit normal
+                    Vector3 otherPos = otherEnemy.transform.position + hit.normal * (m_ricochetRadius + 0.01f);
+                    otherPos.y = otherEnemy.m_knockbackStartY + Mathf.Min(otherEnemy.m_knockbackVerticalStrength, 0.5f);
+                    otherEnemy.transform.position = otherPos;
+                    if (otherEnemy.m_agent != null)
+                        otherEnemy.m_agent.Warp(otherPos);
+
+                    // Stop our horizontal motion after hitting another enemy so we don't keep pushing
+                    if (m_allowRicochet)
+                        m_currentVelocity = Vector3.zero;
+                    m_allowRicochet = false;
+
+                    // Place ourselves at the impact point (slightly offset) and update agent
+                    Vector3 impactPoint = hit.point + hit.normal * (m_ricochetRadius + 0.01f);
+                    Vector3 selfPos = transform.position;
+                    selfPos.x = impactPoint.x;
+                    selfPos.z = impactPoint.z;
+                    selfPos.y = m_knockbackStartY + height;
+                    transform.position = selfPos;
+                    if (m_agent != null)
+                        m_agent.Warp(selfPos);
+
+                    // Update previous position for next sweep
+                    m_prevKnockbackPosition = transform.position;
+
+                    transferred = true;
+                    break; // only transfer once per frame
+                }
+            }
+        }
+
+        if (!transferred)
+        {
+            // No enemy hit — perform the movement and update previous position
+            Vector3 pos = transform.position + horizontalMove;
             pos.y = m_knockbackStartY + height;
-
             transform.position = pos;
+            m_prevKnockbackPosition = transform.position;
+
+            // apply drag for ricochet velocity
+            if (m_allowRicochet)
+                m_currentVelocity = Vector3.Lerp(m_currentVelocity, Vector3.zero, Time.deltaTime * m_ricochetDrag);
         }
     }
 

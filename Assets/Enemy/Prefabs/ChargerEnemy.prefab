@@ -157,6 +157,11 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   m_minRicochetSpeed: 0.5
+  m_transferMomentumMultiplierRicochet: 0.8
+  m_transferMomentumMultiplierLegacy: 0.6
+  m_maxTransferSpeed: 12
+  m_enemyCollisionImmunityDuration: 0.12
+  m_collisionTransferScale: 0.02
   m_maxHealth: 1000
   shouldSpawnWeapon: 0
   m_fallOverChance: 0.25
