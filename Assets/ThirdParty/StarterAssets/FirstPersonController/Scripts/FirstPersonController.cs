@@ -133,6 +133,7 @@ namespace StarterAssets
         [SerializeField] private float m_wallJumpKnockbackForce = 20f; // knockback when colliding with enemy after wall jump
         [SerializeField] private float m_wallJumpFacingDotThreshold = 0.2f; // require dot(transform.forward, wallNormal) > this to allow wall-jump (facing away)
 
+        private bool m_allowWallGrab = false; // Make this true if you want this mechanic.
         private bool m_isWallGrabbing = false;
         private Vector3 m_wallNormal = Vector3.zero;
         private float m_wallJumpActiveTimer = 0f; // short window where collisions will knockback enemies
@@ -750,7 +751,7 @@ namespace StarterAssets
             }
 
             // Wall grab detection: if we are in the air and hit a mostly vertical surface while moving toward it
-            if (!_controller.isGrounded && !m_isWallGrabbing)
+            if (m_allowWallGrab && !_controller.isGrounded && !m_isWallGrabbing)
             {
                 // require surface to be reasonably vertical (normal y small)
                 if (Mathf.Abs(hit.normal.y) < 0.25f)
