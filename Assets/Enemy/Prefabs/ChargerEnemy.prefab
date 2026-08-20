@@ -155,7 +155,7 @@ MonoBehaviour:
   m_ricochetDrag: 2
   m_ricochetLayerMask:
     serializedVersion: 2
-    m_Bits: 1024
+    m_Bits: 1280
   m_minRicochetSpeed: 0.15
   m_ricochetExtraSpeedMultiplier: 15
   m_ricochetVerticalBoost: 5
