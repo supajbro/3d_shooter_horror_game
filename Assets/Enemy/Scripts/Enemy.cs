@@ -48,10 +48,15 @@ public class Enemy : MonoBehaviour, IPoolable
 
     // Ricochet / bounce configuration
     [SerializeField] private float m_ricochetRadius = 0.35f; // radius for spherecast when checking walls
-    [SerializeField] private float m_ricochetBounceDamping = 0.6f; // fraction of speed kept after bounce
-    [SerializeField] private float m_ricochetDrag = 5f; // how quickly horizontal velocity decays per second
+    [SerializeField] private float m_ricochetBounceDamping = 0.9f; // fraction of speed kept after bounce (higher = bouncier)
+    [SerializeField] private float m_ricochetDrag = 1.5f; // how quickly horizontal velocity decays per second (reduced so bounces carry more)
     [SerializeField] private LayerMask m_ricochetLayerMask = (LayerMask)(-1); // which layers to collide with
-    [SerializeField] private float m_minRicochetSpeed = 0.5f; // below this speed stop ricocheting
+    [SerializeField] private float m_minRicochetSpeed = 0.12f; // below this speed stop ricocheting (lowered)
+
+    // Extra cartoony tuning
+    [SerializeField] private float m_ricochetExtraSpeedMultiplier = 1.15f; // small horizontal speed boost when bouncing
+    [SerializeField] private float m_ricochetVerticalBoost = 1.2f; // extra vertical strength added on ricochet
+    [SerializeField] private float m_ricochetPositionNudge = 0.12f; // nudge amount used to avoid immediate re-collision after bounce
 
     // Transfer / collision tuning
     [SerializeField] private float m_transferMomentumMultiplierRicochet = 0.8f; // fraction of momentum passed in ricochet path
@@ -59,7 +64,7 @@ public class Enemy : MonoBehaviour, IPoolable
     [SerializeField] private float m_maxTransferSpeed = 12f; // clamp transferred speed to avoid huge forces
     [SerializeField] private float m_enemyCollisionImmunityDuration = 0.12f; // short immunity after being hit by another enemy
     [SerializeField] private float m_collisionTransferScale = 0.6f; // scale applied to transferred impact velocity (tweak to reduce force)
-    [SerializeField] private float m_collisionSweepRadiusMultiplier = 1.6f; // multiplier for sweep radius to catch side grazes
+    [SerializeField] private float m_collisionSweepRadiusMultiplier = 1.3f; // multiplier for sweep radius to catch side grazes (slightly reduced)
 
     // Dynamic ricochet state
     private bool m_allowRicochet = false;
@@ -648,14 +653,20 @@ public class Enemy : MonoBehaviour, IPoolable
                         // Reflect horizontal velocity around the surface normal and apply damping
                         Vector3 inVel = m_currentVelocity;
                         inVel.y = 0f;
-                        Vector3 reflectDir = Vector3.Reflect(inVel.normalized, hit.normal);
-                        float newSpeed = Mathf.Clamp(m_currentVelocity.magnitude * m_ricochetBounceDamping, 0f, m_maxTransferSpeed);
+                        Vector3 reflectDir = Vector3.Reflect(inVel.normalized, hit.normal).normalized;
+
+                        // small extra speed to make the bounce feel cartoony
+                        float newSpeed = Mathf.Clamp(m_currentVelocity.magnitude * m_ricochetBounceDamping * m_ricochetExtraSpeedMultiplier, 0f, m_maxTransferSpeed);
                         m_currentVelocity = reflectDir * newSpeed;
+
+                        // Give a vertical boost so enemy 'pops' off the wall
+                        m_knockbackVerticalStrength = Mathf.Clamp(m_knockbackVerticalStrength + m_ricochetVerticalBoost, 0.5f, 12f);
 
                         // Move slightly off the wall so the enemy doesn't get stuck
                         Vector3 impactPoint = hit.point + hit.normal * (sweepRadius + 0.01f);
-                        Vector3 selfPos = impactPoint;
-                        selfPos.y = m_knockbackStartY + height;
+                        float instantPop = Mathf.Min(0.5f, m_ricochetVerticalBoost * 0.25f);
+                        Vector3 selfPos = impactPoint + reflectDir * m_ricochetPositionNudge;
+                        selfPos.y = m_knockbackStartY + height + instantPop;
                         transform.position = selfPos;
                         if (m_agent != null && m_agent.enabled)
                             m_agent.Warp(selfPos);
@@ -667,7 +678,12 @@ public class Enemy : MonoBehaviour, IPoolable
                             m_currentVelocity = Vector3.zero;
                         }
 
-                        m_prevKnockbackPosition = transform.position;
+                        // Move previous position slightly behind current position based on new velocity
+                        if (m_currentVelocity.sqrMagnitude > 0.0001f)
+                            m_prevKnockbackPosition = transform.position - m_currentVelocity.normalized * Mathf.Clamp(m_ricochetPositionNudge * 0.5f, 0.02f, 0.2f);
+                        else
+                            m_prevKnockbackPosition = transform.position;
+
                         transferred = true;
                         break;
                     }
@@ -763,12 +779,16 @@ public class Enemy : MonoBehaviour, IPoolable
 
                             if (m_allowRicochet && m_currentVelocity.sqrMagnitude > 0.0001f)
                             {
-                                Vector3 reflectDir = Vector3.Reflect(m_currentVelocity.normalized, awayDir);
-                                float newSpeed = Mathf.Clamp(m_currentVelocity.magnitude * m_ricochetBounceDamping, 0f, m_maxTransferSpeed);
+                                Vector3 reflectDir = Vector3.Reflect(m_currentVelocity.normalized, awayDir).normalized;
+                                float newSpeed = Mathf.Clamp(m_currentVelocity.magnitude * m_ricochetBounceDamping * m_ricochetExtraSpeedMultiplier, 0f, m_maxTransferSpeed);
                                 m_currentVelocity = reflectDir * newSpeed;
 
-                                Vector3 selfPos = transform.position + awayDir * (sweepRadius + 0.01f);
-                                selfPos.y = m_knockbackStartY + height;
+                                // vertical boost
+                                m_knockbackVerticalStrength = Mathf.Clamp(m_knockbackVerticalStrength + m_ricochetVerticalBoost, 0.5f, 12f);
+
+                                Vector3 selfPos = transform.position + awayDir * (sweepRadius + 0.01f) + reflectDir * m_ricochetPositionNudge;
+                                float instantPop = Mathf.Min(0.5f, m_ricochetVerticalBoost * 0.25f);
+                                selfPos.y = m_knockbackStartY + height + instantPop;
                                 transform.position = selfPos;
                                 if (m_agent != null && m_agent.enabled)
                                     m_agent.Warp(selfPos);
@@ -779,7 +799,11 @@ public class Enemy : MonoBehaviour, IPoolable
                                     m_currentVelocity = Vector3.zero;
                                 }
 
-                                m_prevKnockbackPosition = transform.position;
+                                if (m_currentVelocity.sqrMagnitude > 0.0001f)
+                                    m_prevKnockbackPosition = transform.position - m_currentVelocity.normalized * Mathf.Clamp(m_ricochetPositionNudge * 0.5f, 0.02f, 0.2f);
+                                else
+                                    m_prevKnockbackPosition = transform.position;
+
                                 transferred = true;
                                 break;
                             }
