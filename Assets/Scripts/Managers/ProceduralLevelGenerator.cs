@@ -47,6 +47,14 @@ public class ProceduralLevelGenerator : MonoBehaviour
     [SerializeField] private float m_wallThickness = 0.25f;
     [SerializeField] private bool m_spawnHallwayWalls = true;
 
+    [Header("Roofs")]
+    [Tooltip("Prefab used for hallway roofs. The roof should have its pivot centered.")]
+    [SerializeField] private GameObject m_roofPrefab;
+    [Tooltip("If no roof prefab is assigned, a simple cube will be used.")]
+    [SerializeField] private float m_roofThickness = 0.2f;
+    [SerializeField] private float m_roofYOffset = 12.75f;
+    [SerializeField] private bool m_spawnHallwayRoofs = true;
+
     [Header("NavMesh (requires NavMeshComponents)")]
     [Tooltip("If true the generator will add/ensure a NavMeshSurface on the level root and call BuildNavMesh() after generation.")]
     [SerializeField] private bool m_autoBuildNavMesh = true;
@@ -338,8 +346,9 @@ public class ProceduralLevelGenerator : MonoBehaviour
             }
         }
 
-        // After placing floors and rooms, spawn walls along the hallway edges
+        // After placing floors and rooms, spawn walls and roofs
         SpawnHallwayWalls();
+        SpawnHallwayRoofs();
     }
 
     private void SpawnHallwayWalls()
@@ -413,6 +422,51 @@ public class ProceduralLevelGenerator : MonoBehaviour
         }
     }
 
+    private void SpawnHallwayRoofs()
+    {
+        if (!m_spawnHallwayRoofs)
+            return;
+
+        // The roof sits directly on top of the walls.
+        // Example:
+        // wall height = 3
+        // wall centre Y = 1.5
+        // roof centre Y = 3
+        float roofY = m_roofYOffset; //m_wallYOffset + (m_wallHeight * 0.5f);
+
+        foreach (var hallCell in m_hallCells)
+        {
+            Vector3 floorPos = GridToWorld(hallCell);
+            Vector3 roofPos = new Vector3(floorPos.x, roofY, floorPos.z);
+
+            if (m_roofPrefab != null)
+            {
+                GameObject roof = Instantiate(
+                    m_roofPrefab,
+                    roofPos,
+                    Quaternion.identity,
+                    m_parent
+                );
+
+                roof.name = $"Roof_{hallCell.x}_{hallCell.y}";
+            }
+            else
+            {
+                // Fallback roof cube
+                GameObject roof = GameObject.CreatePrimitive(PrimitiveType.Cube);
+
+                roof.transform.SetParent(m_parent, false);
+                roof.transform.position = roofPos;
+                roof.transform.localScale = new Vector3(
+                    m_tileSize,
+                    m_roofThickness,
+                    m_tileSize
+                );
+
+                roof.name = $"Roof_{hallCell.x}_{hallCell.y}";
+            }
+        }
+    }
     private bool IsHallwayCell(Vector2Int pos)
     {
         return m_hallCellSet.Contains(pos);
