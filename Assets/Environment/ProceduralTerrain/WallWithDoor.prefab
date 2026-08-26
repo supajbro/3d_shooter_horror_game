@@ -444,10 +444,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f93294810ae14734fb804bd017773c91, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Door
-  m_hinge: {fileID: 0}
-  m_animator: {fileID: 0}
-  m_openTrigger: Open
-  m_closeTrigger: Close
+  m_pivot: {fileID: 0}
   m_openAngle: 90
   m_openSpeed: 6
 --- !u!1 &4364432662506646045
@@ -756,6 +753,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Door_1_Brown
       objectReference: {fileID: 0}
+    - target: {fileID: 1889589370831100, guid: fb21c2677f6de9b41b800858634f37f9, type: 3}
+      propertyPath: m_Layer
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 1908674092843544, guid: fb21c2677f6de9b41b800858634f37f9, type: 3}
+      propertyPath: m_Layer
+      value: 9
+      objectReference: {fileID: 0}
     - target: {fileID: 4651603642805868, guid: fb21c2677f6de9b41b800858634f37f9, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.15
@@ -812,11 +817,39 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: d5e8cff6cbbee8844ad5eeb36952ddd4, type: 2}
-    m_RemovedComponents: []
+    - target: {fileID: 114032679875626476, guid: fb21c2677f6de9b41b800858634f37f9, type: 3}
+      propertyPath: open
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents:
+    - {fileID: 114032679875626476, guid: fb21c2677f6de9b41b800858634f37f9, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1889589370831100, guid: fb21c2677f6de9b41b800858634f37f9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2539603238312012969}
   m_SourcePrefab: {fileID: 100100000, guid: fb21c2677f6de9b41b800858634f37f9, type: 3}
+--- !u!1 &1173701316346963714 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1889589370831100, guid: fb21c2677f6de9b41b800858634f37f9, type: 3}
+  m_PrefabInstance: {fileID: 1175269846141413374}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2539603238312012969
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1173701316346963714}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f93294810ae14734fb804bd017773c91, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Door
+  m_pivot: {fileID: 0}
+  m_openAngle: 90
+  m_openSpeed: 180
 --- !u!4 &1179911394250672530 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4651603642805868, guid: fb21c2677f6de9b41b800858634f37f9, type: 3}
