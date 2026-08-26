@@ -22,8 +22,6 @@ public class Door : MonoBehaviour, IInteractable
             m_pivot = transform;
 
         m_closedRotation = m_pivot.localRotation;
-        m_openRotation = m_closedRotation * Quaternion.Euler(0f, m_openAngle, 0f);
-
         m_targetRotation = m_closedRotation;
     }
 
@@ -52,7 +50,34 @@ public class Door : MonoBehaviour, IInteractable
 
     public void Interact(Transform interactor)
     {
-        Toggle();
+        if (m_isRotating)
+            return;
+
+        if (m_isOpen)
+        {
+            Close();
+            return;
+        }
+
+        OpenTowardsPlayer(interactor);
+    }
+
+    private void OpenTowardsPlayer(Transform interactor)
+    {
+        m_isOpen = true;
+
+        // Get the player's position relative to the pivot.
+        Vector3 localPlayerPosition = m_pivot.InverseTransformPoint(interactor.position);
+
+        // Determine which side of the door the player is on.
+        float direction = localPlayerPosition.z >= 0f ? -1f : 1f;
+
+        // Create the open rotation in the direction away from the player.
+        m_openRotation = m_closedRotation *
+                          Quaternion.Euler(0f, m_openAngle * direction, 0f);
+
+        m_targetRotation = m_openRotation;
+        m_isRotating = true;
     }
 
     public void Toggle()
@@ -60,13 +85,21 @@ public class Door : MonoBehaviour, IInteractable
         if (m_isRotating)
             return;
 
-        m_isOpen = !m_isOpen;
+        if (m_isOpen)
+        {
+            Close();
+        }
+        else
+        {
+            // Toggle() doesn't have an interactor, so use the default direction.
+            m_isOpen = true;
 
-        m_targetRotation = m_isOpen
-            ? m_openRotation
-            : m_closedRotation;
+            m_openRotation = m_closedRotation *
+                              Quaternion.Euler(0f, m_openAngle, 0f);
 
-        m_isRotating = true;
+            m_targetRotation = m_openRotation;
+            m_isRotating = true;
+        }
     }
 
     public void Open()
@@ -75,6 +108,10 @@ public class Door : MonoBehaviour, IInteractable
             return;
 
         m_isOpen = true;
+
+        m_openRotation = m_closedRotation *
+                          Quaternion.Euler(0f, m_openAngle, 0f);
+
         m_targetRotation = m_openRotation;
         m_isRotating = true;
     }
