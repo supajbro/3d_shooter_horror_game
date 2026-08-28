@@ -151,7 +151,7 @@ public class LevelManager : MonoBehaviour
             //m_weaponSpawner.SpawnWeaponRandom(chosen, null);
 
             // TEMP: Always spawn pistol atm.
-            m_weaponSpawner.SpawnWeapon(BaseGunController.GunType.SHOTGUN, chosen, null);
+            m_weaponSpawner.SpawnWeapon(BaseGunController.GunType.PISTOL, chosen, null);
         }
     }
 

@@ -9,6 +9,10 @@ public class Bullet : MonoBehaviour
 
     [SerializeField] protected float m_damage     = 10.0f;
 
+    [Header("Headshot")]
+    [SerializeField] private HeadshotEffect m_headshotEffect = HeadshotEffect.None;
+    [SerializeField] private float m_headshotDamageMultiplier = 2f;
+
     private Vector3 m_direction = Vector3.zero;
     private Vector3 m_inheritedVelocity = Vector3.zero;
 
@@ -91,31 +95,27 @@ public class Bullet : MonoBehaviour
             allowKill = false;
         }
 
-        // Enemies collision is tied to the mesh (child of enemy).
-        if (other.gameObject.transform != null)
+        if (HeadshotHitbox.TryGetHitEnemy(other, out var enemy, out bool isHeadshot))
         {
-            if (other.gameObject.transform.TryGetComponent<Enemy>(out var enemy))
+            // BulletUpdate moves along -m_direction, so this is the actual
+            // incoming trajectory rather than the bullet model's forward axis.
+            Vector3 dir = m_direction;
+            dir.y = 0f;
+            dir.Normalize();
+
+            HeadshotHitbox.ApplyDamage(enemy, m_damage, isHeadshot, m_headshotEffect, m_headshotDamageMultiplier);
+
+            if (m_knockbackCombineWindow > 0f)
             {
-                // BulletUpdate moves along -m_direction, so this is the actual
-                // incoming trajectory rather than the bullet model's forward axis.
-                Vector3 dir = m_direction;
-                dir.y = 0f;
-                dir.Normalize();
+                var accumulator = enemy.GetComponent<ShotgunKnockbackAccumulator>();
+                if (accumulator == null)
+                    accumulator = enemy.gameObject.AddComponent<ShotgunKnockbackAccumulator>();
 
-                enemy.GetHealth().SetHealthRelative(-m_damage);
-
-                if (m_knockbackCombineWindow > 0f)
-                {
-                    var accumulator = enemy.GetComponent<ShotgunKnockbackAccumulator>();
-                    if (accumulator == null)
-                        accumulator = enemy.gameObject.AddComponent<ShotgunKnockbackAccumulator>();
-
-                    accumulator.AddPellet(dir * m_knockbackForce, 0.5f, m_knockbackCombineWindow);
-                }
-                else
-                {
-                    enemy.ApplyKnockback(dir * m_knockbackForce, 0.5f, true, true);
-                }
+                accumulator.AddPellet(dir * m_knockbackForce, 0.5f, m_knockbackCombineWindow);
+            }
+            else
+            {
+                enemy.ApplyKnockback(dir * m_knockbackForce, 0.5f, true, true);
             }
         }
 

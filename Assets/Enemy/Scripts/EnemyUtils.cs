@@ -8,6 +8,8 @@ public class EnemyUtils : MonoBehaviour
 
     public void InitDebug(bool debug, EnemyHealth health)
     {
+        HeadshotHitbox.EnsureForEnemy(GetComponent<Enemy>());
+
         if(!debug)
         {
             m_debugCanvas.gameObject.SetActive(false);

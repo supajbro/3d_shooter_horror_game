@@ -80,6 +80,10 @@ public abstract class BaseGunController : MonoBehaviour
     [SerializeField] private float m_damage         = 10.0f;
     [SerializeField] private float m_hitscanRange   = 100.0f;
 
+    [Header("Headshot Settings")]
+    [SerializeField] private HeadshotEffect m_headshotEffect = HeadshotEffect.None;
+    [SerializeField] private float m_headshotDamageMultiplier = 2f;
+
     [Header("Required release")]
     [SerializeField] private bool m_requiresTriggerRelease = false; // <- Does this gun need input to be released to fire again?
     private bool m_hasReleasedTrigger = true;
@@ -304,7 +308,8 @@ public abstract class BaseGunController : MonoBehaviour
 
         Vector3 targetPoint;
 
-        if (Physics.Raycast(cameraRay, out RaycastHit cameraHit, m_hitscanRange))
+        if (Physics.Raycast(cameraRay, out RaycastHit cameraHit, m_hitscanRange,
+            Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide))
         {
             targetPoint = cameraHit.point;
         }
@@ -320,11 +325,12 @@ public abstract class BaseGunController : MonoBehaviour
 
         Vector3 finalHitPoint = targetPoint;
 
-        if (Physics.Raycast(muzzleRay, out RaycastHit hit, m_hitscanRange))
+        if (Physics.Raycast(muzzleRay, out RaycastHit hit, m_hitscanRange,
+            Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide))
         {
             finalHitPoint = hit.point;
 
-            if (hit.transform.TryGetComponent<Enemy>(out var enemy))
+            if (HeadshotHitbox.TryGetHitEnemy(hit.collider, out var enemy, out bool isHeadshot))
             {
                 // Use the ray that hit the enemy. The gun transform can differ from
                 // the camera/muzzle trajectory, which caused sideways fall directions.
@@ -332,7 +338,7 @@ public abstract class BaseGunController : MonoBehaviour
                 dir.y = 0f;
                 dir.Normalize();
 
-                enemy.GetHealth().SetHealthRelative(-m_damage);
+                HeadshotHitbox.ApplyDamage(enemy, m_damage, isHeadshot, m_headshotEffect, m_headshotDamageMultiplier);
                 enemy.ApplyKnockback(dir * 30.0f, 0.5f, true, true);
             }
         }
