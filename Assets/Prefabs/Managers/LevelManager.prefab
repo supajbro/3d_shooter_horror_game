@@ -220,6 +220,10 @@ MonoBehaviour:
   m_wallYOffset: 1.5
   m_wallThickness: 0.25
   m_spawnHallwayWalls: 1
+  m_roofPrefab: {fileID: 5256344564332166496, guid: 604363ac68d651d4aa2e52b559082ba4, type: 3}
+  m_roofThickness: 0.2
+  m_roofYOffset: 12.75
+  m_spawnHallwayRoofs: 1
   m_autoBuildNavMesh: 1
 --- !u!1 &2329479698707715851
 GameObject:

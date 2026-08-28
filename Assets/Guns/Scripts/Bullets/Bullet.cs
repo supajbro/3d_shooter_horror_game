@@ -51,12 +51,12 @@ public class Bullet : MonoBehaviour
          * Leave m_bulletVisual as null if you don't want this gun to be affected visually by velocity. */
         if (m_bulletVisual)
         {
-            Vector3 velocity = (-(m_direction) * m_speed) + m_inheritedVelocity;
+            Vector3 velocity = ((m_direction) * m_speed) + m_inheritedVelocity;
             m_bulletVisual.transform.position += velocity * Time.deltaTime;
         }
 
         // Move the actual bullet component.
-        transform.position += -(m_direction) * m_speed * Time.deltaTime;
+        transform.position += (m_direction) * m_speed * Time.deltaTime;
     }
 
     private void OnTriggerEnter(Collider other)

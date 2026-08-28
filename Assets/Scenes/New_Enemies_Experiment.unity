@@ -1432,10 +1432,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: LevelManager
       objectReference: {fileID: 0}
-    - target: {fileID: 2866472854059253831, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
-      propertyPath: m_roofPrefab
-      value: 
-      objectReference: {fileID: 5256344564332166496, guid: 604363ac68d651d4aa2e52b559082ba4, type: 3}
     - target: {fileID: 5246410929537568086, guid: 40e117735466e3f45b09bdbb4daae4c6, type: 3}
       propertyPath: m_LocalPosition.x
       value: -2.3353
