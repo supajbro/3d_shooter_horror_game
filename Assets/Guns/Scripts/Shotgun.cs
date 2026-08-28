@@ -5,6 +5,10 @@ public class Shotgun : BaseGunController
     [SerializeField] private int pelletCount = 6;
     [SerializeField] private float spreadAngle = 10f;
 
+    [Header("Knockback")]
+    [SerializeField] private float pelletKnockbackForce = 5f;
+    [SerializeField] private float knockbackCombineWindow = 0.04f;
+
     protected override void Shoot()
     {
         for (int i = 0; i < pelletCount; i++)
@@ -19,6 +23,7 @@ public class Shotgun : BaseGunController
 
             Vector3 direction = GetSpreadDirection();
             bullet.Init(direction, m_player.GetPlayerVelocity());
+            bullet.ConfigureKnockback(pelletKnockbackForce, knockbackCombineWindow);
 
             ApplyRecoil();
         }

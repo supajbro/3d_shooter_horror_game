@@ -12,6 +12,11 @@ public class Bullet : MonoBehaviour
     private Vector3 m_direction = Vector3.zero;
     private Vector3 m_inheritedVelocity = Vector3.zero;
 
+    // Most projectiles apply their knockback immediately. Shotgun pellets can
+    // opt into a short combine window so the enemy reacts to the whole blast.
+    private float m_knockbackForce = 30.0f;
+    private float m_knockbackCombineWindow;
+
     private bool m_active = false;
 
     public virtual void Init(Vector3 dir, Vector3 inheritedVelocity)
@@ -26,6 +31,12 @@ public class Bullet : MonoBehaviour
 
         // Set the bullets lifetime.
         Destroy(gameObject, m_lifetime);
+    }
+
+    public void ConfigureKnockback(float force, float combineWindow = 0f)
+    {
+        m_knockbackForce = Mathf.Max(0f, force);
+        m_knockbackCombineWindow = Mathf.Max(0f, combineWindow);
     }
 
     private void Update()
@@ -49,11 +60,11 @@ public class Bullet : MonoBehaviour
          * We only want to update the visuals with the velocity of the player so it
          * looks like it is shooting out of the barrel.
          * Leave m_bulletVisual as null if you don't want this gun to be affected visually by velocity. */
-        if (m_bulletVisual)
+ /*       if (m_bulletVisual)
         {
             Vector3 velocity = ((m_direction) * m_speed) + m_inheritedVelocity;
             m_bulletVisual.transform.position += velocity * Time.deltaTime;
-        }
+        }*/
 
         // Move the actual bullet component.
         transform.position += (m_direction) * m_speed * Time.deltaTime;
@@ -66,16 +77,18 @@ public class Bullet : MonoBehaviour
             return;
         }
 
+        bool allowKill = true;
+
         // Dont kill yourself!!!
         if(other == this)
         {
-            return;
+            allowKill = false;
         }
 
         // Dont kill your brothers!!!
         if(other.gameObject.tag == "Bullet")
         {
-            return;
+            allowKill = false;
         }
 
         // Enemies collision is tied to the mesh (child of enemy).
@@ -85,15 +98,28 @@ public class Bullet : MonoBehaviour
             {
                 // BulletUpdate moves along -m_direction, so this is the actual
                 // incoming trajectory rather than the bullet model's forward axis.
-                Vector3 dir = -m_direction;
+                Vector3 dir = m_direction;
                 dir.y = 0f;
                 dir.Normalize();
 
                 enemy.GetHealth().SetHealthRelative(-m_damage);
-                enemy.ApplyKnockback(dir * 15.0f, 0.5f, true);
+
+                if (m_knockbackCombineWindow > 0f)
+                {
+                    var accumulator = enemy.GetComponent<ShotgunKnockbackAccumulator>();
+                    if (accumulator == null)
+                        accumulator = enemy.gameObject.AddComponent<ShotgunKnockbackAccumulator>();
+
+                    accumulator.AddPellet(dir * m_knockbackForce, 0.5f, m_knockbackCombineWindow);
+                }
+                else
+                {
+                    enemy.ApplyKnockback(dir * m_knockbackForce, 0.5f, true, true);
+                }
             }
         }
 
-        Destroy(gameObject);
+        if(allowKill)
+            Destroy(gameObject);
     }
 }

@@ -175,7 +175,7 @@ MonoBehaviour:
   m_swayAmount: 0.02
   m_swaySmooth: 8
   m_anim: {fileID: 2468758476355080233}
-  m_fireRate: 1.5
+  m_fireRate: 0.9
   recoilKickback: 0.15
   recoilSpeed: 10
   returnSpeed: 4
@@ -195,8 +195,10 @@ MonoBehaviour:
   m_debugDraw: 1
   m_debugRange: 100
   m_shootAnimationLength: 0.25
-  pelletCount: 6
+  pelletCount: 10
   spreadAngle: 10
+  pelletKnockbackForce: 5
+  knockbackCombineWindow: 0.04
 --- !u!1 &7543380960793535264
 GameObject:
   m_ObjectHideFlags: 0
