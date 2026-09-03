@@ -233,11 +233,11 @@ MonoBehaviour:
   m_wallLayerMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_wallGrabDuration: 1.5
   m_wallDetachOffset: 0.25
   m_wallJumpUpVelocity: 15
   m_wallJumpForwardVelocity: 25
   m_wallJumpKnockbackForce: 5
+  m_wallJumpFacingDotThreshold: 0.2
   m_attackRange: 25
   m_enemyLayer:
     serializedVersion: 2
@@ -393,13 +393,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a93114c35dd1ae4ea3a7d3fcfc60eb9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerPickup
-  m_pickupRange: 10
+  m_pickupRange: 25
   m_pickupLayer:
     serializedVersion: 2
     m_Bits: 64
+  m_promptMoveDistance: 100
+  m_promptTweenDuration: 0.25
   m_model: {fileID: 0}
   m_moveOffset: 0.1
   m_moveLerpSpeed: 10
+  m_pickupGracePeriod: 0.25
 --- !u!114 &8953194335352935583
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -412,8 +415,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3763b2b44c097b449b3929cbf8af9ad7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInteract
-  m_interactDistance: 3
+  m_interactDistance: 10
   m_interactableLayer:
     serializedVersion: 2
     m_Bits: 512
   m_interactKey: 101
+  m_promptTweenDuration: 0.25
+  m_promptMoveDistance: 100

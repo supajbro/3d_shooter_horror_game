@@ -26,6 +26,10 @@ public class GameplayUI : MonoBehaviour
     [SerializeField] private Sprite m_shotgunSprite;
     [SerializeField] private Sprite m_rocketLauncherSprite;
 
+    [Header("Interact Prompt")]
+    [SerializeField] private CanvasGroup m_interactPrompt;
+    [SerializeField] private TextMeshProUGUI m_interactKey;
+
     private PlayerPickup m_playerPickup;
 
     public void Init(LevelManager manager)
@@ -47,6 +51,8 @@ public class GameplayUI : MonoBehaviour
         if(m_playerPickup = manager.GetPlayer().GetPlayerPickup())
         {
             m_playerPickup.OnWeaponChanged += HandleWeaponChanged;
+            m_playerPickup.SetInteractPrompt(m_interactPrompt, m_interactKey, manager.GetPlayer().GetPlayerInteract());
+            m_playerPickup.InitPickupPrompt();
         }
     }
 

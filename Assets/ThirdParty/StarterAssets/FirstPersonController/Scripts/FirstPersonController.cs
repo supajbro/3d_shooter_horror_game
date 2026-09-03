@@ -171,6 +171,16 @@ namespace StarterAssets
             return m_playerPickup;
         }
 
+        public PlayerInteract GetPlayerInteract()
+        {
+            if (m_playerInteract == null)
+            {
+                Debug.LogError("Missing reference to player interact.");
+                return null;
+            }
+            return m_playerInteract;
+        }
+
         public LevelManager GetLevelManager()
 		{
             if (m_manager == null)
@@ -252,7 +262,7 @@ namespace StarterAssets
 			m_playerPickup.Init(manager);
 
 			m_playerInteract = GetComponent<PlayerInteract>();
-			m_playerInteract.Init(m_playerCamera);
+			m_playerInteract.Init(m_playerCamera, _playerInput);
 
 			m_manager = manager;
 

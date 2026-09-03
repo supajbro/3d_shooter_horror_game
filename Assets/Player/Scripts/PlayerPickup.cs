@@ -2,6 +2,7 @@ using StarterAssets;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using TMPro;
 
 // TODO: Rename this class. PlayerPickup only references other PickupItem classes, it doesn't actually do the _Pickup_
 public class PlayerPickup : MonoBehaviour
@@ -16,6 +17,27 @@ public class PlayerPickup : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private float m_pickupRange = 3f;
     [SerializeField] private LayerMask m_pickupLayer;
+
+    [Header("Pickup Prompt")]
+    [SerializeField] private float m_promptMoveDistance = 30f;
+    [SerializeField] private float m_promptTweenDuration = 0.25f;
+    private RectTransform m_interactPromptRect;
+    private Vector2 m_promptDefaultPosition;
+    private CanvasGroup m_interactPrompt;
+    private TMP_Text m_interactKeyText;
+    public void SetInteractPrompt(CanvasGroup prompt, TextMeshProUGUI text, PlayerInteract interact)
+    {
+        m_interactPrompt = prompt; 
+        m_interactKeyText = text;
+
+        // responsible for setting up player interact too because i dumb and made it its own class.
+        interact.SetInteractPrompt(prompt, text);
+
+        UpdatePickupKeyText();
+    }
+
+    private Vector3 m_promptDefaultLocalPos;
+    private bool m_promptVisible;
 
     [Header("Inventory")]
     private BaseGunController[] m_guns = new BaseGunController[2];
@@ -32,6 +54,11 @@ public class PlayerPickup : MonoBehaviour
     [SerializeField] private float m_moveLerpSpeed = 10f;
     private Vector3 m_defaultLocalPos;
 
+    [Header("Grace Period")]
+    [SerializeField] private float m_pickupGracePeriod = 1f;
+    private PickupItem m_currentPickup;
+    private float m_lastPickupSeenTime;
+
     public System.Action<int> OnWeaponChanged;
 
     public void Init(LevelManager manager)
@@ -45,18 +72,21 @@ public class PlayerPickup : MonoBehaviour
         m_manager = manager;
 
         m_playerInput = m_player.GetPlayerInput();
+
         if (m_playerInput != null)
         {
-            m_switchWeaponAction    = m_playerInput.actions["SwitchWeapon"];
-            m_interactAction        = m_playerInput.actions["Interact"];
-            m_dropWeaponAction      = m_playerInput.actions["DropWeapon"];
+            m_switchWeaponAction = m_playerInput.actions["SwitchWeapon"];
+            m_interactAction = m_playerInput.actions["Interact"];
+            m_dropWeaponAction = m_playerInput.actions["DropWeapon"];
         }
 
-        if (m_switchWeaponAction != null && m_interactAction != null && m_dropWeaponAction != null)
+        if (m_switchWeaponAction != null &&
+            m_interactAction != null &&
+            m_dropWeaponAction != null)
         {
-            m_switchWeaponAction.performed  += OnSwitchWeapon;
-            m_interactAction.performed      += OnTryPickup;
-            m_dropWeaponAction.performed    += OnDropWeapon;
+            m_switchWeaponAction.performed += OnSwitchWeapon;
+            m_interactAction.performed += OnTryPickup;
+            m_dropWeaponAction.performed += OnDropWeapon;
         }
         else
         {
@@ -67,13 +97,19 @@ public class PlayerPickup : MonoBehaviour
     private void Update()
     {
         ChooseAnimation();
+        CheckForPickup();
     }
 
     private void OnDisable()
     {
-        m_switchWeaponAction.performed  -= OnSwitchWeapon;
-        m_interactAction.performed      -= OnTryPickup;
-        m_dropWeaponAction.performed    -= OnDropWeapon;
+        if (m_switchWeaponAction != null)
+            m_switchWeaponAction.performed -= OnSwitchWeapon;
+
+        if (m_interactAction != null)
+            m_interactAction.performed -= OnTryPickup;
+
+        if (m_dropWeaponAction != null)
+            m_dropWeaponAction.performed -= OnDropWeapon;
     }
 
     public void OnTryPickup(InputAction.CallbackContext context)
@@ -85,14 +121,149 @@ public class PlayerPickup : MonoBehaviour
     {
         Ray ray = new Ray(m_camera.transform.position, m_camera.transform.forward);
 
+        // First, try the normal raycast.
         if (Physics.Raycast(ray, out RaycastHit hit, m_pickupRange, m_pickupLayer))
         {
             PickupItem item = hit.collider.GetComponent<PickupItem>();
+
             if (item != null)
             {
                 item.OnPickup(this);
+
+                m_currentPickup = null;
+                m_lastPickupSeenTime = 0f;
+
+                HidePickupPrompt();
+                return;
             }
         }
+
+        // Raycast failed, so try the cached pickup.
+        if (m_currentPickup != null)
+        {
+            // Make sure the cached pickup is still within its grace period.
+            if (Time.time - m_lastPickupSeenTime <= m_pickupGracePeriod)
+            {
+                m_currentPickup.OnPickup(this);
+
+                m_currentPickup = null;
+                m_lastPickupSeenTime = 0f;
+
+                HidePickupPrompt();
+            }
+        }
+    }
+
+    private void CheckForPickup()
+    {
+        if (m_camera == null)
+            return;
+
+        Ray ray = new Ray(m_camera.transform.position, m_camera.transform.forward);
+
+        PickupItem foundPickup = null;
+
+        if (Physics.Raycast(ray, out RaycastHit hit, m_pickupRange, m_pickupLayer))
+        {
+            foundPickup = hit.collider.GetComponent<PickupItem>();
+        }
+
+        // Found a pickup with the raycast.
+        if (foundPickup != null)
+        {
+            // Immediately switch to the new pickup.
+            m_currentPickup = foundPickup;
+
+            // Reset the grace period.
+            m_lastPickupSeenTime = Time.time;
+
+            ShowPickupPrompt();
+            return;
+        }
+
+        // No pickup found, but keep the cached pickup
+        // alive for the grace period.
+        if (m_currentPickup != null)
+        {
+            if (Time.time - m_lastPickupSeenTime <= m_pickupGracePeriod)
+            {
+                ShowPickupPrompt();
+                return;
+            }
+
+            // Grace period expired.
+            m_currentPickup = null;
+        }
+
+        HidePickupPrompt();
+    }
+
+    public void InitPickupPrompt()
+    {
+        m_interactPrompt.alpha = 0f;
+        m_interactPrompt.gameObject.SetActive(false);
+        m_promptDefaultLocalPos = m_interactPrompt.transform.localPosition;
+    }
+
+    private void ShowPickupPrompt()
+    {
+        if (m_interactPrompt == null)
+            return;
+
+        if (m_promptVisible)
+            return;
+
+        m_promptVisible = true;
+
+        UpdatePickupKeyText();
+
+        m_interactPrompt.gameObject.SetActive(true);
+
+        // Start slightly below its normal position
+        m_interactPrompt.transform.localPosition = m_promptDefaultLocalPos - Vector3.up * m_promptMoveDistance;
+
+        LeanTween.cancel(m_interactPrompt.gameObject);
+
+        LeanTween.moveLocal(
+            m_interactPrompt.gameObject,
+            m_promptDefaultLocalPos,
+            m_promptTweenDuration
+        ).setEaseOutBack();
+
+        LeanTween.alphaCanvas(m_interactPrompt, 1f, m_promptTweenDuration).setEaseOutQuad();
+    }
+
+    private void HidePickupPrompt()
+    {
+        if (m_interactPrompt == null || !m_promptVisible)
+            return;
+
+        m_promptVisible = false;
+
+        LeanTween.cancel(m_interactPrompt.gameObject);
+
+        LeanTween.moveLocal(
+            m_interactPrompt.gameObject,
+            m_promptDefaultLocalPos - Vector3.up * m_promptMoveDistance,
+            m_promptTweenDuration
+        ).setEaseInBack()
+        .setOnComplete(() =>
+        {
+            if (!m_promptVisible)
+                m_interactPrompt.gameObject.SetActive(false);
+        });
+
+        LeanTween.alphaCanvas(m_interactPrompt, 0f, m_promptTweenDuration).setEaseInQuad();
+    }
+
+    private void UpdatePickupKeyText()
+    {
+        if (m_interactKeyText == null || m_interactAction == null)
+            return;
+
+        string binding = m_interactAction.GetBindingDisplayString(0);
+
+        m_interactKeyText.text = binding;
     }
 
     /// <summary>
@@ -107,10 +278,8 @@ public class PlayerPickup : MonoBehaviour
             return;
         }
 
-        // Try to find empty slot
         int slot = GetEmptySlot();
 
-        // If no empty slot, replace active weapon
         if (slot == -1)
         {
             slot = m_activeIndex;
@@ -119,13 +288,10 @@ public class PlayerPickup : MonoBehaviour
 
         m_guns[slot] = newGun;
 
-        // Disable the newly picked up gun by default
         SetGunActive(newGun, false);
 
-        // Count how many weapons we now have
         int weaponCount = m_guns.Count(g => g != null);
 
-        // Auto-equip ONLY if this is the first weapon
         if (weaponCount == 1)
         {
             m_activeIndex = slot;
@@ -142,6 +308,7 @@ public class PlayerPickup : MonoBehaviour
             if (m_guns[i] == null)
                 return i;
         }
+
         return -1;
     }
 
@@ -157,7 +324,6 @@ public class PlayerPickup : MonoBehaviour
 
     private void SwitchWeapon(int direction)
     {
-        // We have no remaining weapons, make sure we know the user has no weapons..
         if (m_guns[0] == null && m_guns[1] == null)
         {
             var ui = m_manager.GetGameplayUI();
@@ -168,10 +334,10 @@ public class PlayerPickup : MonoBehaviour
 
         int startIndex = m_activeIndex;
 
-        // loop until we find a valid weapon or come back around
         do
         {
-            m_activeIndex = (m_activeIndex + direction + m_guns.Length) % m_guns.Length;
+            m_activeIndex =
+                (m_activeIndex + direction + m_guns.Length) % m_guns.Length;
         }
         while (m_guns[m_activeIndex] == null && m_activeIndex != startIndex);
 
@@ -183,9 +349,11 @@ public class PlayerPickup : MonoBehaviour
     {
         for (int i = 0; i < m_guns.Length; i++)
         {
-            if (m_guns[i] == null) continue;
+            if (m_guns[i] == null)
+                continue;
 
-            bool isActive = (i == m_activeIndex);
+            bool isActive = i == m_activeIndex;
+
             SetGunActive(m_guns[i], isActive);
 
             if (isActive)
@@ -201,7 +369,7 @@ public class PlayerPickup : MonoBehaviour
 
     private void SetGunActive(BaseGunController gun, bool active)
     {
-        if(!m_manager || !m_manager.GetGameplayUI())
+        if (!m_manager || !m_manager.GetGameplayUI())
         {
             Debug.LogError("Missing reference to gameplay UI. Unable to make gun active.");
             return;
@@ -209,9 +377,10 @@ public class PlayerPickup : MonoBehaviour
 
         gun.gameObject.SetActive(active);
 
-        if(active)
+        if (active)
         {
-            m_manager.GetGameplayUI().SetAmmoText(gun.GetCurrentAmmo() + "/" + gun.GetAvailableAmmo());
+            m_manager.GetGameplayUI()
+                .SetAmmoText(gun.GetCurrentAmmo() + "/" + gun.GetAvailableAmmo());
         }
     }
 
@@ -231,26 +400,35 @@ public class PlayerPickup : MonoBehaviour
     private void DropCurrentWeapon()
     {
         BaseGunController gun = m_guns[m_activeIndex];
-        if (gun == null) return;
+
+        if (gun == null)
+            return;
 
         DropGun(gun);
         m_guns[m_activeIndex] = null;
 
-        // Switch to other weapon if available
         SwitchWeapon(1);
     }
 
     private void DropGun(BaseGunController gun)
     {
-        var pickup = Instantiate(m_player.GetLevelManager().GetGunPickup(gun.GetGunType()));
-        pickup.transform.position = m_camera.transform.position + m_camera.transform.forward * 1.5f;
+        var pickup = Instantiate(
+            m_player.GetLevelManager().GetGunPickup(gun.GetGunType())
+        );
 
-        // If the gun pickup obj has a rigidbody then use it here (helps make the drop look juicy)
+        pickup.transform.position =
+            m_camera.transform.position +
+            m_camera.transform.forward * 1.5f;
+
         Rigidbody rb = gun.GetComponent<Rigidbody>();
+
         if (rb != null)
         {
             rb.isKinematic = false;
-            rb.AddForce(m_camera.transform.forward * 5f, ForceMode.Impulse);
+            rb.AddForce(
+                m_camera.transform.forward * 5f,
+                ForceMode.Impulse
+            );
         }
 
         Destroy(gun.gameObject);
@@ -276,41 +454,45 @@ public class PlayerPickup : MonoBehaviour
 
     private void ChooseAnimation()
     {
-        if(m_anim == null)
+        if (m_anim == null)
         {
             Debug.LogError("Woah! Missing your animations buddy.");
             return;
         }
-        
-        if(GetGunCount() != 0)
-        {
-            Debug.Log("We have a gun, don't animate these as these are for melee only.");
 
-            // If we have a gun and our hand model is active, disable it now.
-            if(m_model.gameObject.activeInHierarchy)
+        if (GetGunCount() != 0)
+        {
+            if (m_model.gameObject.activeInHierarchy)
             {
                 m_model.gameObject.SetActive(false);
             }
 
             return;
         }
-        else if(!m_model.gameObject.activeInHierarchy)
+        else if (!m_model.gameObject.activeInHierarchy)
         {
             m_model.gameObject.SetActive(true);
         }
 
-        if (!m_player.IsAttacking() && !m_player.IsDashing() && !m_player.IsSliding())
+        if (!m_player.IsAttacking() &&
+            !m_player.IsDashing() &&
+            !m_player.IsSliding())
         {
-            Vector3 localVelocity = transform.InverseTransformDirection(m_player.GetPlayerVelocity());
+            Vector3 localVelocity =
+                transform.InverseTransformDirection(
+                    m_player.GetPlayerVelocity()
+                );
+
             Vector3 targetOffset = Vector3.zero;
 
             if (localVelocity.sqrMagnitude > 0.01f)
             {
-                targetOffset = new Vector3(
-                    localVelocity.x,
-                    0f,
-                    localVelocity.z
-                ).normalized * m_moveOffset;
+                targetOffset =
+                    new Vector3(
+                        localVelocity.x,
+                        0f,
+                        localVelocity.z
+                    ).normalized * m_moveOffset;
 
                 m_anim.SetBool("Walk_Bool", true);
                 m_anim.SetBool("Idle_Bool", false);
@@ -331,9 +513,13 @@ public class PlayerPickup : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        if (m_camera == null) return;
+        if (m_camera == null)
+            return;
 
         Gizmos.color = Color.green;
-        Gizmos.DrawRay(m_camera.transform.position, m_camera.transform.forward * m_pickupRange);
+        Gizmos.DrawRay(
+            m_camera.transform.position,
+            m_camera.transform.forward * m_pickupRange
+        );
     }
 }
