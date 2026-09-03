@@ -45,4 +45,24 @@ public class WeaponSpawner : MonoBehaviour
             gun.OnGunPickup.AddListener(onPickup.Invoke);
         }
     }
+
+    public void SpawnShotgunOrPistol(Transform trans, UnityEvent onPickup)
+    {
+        if (m_manager == null)
+        {
+            Debug.LogError("Missing reference to the level manager.");
+            return;
+        }
+
+        var values = System.Enum.GetValues(typeof(BaseGunController.GunType));
+        var randomIndex = Random.Range(1, 2);
+        var randomGun = (BaseGunController.GunType)values.GetValue(randomIndex);
+        var gun = Instantiate(m_manager.GetGunPickup(randomGun), trans.position, Quaternion.identity);
+
+        // null check as we don't always add a new listener when calling this
+        if (onPickup != null)
+        {
+            gun.OnGunPickup.AddListener(onPickup.Invoke);
+        }
+    }
 }
