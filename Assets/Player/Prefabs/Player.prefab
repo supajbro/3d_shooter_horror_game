@@ -403,6 +403,10 @@ MonoBehaviour:
   m_moveOffset: 0.1
   m_moveLerpSpeed: 10
   m_pickupGracePeriod: 0.25
+  m_throwablePrefab: {fileID: 8171124296539511671, guid: bf61700aa457467428925fed4950602a, type: 3}
+  m_throwSpawnDelay: 0.35
+  m_throwSpawnDistance: 1.25
+  m_throwAnimationTrigger: Attack01
 --- !u!114 &8953194335352935583
 MonoBehaviour:
   m_ObjectHideFlags: 0

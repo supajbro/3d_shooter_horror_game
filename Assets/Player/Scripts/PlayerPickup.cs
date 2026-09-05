@@ -1,5 +1,6 @@
 using StarterAssets;
 using System.Linq;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using TMPro;
@@ -58,6 +59,14 @@ public class PlayerPickup : MonoBehaviour
     [SerializeField] private float m_pickupGracePeriod = 1f;
     private PickupItem m_currentPickup;
     private float m_lastPickupSeenTime;
+
+    [Header("Weapon Throw")]
+    [Tooltip("Temporary projectile visual. This is set to ChargerEnemy for now and can be replaced with the final throwable prefab.")]
+    [SerializeField] private GameObject m_throwablePrefab;
+    [SerializeField, Min(0f)] private float m_throwSpawnDelay = 0.35f;
+    [SerializeField, Min(0f)] private float m_throwSpawnDistance = 1.25f;
+    [SerializeField] private string m_throwAnimationTrigger = "Attack01";
+    private bool m_isThrowing;
 
     public System.Action<int> OnWeaponChanged;
 
@@ -283,7 +292,9 @@ public class PlayerPickup : MonoBehaviour
         if (slot == -1)
         {
             slot = m_activeIndex;
-            DropGun(m_guns[slot]);
+            // Picking up a third gun replaces the active one; guns are no
+            // longer turned into world pickups by this mechanic.
+            Destroy(m_guns[slot].gameObject);
         }
 
         m_guns[slot] = newGun;
@@ -394,44 +405,54 @@ public class PlayerPickup : MonoBehaviour
 
     private void OnDropWeapon(InputAction.CallbackContext context)
     {
-        DropCurrentWeapon();
+        if (!m_isThrowing)
+            StartCoroutine(ThrowCurrentWeapon());
     }
 
-    private void DropCurrentWeapon()
+    private IEnumerator ThrowCurrentWeapon()
     {
         BaseGunController gun = m_guns[m_activeIndex];
 
         if (gun == null)
-            return;
+            yield break;
 
-        DropGun(gun);
-        m_guns[m_activeIndex] = null;
-
-        SwitchWeapon(1);
-    }
-
-    private void DropGun(BaseGunController gun)
-    {
-        var pickup = Instantiate(
-            m_player.GetLevelManager().GetGunPickup(gun.GetGunType())
-        );
-
-        pickup.transform.position =
-            m_camera.transform.position +
-            m_camera.transform.forward * 1.5f;
-
-        Rigidbody rb = gun.GetComponent<Rigidbody>();
-
-        if (rb != null)
+        if (m_throwablePrefab == null)
         {
-            rb.isKinematic = false;
-            rb.AddForce(
-                m_camera.transform.forward * 5f,
-                ForceMode.Impulse
-            );
+            Debug.LogError("Missing throwable prefab on PlayerPickup.");
+            yield break;
         }
 
+        m_isThrowing = true;
+
+        // The held gun is hidden while the arms play the throw wind-up.
+        gun.gameObject.SetActive(false);
+        if (m_model != null)
+            m_model.gameObject.SetActive(true);
+
+        if (m_anim != null && !string.IsNullOrWhiteSpace(m_throwAnimationTrigger))
+            m_anim.SetTrigger(m_throwAnimationTrigger);
+
+        yield return new WaitForSeconds(m_throwSpawnDelay);
+
+        Vector3 direction = m_camera.transform.forward.normalized;
+        Vector3 spawnPosition = m_camera.transform.position + direction * m_throwSpawnDistance;
+        GameObject throwable = Instantiate(
+            m_throwablePrefab,
+            spawnPosition,
+            Quaternion.LookRotation(direction)
+        );
+
+        ThrowableWeapon projectile = throwable.GetComponent<ThrowableWeapon>();
+        if (projectile == null)
+            projectile = throwable.AddComponent<ThrowableWeapon>();
+
+        projectile.Init(direction);
+
+        m_guns[m_activeIndex] = null;
         Destroy(gun.gameObject);
+
+        SwitchWeapon(1);
+        m_isThrowing = false;
     }
 
     public BaseGunController[] GetGuns()
@@ -460,7 +481,7 @@ public class PlayerPickup : MonoBehaviour
             return;
         }
 
-        if (GetGunCount() != 0)
+        if (GetGunCount() != 0 && !m_isThrowing)
         {
             if (m_model.gameObject.activeInHierarchy)
             {
