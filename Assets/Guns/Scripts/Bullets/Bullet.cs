@@ -103,7 +103,9 @@ public class Bullet : MonoBehaviour
             dir.y = 0f;
             dir.Normalize();
 
-            HeadshotHitbox.ApplyDamage(enemy, m_damage, isHeadshot, m_headshotEffect, m_headshotDamageMultiplier);
+            float damageDealt = HeadshotHitbox.ApplyDamage(
+                enemy, m_damage, isHeadshot, m_headshotEffect, m_headshotDamageMultiplier);
+            DamageTextSpawner.ShowDamage(other.ClosestPoint(transform.position), damageDealt, isHeadshot);
 
             if (m_knockbackCombineWindow > 0f)
             {

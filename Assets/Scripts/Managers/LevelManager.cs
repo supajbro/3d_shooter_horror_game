@@ -33,6 +33,10 @@ public class LevelManager : MonoBehaviour
     [Header("Weapons Pads")]
     private WeaponPad[] m_weaponPads;
 
+    [Header("Damage Text")]
+    [SerializeField] private DamageTextSpawner m_damageTextSpawnerPrefab;
+    private DamageTextSpawner m_damageTextSpawner;
+
     [Header("UI")]
     [SerializeField] private GameplayUI m_ui;
 
@@ -73,7 +77,17 @@ public class LevelManager : MonoBehaviour
         if (m_enemySpawner != null)
             m_enemySpawner.Init(this);
 
-        m_collisionStartsNextEnemyWave = FindObjectsByType<CollisionStartsNextEnemyWave>(FindObjectsSortMode.None);
+        // Initialise the damage text spawner.
+        if (DamageTextSpawner.s_instance == null)
+        {
+            m_damageTextSpawner = Instantiate(m_damageTextSpawnerPrefab);
+        }
+        else
+        {
+            m_damageTextSpawner = DamageTextSpawner.s_instance;
+        }
+
+            m_collisionStartsNextEnemyWave = FindObjectsByType<CollisionStartsNextEnemyWave>(FindObjectsSortMode.None);
         foreach (var enemyWave in m_collisionStartsNextEnemyWave)
         {
             enemyWave.Init(this);

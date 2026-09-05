@@ -125,6 +125,7 @@ MonoBehaviour:
   m_shotgunPickup: {fileID: 6353214498802673558, guid: 384ec95c1cb0ea947a574820ec70aa40, type: 3}
   m_pistolPickup: {fileID: 6353214498802673558, guid: 0ceb7d8e798d4a241aadc00a37ca0c36, type: 3}
   m_rocketLauncherPickup: {fileID: 6353214498802673558, guid: 3bf4b2ade33f1994998b31decbae2c9e, type: 3}
+  m_damageTextSpawnerPrefab: {fileID: 2676729249389477511, guid: cc45e67cf92341641977ccebd5b39247, type: 3}
   m_ui: {fileID: 0}
 --- !u!1 &1284022344557332623
 GameObject:

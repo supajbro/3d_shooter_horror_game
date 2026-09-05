@@ -325,8 +325,7 @@ public abstract class BaseGunController : MonoBehaviour
 
         Vector3 finalHitPoint = targetPoint;
 
-        if (Physics.Raycast(muzzleRay, out RaycastHit hit, m_hitscanRange,
-            Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide))
+        if (Physics.Raycast(muzzleRay, out RaycastHit hit, m_hitscanRange,Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide))
         {
             finalHitPoint = hit.point;
 
@@ -338,7 +337,9 @@ public abstract class BaseGunController : MonoBehaviour
                 dir.y = 0f;
                 dir.Normalize();
 
-                HeadshotHitbox.ApplyDamage(enemy, m_damage, isHeadshot, m_headshotEffect, m_headshotDamageMultiplier);
+                float damageDealt = HeadshotHitbox.ApplyDamage(
+                    enemy, m_damage, isHeadshot, m_headshotEffect, m_headshotDamageMultiplier);
+                DamageTextSpawner.ShowDamage(hit.point, damageDealt, isHeadshot);
                 enemy.ApplyKnockback(dir * 30.0f, 0.5f, true, true);
             }
         }

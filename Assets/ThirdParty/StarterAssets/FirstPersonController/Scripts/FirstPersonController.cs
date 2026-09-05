@@ -921,36 +921,45 @@ namespace StarterAssets
             {
                 case 0:
                     anim.SetTrigger("Attack01");
-                    DoMeleeHit(m_weakForce, false, false, false); // Weaker attack
+                    DoMeleeHit(m_weakForce, 5, false, false, false); // Weaker attack
                     break;
 
                 case 1:
                     anim.SetTrigger("Attack02");
-                    DoMeleeHit(m_strongForce, true, true); // Stronger attack
+                    DoMeleeHit(m_strongForce, 10, true, true); // Stronger attack
                     break;
             }
         }
 
-        private void DoMeleeHit(float force, bool allowRicochet = false, 
-            bool forceFall = false, bool allowFall = true)
+        private void DoMeleeHit(float force, float meleeDamage, bool allowRicochet = false, bool forceFall = false, bool allowFall = true)
         {
             Camera cam = GetPlayerCamera().GetCamera();
 
             Ray ray = new Ray(cam.transform.position, cam.transform.forward);
 
-            if (Physics.Raycast(ray, out RaycastHit hit, m_attackRange, m_enemyLayer))
+            if (Physics.Raycast(ray, out RaycastHit hit, m_attackRange, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide))
             {
-                var enemy = hit.collider.GetComponent<Enemy>();
-                if (enemy != null)
+                if (HeadshotHitbox.TryGetHitEnemy(hit.collider, out var enemy, out bool isHeadshot))
                 {
-                    Vector3 dir = transform.forward;
+                    Vector3 dir = ray.direction;
                     dir.y = 0f;
                     dir.Normalize();
-                    // Ensure boolean parameters map correctly to Enemy.ApplyKnockback's signature.
-                    // Using named parameters avoids accidental reordering.
-                    enemy.ApplyKnockback(dir * force, 0.5f, allowRicochet: allowRicochet, forceFall: forceFall, allowFall: allowFall);
 
-                    enemy.GetHealth().SetHealthRelative(-10);
+                    // The hit point lies on (and can be slightly inside) the enemy
+                    // collider. Move the text toward the player so it is not hidden
+                    // by the enemy mesh at melee range.
+                    Vector3 damageTextPosition = hit.point - ray.direction * 0.08f;
+                    DamageTextSpawner.ShowDamage(damageTextPosition, meleeDamage, isHeadshot, cam);
+
+                    enemy.ApplyKnockback(
+                        dir * force,
+                        0.5f,
+                        allowRicochet: allowRicochet,
+                        forceFall: forceFall,
+                        allowFall: allowFall
+                    );
+
+                    enemy.GetHealth().SetHealthRelative(-meleeDamage);
                 }
             }
             else

@@ -58,20 +58,22 @@ public class HeadshotHitbox : MonoBehaviour
         return enemy != null;
     }
 
-    public static void ApplyDamage(Enemy enemy, float damage, bool isHeadshot,
+    public static float ApplyDamage(Enemy enemy, float damage, bool isHeadshot,
         HeadshotEffect effect, float damageMultiplier)
     {
         if (enemy == null)
-            return;
+            return 0f;
 
         EnemyHealth health = enemy.GetHealth();
         if (health == null)
-            return;
+            return 0f;
+
+        float healthBeforeHit = health.GetHealth();
 
         if (isHeadshot && effect == HeadshotEffect.InstantKill)
         {
             health.SetHealth(0f);
-            return;
+            return healthBeforeHit;
         }
 
         float finalDamage = damage;
@@ -79,5 +81,6 @@ public class HeadshotHitbox : MonoBehaviour
             finalDamage *= Mathf.Max(0f, damageMultiplier);
 
         health.SetHealthRelative(-finalDamage);
+        return Mathf.Min(finalDamage, healthBeforeHit);
     }
 }
