@@ -21,6 +21,7 @@ public class ProceduralLevelGenerator : MonoBehaviour
 
     [Header("Generation")]
     [SerializeField] private int m_minRooms = 7;
+    [Tooltip("Maximum number of non-hallway rooms. Paired hotel rooms count individually.")]
     [SerializeField] private int m_maxRooms = 12;
     [SerializeField] private float m_tileSize = 10f;
     [SerializeField] private int m_seed = 0; // 0 = random
@@ -31,8 +32,9 @@ public class ProceduralLevelGenerator : MonoBehaviour
     [SerializeField] private GameObject m_floorTilePrefab;
     [SerializeField] private int m_hallMinLength = 8;
     [SerializeField] private int m_hallMaxLength = 16;
-    [Range(0f, 1f)]
-    [SerializeField] private float m_sideRoomChance = 0.5f; // chance to spawn a room on either side of a hall segment
+    [Tooltip("Number of hallway tiles between paired hotel-room placements. Rooms are placed on both sides when space permits.")]
+    [Min(1)]
+    [SerializeField] private int m_roomSpacing = 3;
 
     [Header("Walls")]
     [Tooltip("Plain wall prefab (used when there is no room behind the wall).")]
@@ -202,40 +204,49 @@ public class ProceduralLevelGenerator : MonoBehaviour
         // Build the list of positions starting with hallway cells
         List<Vector2Int> positions = new List<Vector2Int>(m_hallCells);
 
-        // For each hallway tile, attempt to spawn rooms on the two sides (left/right relative to segment direction)
+        // Place a matched room pair after every configured number of usable hallway tiles.
+        // Corners and the start/exit cells are skipped, so rooms do not collide with a turn
+        // or replace the special rooms at either end of the hallway.
+        int tilesSinceLastRoomPair = 0;
+        int roomSpacing = Mathf.Max(1, m_roomSpacing);
+        int placedSideRooms = 0;
+
         for (int idx = 0; idx < m_hallCells.Count; idx++)
         {
             var hallCell = m_hallCells[idx];
 
-            // Determine local segment direction: prefer next cell, else previous
-            Vector2Int segmentDir = Vector2Int.zero;
-            if (idx < m_hallCells.Count - 1)
-                segmentDir = m_hallCells[idx + 1] - hallCell;
-            else if (idx > 0)
-                segmentDir = hallCell - m_hallCells[idx - 1];
-            else
-                segmentDir = Vector2Int.right; // fallback
+            if (!IsUsableRoomPairAnchor(idx))
+                continue;
+
+            tilesSinceLastRoomPair++;
+            if (tilesSinceLastRoomPair < roomSpacing)
+                continue;
+
+            Vector2Int segmentDir = hallCell - m_hallCells[idx - 1];
 
             Vector2Int sideA = new Vector2Int(-segmentDir.y, segmentDir.x); // left
             Vector2Int sideB = new Vector2Int(segmentDir.y, -segmentDir.x); // right
+            Vector2Int roomPosA = hallCell + sideA;
+            Vector2Int roomPosB = hallCell + sideB;
 
-            // attempt side A
-            if (positions.Count < m_maxRooms && m_rng.NextDouble() <= m_sideRoomChance)
+            // Add rooms as a pair: a failed side means neither room is added at this anchor.
+            // This keeps the default hotel layout balanced on both sides of the hall.
+            bool hasCapacityForPair = placedSideRooms + 2 <= m_maxRooms;
+            bool canPlacePair = hasCapacityForPair
+                && !positions.Contains(roomPosA)
+                && !positions.Contains(roomPosB)
+                && !WouldRoomClipIntoHall(roomPosA, hallCell)
+                && !WouldRoomClipIntoHall(roomPosB, hallCell);
+
+            if (canPlacePair)
             {
-                Vector2Int roomPos = hallCell + sideA;
-                if (!positions.Contains(roomPos) && !WouldRoomClipIntoHall(roomPos, hallCell))
-                    positions.Add(roomPos);
+                positions.Add(roomPosA);
+                positions.Add(roomPosB);
+                placedSideRooms += 2;
+                tilesSinceLastRoomPair = 0;
             }
 
-            // attempt side B
-            if (positions.Count < m_maxRooms && m_rng.NextDouble() <= m_sideRoomChance)
-            {
-                Vector2Int roomPos = hallCell + sideB;
-                if (!positions.Contains(roomPos) && !WouldRoomClipIntoHall(roomPos, hallCell))
-                    positions.Add(roomPos);
-            }
-
-            if (positions.Count >= m_maxRooms)
+            if (placedSideRooms >= m_maxRooms)
                 break;
         }
 
@@ -259,6 +270,18 @@ public class ProceduralLevelGenerator : MonoBehaviour
         // Start is origin; exit is the far end of the hallway
         StartPosition = GridToWorld(m_hallCells.First());
         ExitPosition = GridToWorld(m_hallCells.Last());
+    }
+
+    // A room pair must be beside a straight, interior hallway tile. This avoids placing
+    // room doors at corners, where the wall orientation and neighbouring cells change.
+    private bool IsUsableRoomPairAnchor(int index)
+    {
+        if (index <= 0 || index >= m_hallCells.Count - 1)
+            return false;
+
+        Vector2Int incomingDirection = m_hallCells[index] - m_hallCells[index - 1];
+        Vector2Int outgoingDirection = m_hallCells[index + 1] - m_hallCells[index];
+        return incomingDirection == outgoingDirection;
     }
 
     // Check that placing a room at roomPos won't clip into other hallway cells besides anchorHallCell
