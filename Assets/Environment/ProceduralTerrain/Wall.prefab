@@ -193,6 +193,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: lampRoundWall
       objectReference: {fileID: 0}
+    - target: {fileID: 175410, guid: db7c4cf8589af6a44842cbd27bd80b89, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 409314, guid: db7c4cf8589af6a44842cbd27bd80b89, type: 3}
       propertyPath: m_LocalScale.x
       value: 50
@@ -322,14 +326,14 @@ Light:
   m_Enabled: 1
   serializedVersion: 12
   m_Type: 2
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.8392157, g: 0.72156864, b: 0.47058824, a: 1}
   m_Intensity: 10
-  m_Range: 10
+  m_Range: 25
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
   m_Shadows:
-    m_Type: 0
+    m_Type: 2
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 1
@@ -365,7 +369,7 @@ Light:
   m_Lightmapping: 4
   m_LightShadowCasterMode: 0
   m_AreaSize: {x: 1, y: 1}
-  m_BounceIntensity: 1
+  m_BounceIntensity: 10
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
   m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
