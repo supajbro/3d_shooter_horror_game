@@ -379,21 +379,20 @@ public class ProceduralLevelGenerator : MonoBehaviour
         if (!m_spawnHallwayWalls)
             return;
 
-        // For each hallway cell, compute the segment direction and place walls on its sides (left/right relative to segment)
-        foreach (var hallCell in m_hallCells)
+        // Build walls from both the incoming and outgoing hallway directions. At a turn,
+        // each direction contributes its side walls; hallway neighbours are then skipped.
+        // This closes the outside of a corner without blocking the route through it.
+        for (int idx = 0; idx < m_hallCells.Count; idx++)
         {
-            int idx = m_hallCells.IndexOf(hallCell);
+            Vector2Int hallCell = m_hallCells[idx];
+            HashSet<Vector2Int> sides = new HashSet<Vector2Int>();
 
-            // Determine local segment direction: prefer next cell, else previous
-            Vector2Int segmentDir = Vector2Int.zero;
+            if (idx > 0)
+                AddPerpendicularSides(m_hallCells[idx] - m_hallCells[idx - 1], sides);
             if (idx < m_hallCells.Count - 1)
-                segmentDir = m_hallCells[idx + 1] - hallCell;
-            else if (idx > 0)
-                segmentDir = hallCell - m_hallCells[idx - 1];
-            else
-                segmentDir = Vector2Int.right; // fallback
-
-            Vector2Int[] sides = new[] { new Vector2Int(-segmentDir.y, segmentDir.x), new Vector2Int(segmentDir.y, -segmentDir.x) };
+                AddPerpendicularSides(m_hallCells[idx + 1] - m_hallCells[idx], sides);
+            if (sides.Count == 0)
+                AddPerpendicularSides(Vector2Int.right, sides);
 
             foreach (var side in sides)
             {
@@ -421,28 +420,34 @@ public class ProceduralLevelGenerator : MonoBehaviour
                     wall.transform.SetParent(m_parent, false);
                     wall.transform.position = spawnPos;
 
-                    // if hallway runs along X (segmentDir.x != 0) wall length along X, else along Z
-                    if (Mathf.Abs(segmentDir.x) > 0)
+                    // A wall beside an east/west edge runs along Z; otherwise it runs along X.
+                    if (Mathf.Abs(side.x) > 0)
                     {
-                        wall.transform.localScale = new Vector3(m_tileSize, m_wallHeight, m_wallThickness);
+                        wall.transform.localScale = new Vector3(m_wallThickness, m_wallHeight, m_tileSize);
                     }
                     else
                     {
-                        wall.transform.localScale = new Vector3(m_wallThickness, m_wallHeight, m_tileSize);
+                        wall.transform.localScale = new Vector3(m_tileSize, m_wallHeight, m_wallThickness);
                     }
 
                     wall.name = $"Wall_{hallCell.x}_{hallCell.y}_{side.x}_{side.y}";
                 }
                 else
                 {
-                    // rotate so the wall's forward aligns with the hallway axis (length along hallway)
-                    Vector3 forward = Math.Abs(segmentDir.x) > 0 ? Vector3.right : Vector3.forward;
+                    // Rotate so the prefab's forward aligns with the wall length.
+                    Vector3 forward = Mathf.Abs(side.x) > 0 ? Vector3.forward : Vector3.right;
                     Quaternion rot = Quaternion.LookRotation(forward);
                     GameObject wall = Instantiate(chosenPrefab, spawnPos, rot, m_parent);
                     wall.name = $"Wall_{hallCell.x}_{hallCell.y}_{side.x}_{side.y}";
                 }
             }
         }
+    }
+
+    private static void AddPerpendicularSides(Vector2Int direction, HashSet<Vector2Int> sides)
+    {
+        sides.Add(new Vector2Int(-direction.y, direction.x));
+        sides.Add(new Vector2Int(direction.y, -direction.x));
     }
 
     private void SpawnHallwayRoofs()
