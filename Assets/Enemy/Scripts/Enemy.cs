@@ -255,7 +255,7 @@ public class Enemy : MonoBehaviour, IPoolable
             case EnemyState.Walk:
                 if (m_agent != null && m_agent.enabled)
                     m_agent.isStopped = false;
-                m_anim.SetTrigger("Run");
+                m_anim.SetTrigger("Walk");
                 break;
 
             case EnemyState.Stun:
