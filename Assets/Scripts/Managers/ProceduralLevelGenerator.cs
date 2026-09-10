@@ -379,18 +379,23 @@ public class ProceduralLevelGenerator : MonoBehaviour
         if (!m_spawnHallwayWalls)
             return;
 
-        // Build walls from both the incoming and outgoing hallway directions. At a turn,
-        // each direction contributes its side walls; hallway neighbours are then skipped.
-        // This closes the outside of a corner without blocking the route through it.
         for (int idx = 0; idx < m_hallCells.Count; idx++)
         {
             Vector2Int hallCell = m_hallCells[idx];
             HashSet<Vector2Int> sides = new HashSet<Vector2Int>();
 
             if (idx > 0)
-                AddPerpendicularSides(m_hallCells[idx] - m_hallCells[idx - 1], sides);
+                AddPerpendicularSides(
+                    m_hallCells[idx] - m_hallCells[idx - 1],
+                    sides
+                );
+
             if (idx < m_hallCells.Count - 1)
-                AddPerpendicularSides(m_hallCells[idx + 1] - m_hallCells[idx], sides);
+                AddPerpendicularSides(
+                    m_hallCells[idx + 1] - m_hallCells[idx],
+                    sides
+                );
+
             if (sides.Count == 0)
                 AddPerpendicularSides(Vector2Int.right, sides);
 
@@ -398,48 +403,155 @@ public class ProceduralLevelGenerator : MonoBehaviour
             {
                 Vector2Int adjacent = hallCell + side;
 
-                // if the adjacent cell is also a hallway cell, do not place a wall there
+                // Never put a wall where another hallway tile exists.
                 if (m_hallCellSet.Contains(adjacent))
                     continue;
 
-                // Decide whether there's a room behind the wall
-                bool hasRoomBehind = m_rooms.ContainsKey(adjacent) && !IsHallwayCell(adjacent);
+                bool hasRoomBehind =
+                    m_rooms.ContainsKey(adjacent) &&
+                    !IsHallwayCell(adjacent);
 
-                GameObject chosenPrefab = null;
-                if (hasRoomBehind)
-                    chosenPrefab = m_wallDoorPrefab ?? m_wallPrefab;
-                else
-                    chosenPrefab = m_wallPrefab;
+                GameObject chosenPrefab =
+                    hasRoomBehind
+                        ? (m_wallDoorPrefab ?? m_wallPrefab)
+                        : m_wallPrefab;
 
-                Vector3 spawnPos = GridToWorld(hallCell) + new Vector3(side.x * m_tileSize * 0.5f, m_wallYOffset, side.y * m_tileSize * 0.5f);
+                Vector3 spawnPos = GridToWorld(hallCell) +
+                    new Vector3(
+                        side.x * m_tileSize * 0.5f,
+                        m_wallYOffset,
+                        side.y * m_tileSize * 0.5f
+                    );
 
                 if (chosenPrefab == null)
                 {
-                    // fallback cube wall
-                    GameObject wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    // -------------------------------------------------
+                    // FALLBACK CUBE
+                    // -------------------------------------------------
+
+                    GameObject wall = GameObject.CreatePrimitive(
+                        PrimitiveType.Cube
+                    );
+
                     wall.transform.SetParent(m_parent, false);
                     wall.transform.position = spawnPos;
 
-                    // A wall beside an east/west edge runs along Z; otherwise it runs along X.
                     if (Mathf.Abs(side.x) > 0)
                     {
-                        wall.transform.localScale = new Vector3(m_wallThickness, m_wallHeight, m_tileSize);
+                        wall.transform.localScale = new Vector3(
+                            m_wallThickness,
+                            m_wallHeight,
+                            m_tileSize
+                        );
                     }
                     else
                     {
-                        wall.transform.localScale = new Vector3(m_tileSize, m_wallHeight, m_wallThickness);
+                        wall.transform.localScale = new Vector3(
+                            m_tileSize,
+                            m_wallHeight,
+                            m_wallThickness
+                        );
                     }
 
-                    wall.name = $"Wall_{hallCell.x}_{hallCell.y}_{side.x}_{side.y}";
+                    wall.name =
+                        $"Wall_{hallCell.x}_{hallCell.y}_{side.x}_{side.y}";
+
+                    continue;
                 }
-                else
+
+                // -------------------------------------------------
+                // DETERMINE HALLWAY DIRECTION FOR THIS WALL
+                // -------------------------------------------------
+
+                Vector2Int hallDirection = Vector2Int.zero;
+
+                // Prefer the direction that actually generated this side.
+                if (idx > 0)
                 {
-                    // Rotate so the prefab's forward aligns with the wall length.
-                    Vector3 forward = Mathf.Abs(side.x) > 0 ? Vector3.forward : Vector3.right;
-                    Quaternion rot = Quaternion.LookRotation(forward);
-                    GameObject wall = Instantiate(chosenPrefab, spawnPos, rot, m_parent);
-                    wall.name = $"Wall_{hallCell.x}_{hallCell.y}_{side.x}_{side.y}";
+                    Vector2Int incoming =
+                        m_hallCells[idx] - m_hallCells[idx - 1];
+
+                    Vector2Int incomingLeft =
+                        new Vector2Int(-incoming.y, incoming.x);
+
+                    Vector2Int incomingRight =
+                        new Vector2Int(incoming.y, -incoming.x);
+
+                    if (side == incomingLeft || side == incomingRight)
+                        hallDirection = incoming;
                 }
+
+                if (idx < m_hallCells.Count - 1)
+                {
+                    Vector2Int outgoing =
+                        m_hallCells[idx + 1] - m_hallCells[idx];
+
+                    Vector2Int outgoingLeft =
+                        new Vector2Int(-outgoing.y, outgoing.x);
+
+                    Vector2Int outgoingRight =
+                        new Vector2Int(outgoing.y, -outgoing.x);
+
+                    if (side == outgoingLeft || side == outgoingRight)
+                        hallDirection = outgoing;
+                }
+
+                // Safety fallback.
+                if (hallDirection == Vector2Int.zero)
+                    hallDirection = Vector2Int.right;
+
+                // -------------------------------------------------
+                // EXISTING WALL ORIENTATION
+                // -------------------------------------------------
+
+                Vector3 forward =
+                    Mathf.Abs(side.x) > 0
+                        ? Vector3.forward
+                        : Vector3.right;
+
+                Quaternion rot = Quaternion.LookRotation(forward);
+
+                // -------------------------------------------------
+                // LEFT / RIGHT SIDE OF HALLWAY
+                // -------------------------------------------------
+                //
+                // This uses the exact same definition as BuildLayout:
+                //
+                // left  = (-dir.y, dir.x)
+                // right = ( dir.y,-dir.x)
+                //
+                Vector2Int leftSide =
+                    new Vector2Int(
+                        -hallDirection.y,
+                        hallDirection.x
+                    );
+
+                bool isLeftSide = side == leftSide;
+
+                // Your wall prefab has the lamp facing correctly
+                // when placed on the right side.
+                //
+                // When the wall is on the LEFT side, rotate it
+                // 180 degrees around Y so the lamp is inside the
+                // hallway instead of outside.
+                if (isLeftSide)
+                {
+                    rot *= Quaternion.Euler(0f, 180f, 0f);
+                }
+
+                // -------------------------------------------------
+                // INSTANTIATE
+                // -------------------------------------------------
+
+                GameObject wallObject = Instantiate(
+                    chosenPrefab,
+                    spawnPos,
+                    rot,
+                    m_parent
+                );
+
+                wallObject.name =
+                    $"Wall_{hallCell.x}_{hallCell.y}_{side.x}_{side.y}";
             }
         }
     }
