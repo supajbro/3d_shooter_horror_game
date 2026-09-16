@@ -464,7 +464,7 @@ MonoBehaviour:
   m_spawnOnLoad: 1
   m_platformSpawnChance: 0.25
   m_useProceduralSpawner: 1
-  m_difficulty: 0
+  m_difficulty: 2
   m_minDistanceFromPlayer: 8
   m_procRespawnDelay: 0.5
   OnAllWavesCompleted:
