@@ -477,7 +477,11 @@ public class EnemySpawner : MonoBehaviour
 
         if (obj.TryGetComponent<Enemy>(out var enemy))
         {
+            // inform enemy of its spawn center so it can generate patrols around it
+            enemy.SetSpawnCenter(spawn);
             enemy.Activate(this);
+            // also provide pool key so enemy can return itself if needed
+            enemy.SetPoolKey(key);
 
             // Ensure NavMeshAgent is positioned correctly so it does not "snap" to the nearest navmesh (which
             // can appear as a teleport into the player's area). Warp the agent to the intended spawn position.

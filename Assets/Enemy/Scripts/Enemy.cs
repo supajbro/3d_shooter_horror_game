@@ -122,6 +122,19 @@ public class Enemy : MonoBehaviour, IPoolable
     [Header("Idle")]
     [SerializeField] private float m_idleRotateSpeed = 20f; // degrees per second while idle
 
+    // --- New patrol-related fields ---
+    [Header("Idle Patrol")]
+    [SerializeField] private float m_patrolRadius = 3f;
+    [SerializeField] private int m_patrolPointCount = 4;
+    [SerializeField] private float m_patrolPointSampleMaxDistance = 2.0f;
+
+    private List<Vector3> m_patrolPoints = new List<Vector3>();
+    private int m_currentPatrolIndex = 0;
+    private bool m_isPatrolling = false;
+
+    // Spawn center assigned by spawner so patrols are generated relative to spawn
+    private Transform m_spawnCenter;
+
     public virtual void Activate(EnemySpawner enemySpawner)
     {
         m_active = true;
@@ -164,11 +177,29 @@ public class Enemy : MonoBehaviour, IPoolable
         {
             CreateDebugStateText();
         }
+
+        // Ensure agent is enabled for patrols
+        if (m_agent != null)
+            m_agent.isStopped = false;
+
+        if(m_state == EnemyState.Idle)
+        {
+            m_isPatrolling = true;
+            GeneratePatrolPoints();
+        }
     }
 
     public void Deactivate()
     {
         m_active = false;
+    }
+
+    /// <summary>
+    /// Called by the spawner immediately after activation so the enemy knows its spawn center.
+    /// </summary>
+    public void SetSpawnCenter(Transform center)
+    {
+        m_spawnCenter = center;
     }
 
     protected virtual void Update()
@@ -245,15 +276,19 @@ public class Enemy : MonoBehaviour, IPoolable
         switch (m_state)
         {
             case EnemyState.Idle:
+                // Start or refresh patrol when entering idle
                 if (m_agent != null && m_agent.enabled)
-                    m_agent.isStopped = true;
+                    m_agent.isStopped = false;
                 m_anim.SetTrigger("Idle");
+                m_isPatrolling = true;
+                GeneratePatrolPoints();
                 break;
 
             case EnemyState.Walk:
                 if (m_agent != null && m_agent.enabled)
                     m_agent.isStopped = false;
                 m_anim.SetTrigger("Walk");
+                m_isPatrolling = false;
                 break;
 
             case EnemyState.Stun:
@@ -300,6 +335,29 @@ public class Enemy : MonoBehaviour, IPoolable
         if (CanSeePlayer())
         {
             ChangeState(EnemyState.Walk);
+        }
+
+        // If patrolling, drive agent between generated patrol points
+        if (m_isPatrolling && m_patrolPoints != null && m_patrolPoints.Count > 0 && m_agent != null && m_agent.enabled)
+        {
+            // If agent has no path or reached destination, advance
+            if (!m_agent.pathPending)
+            {
+                if (m_agent.remainingDistance <= (m_agent.stoppingDistance + 0.2f) || m_agent.pathStatus == NavMeshPathStatus.PathInvalid)
+                {
+                    AdvancePatrolPoint();
+                }
+            }
+
+            // ensure agent has a destination
+            if (m_agent.hasPath == false || m_agent.destination != m_patrolPoints[m_currentPatrolIndex])
+            {
+                m_agent.SetDestination(m_patrolPoints[m_currentPatrolIndex]);
+                m_agent.isStopped = false;
+            }
+
+            // small visual rotation while moving is handled by agent
+            return;
         }
 
         // Rotate while idle so player can spot enemies more easily.
@@ -1049,5 +1107,58 @@ public class Enemy : MonoBehaviour, IPoolable
         MeshRenderer renderer = m_debugStateText.GetComponent<MeshRenderer>();
         renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         renderer.receiveShadows = false;
+    }
+
+    // --- Patrol logic --
+
+    private void GeneratePatrolPoints()
+    {
+        if (m_spawnCenter == null)
+            return;
+
+        m_patrolPoints.Clear();
+
+        for (int i = 0; i < m_patrolPointCount; i++)
+        {
+            // Sample random points in a spherical shell at varying distances
+            float distance = Random.Range(m_patrolRadius * 0.5f, m_patrolRadius);
+            Vector3 point = Random.onUnitSphere;
+            point.y = 0; // keep it flat
+            point.Normalize();
+            point *= distance;
+
+            // Offset by spawn center
+            point += m_spawnCenter.position;
+
+            // Raycast down to ground to snap to terrain
+            if (Physics.Raycast(point + Vector3.up * 10f, Vector3.down, out RaycastHit hit, 20f))
+            {
+                point.y = hit.point.y;
+            }
+
+            m_patrolPoints.Add(point);
+        }
+
+        m_currentPatrolIndex = 0;
+    }
+
+    private void AdvancePatrolPoint()
+    {
+        if (m_patrolPoints == null || m_patrolPoints.Count == 0)
+            return;
+
+        m_currentPatrolIndex++;
+        if (m_currentPatrolIndex >= m_patrolPoints.Count)
+        {
+            m_currentPatrolIndex = 0;
+            // Optionally shuffle points or adjust logic here for randomness
+            // UnityEngine.Random.Shuffle(m_patrolPoints); // <-- No built-in shuffle, need extension method
+        }
+
+        if (m_agent != null && m_agent.enabled)
+        {
+            m_agent.SetDestination(m_patrolPoints[m_currentPatrolIndex]);
+            m_agent.isStopped = false;
+        }
     }
 }
