@@ -63,7 +63,8 @@ public class LevelManager : MonoBehaviour
                 Vector3 start = m_levelGenerator.StartPosition;
                 start.y = m_spawnPoint.position.y;
                 m_spawnPoint.position = start;
-                m_spawnPoint.rotation = Quaternion.identity;
+                // use generator's computed start rotation so player faces down the hallway
+                m_spawnPoint.rotation = m_levelGenerator.StartRotation;
             }
 
             // Create an Exit trigger at the ExitPosition
@@ -188,6 +189,25 @@ public class LevelManager : MonoBehaviour
         if(m_fpsPlayer != null )
         {
             m_fpsPlayer.Init(this);
+
+            // Ensure the Cinemachine target and camera pitch are reset so the camera
+            // doesn't end up rotated unexpectedly due to prefab offsets or residual state.
+            try
+            {
+                // Reset Cinemachine target local rotation if present
+                var camTargetField = m_fpsPlayer.CinemachineCameraTarget;
+                if (camTargetField != null)
+                    camTargetField.transform.localRotation = Quaternion.identity;
+
+                // Reset player camera pitch if available
+                var playerCam = m_fpsPlayer.GetPlayerCamera();
+                if (playerCam != null)
+                    playerCam.SetPitch(0f);
+            }
+            catch (System.Exception)
+            {
+                // best-effort, swallow exceptions to avoid breaking spawn flow
+            }
         }
         else
         {

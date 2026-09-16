@@ -76,6 +76,9 @@ public class ProceduralLevelGenerator : MonoBehaviour
     // Public accessor for the generated root - useful for other systems (EnemySpawner, NavMeshSurface, etc.)
     public Transform LevelRoot => m_parent;
 
+    // Expose the rotation the player should face when spawned at StartPosition.
+    public Quaternion StartRotation { get; private set; } = Quaternion.identity;
+
     /// <summary>
     /// Generate a level. If seed is null, uses the inspector seed (0 = random) or system tick.
     /// </summary>
@@ -120,6 +123,8 @@ public class ProceduralLevelGenerator : MonoBehaviour
 
         m_hallCells.Clear();
         m_hallCellSet.Clear();
+
+        StartRotation = Quaternion.identity;
     }
 
     private void BuildLayout()
@@ -270,6 +275,23 @@ public class ProceduralLevelGenerator : MonoBehaviour
         // Start is origin; exit is the far end of the hallway
         StartPosition = GridToWorld(m_hallCells.First());
         ExitPosition = GridToWorld(m_hallCells.Last());
+
+        // Compute a sensible start rotation so the player faces down the hallway when spawned.
+        if (m_hallCells.Count > 1)
+        {
+            Vector3 a = GridToWorld(m_hallCells[0]);
+            Vector3 b = GridToWorld(m_hallCells[1]);
+            Vector3 forward = (b - a);
+            forward.y = 0f;
+            if (forward.sqrMagnitude > 0.0001f)
+                StartRotation = Quaternion.LookRotation(forward.normalized);
+            else
+                StartRotation = Quaternion.identity;
+        }
+        else
+        {
+            StartRotation = Quaternion.identity;
+        }
     }
 
     // A room pair must be beside a straight, interior hallway tile. This avoids placing

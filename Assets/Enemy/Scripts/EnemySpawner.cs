@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.AI;
 
 public class EnemySpawner : MonoBehaviour
 {
@@ -424,6 +425,7 @@ public class EnemySpawner : MonoBehaviour
 
     /// <summary>
     /// Attempts to spawn an enemy at a free spawn center. Returns true if a spawn occurred.
+    /// This method will avoid spawn centers that are too close to the player.
     /// </summary>
     private bool SpawnEnemy(string key, List<Transform> spawnPoints)
     {
@@ -441,6 +443,28 @@ public class EnemySpawner : MonoBehaviour
             return false;
         }
 
+        // Exclude any spawn point that is too close to the player to avoid visible pop-in.
+        Transform playerTransform = null;
+        var fps = m_manager?.GetPlayer();
+        if (fps != null)
+            playerTransform = fps.transform;
+        else
+        {
+            var pgo = GameObject.FindGameObjectWithTag("Player");
+            if (pgo != null)
+                playerTransform = pgo.transform;
+        }
+
+        if (playerTransform != null && m_minDistanceFromPlayer > 0f)
+        {
+            free = free.Where(s => Vector3.Distance(s.position, playerTransform.position) >= m_minDistanceFromPlayer).ToList();
+            if (free.Count == 0)
+            {
+                // No valid spawn points after applying distance rule
+                return false;
+            }
+        }
+
         Transform spawn = free[UnityEngine.Random.Range(0, free.Count)];
 
         var obj = ObjectPooler.Instance.Spawn(key, spawn.position, spawn.rotation);
@@ -454,6 +478,22 @@ public class EnemySpawner : MonoBehaviour
         if (obj.TryGetComponent<Enemy>(out var enemy))
         {
             enemy.Activate(this);
+
+            // Ensure NavMeshAgent is positioned correctly so it does not "snap" to the nearest navmesh (which
+            // can appear as a teleport into the player's area). Warp the agent to the intended spawn position.
+            var agent = obj.GetComponent<NavMeshAgent>();
+            if (agent != null)
+            {
+                try
+                {
+                    agent.Warp(spawn.position);
+                }
+                catch (Exception)
+                {
+                    // In some Unity versions calling Warp immediately can throw if agent isn't ready.
+                    // Best-effort only; swallowing exception to avoid breaking spawn flow.
+                }
+            }
         }
 
         return true;
@@ -591,7 +631,7 @@ public class Wave
         public string poolKey;
         public int count;
     }
-
+    
     public List<EnemyGroup> enemies;
 
     public List<Transform> spawnPoints;
