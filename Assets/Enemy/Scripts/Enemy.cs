@@ -378,6 +378,9 @@ public class Enemy : MonoBehaviour, IPoolable
             return;
         }
 
+        // Make sure we are not patrolling here.
+        m_isPatrolling = false;
+
         m_agent.SetDestination(m_player.position);
 
         FaceTarget();
