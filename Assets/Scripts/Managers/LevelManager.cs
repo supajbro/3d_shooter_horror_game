@@ -87,7 +87,7 @@ public class LevelManager : MonoBehaviour
             m_damageTextSpawner = DamageTextSpawner.s_instance;
         }
 
-            m_collisionStartsNextEnemyWave = FindObjectsByType<CollisionStartsNextEnemyWave>(FindObjectsSortMode.None);
+        m_collisionStartsNextEnemyWave = FindObjectsByType<CollisionStartsNextEnemyWave>(FindObjectsSortMode.None);
         foreach (var enemyWave in m_collisionStartsNextEnemyWave)
         {
             enemyWave.Init(this);

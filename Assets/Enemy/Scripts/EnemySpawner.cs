@@ -34,6 +34,20 @@ public class EnemySpawner : MonoBehaviour
     [Range(0f, 1f)]
     [SerializeField] private float m_platformSpawnChance = 0.25f;
 
+    [Header("Procedural Spawner")]
+    [SerializeField] private bool m_useProceduralSpawner = true;
+    public enum Difficulty { Easy, Normal, Hard }
+    [SerializeField] private Difficulty m_difficulty = Difficulty.Normal;
+    [Tooltip("Minimum distance from player that a tile must be to allow spawning there (prevents visible pop-in).")]
+    [SerializeField] private float m_minDistanceFromPlayer = 8f;
+    [Tooltip("Delay between procedural respawns when threshold is reached.")]
+    [SerializeField] private float m_procRespawnDelay = 0.5f;
+
+    private float m_procCoverage = 0.15f;
+    private float m_procRespawnThreshold = 0.75f;
+
+    private int m_initialTargetCount = 0; // desired active enemies for procedural mode
+
     private int m_currentWaveIndex = 0;
     private bool m_waitingForNextWave = false;
     private bool m_running = false;
@@ -53,6 +67,11 @@ public class EnemySpawner : MonoBehaviour
     // occupancy tracking: ensure only one enemy per spawn center
     private HashSet<Transform> m_occupiedSpawnCenters = new HashSet<Transform>();
     private Dictionary<GameObject, Transform> m_enemyToSpawnCenter = new Dictionary<GameObject, Transform>();
+
+    // Procedural data
+    private List<Transform> m_proceduralAvailableCenters = new List<Transform>();
+    private List<string> m_proceduralPoolKeys = new List<string>();
+    private float m_procRespawnTimer = 0f;
 
     public UnityEvent OnAllWavesCompleted;
 
@@ -113,36 +132,109 @@ public class EnemySpawner : MonoBehaviour
                     }
                 }
 
-                // Initial randomized spawns on platforms (approx m_platformSpawnChance per center)
-                // Collect available pool keys to use for initial spawns
-                List<string> poolKeys = new List<string>();
+                // Collect available pool keys to use for initial procedural spawns
+                m_proceduralPoolKeys.Clear();
                 foreach (var wave in m_waves)
                 {
                     if (wave.enemies == null) continue;
                     foreach (var g in wave.enemies)
                     {
-                        if (!string.IsNullOrEmpty(g.poolKey) && !poolKeys.Contains(g.poolKey))
-                            poolKeys.Add(g.poolKey);
+                        if (!string.IsNullOrEmpty(g.poolKey) && !m_proceduralPoolKeys.Contains(g.poolKey))
+                            m_proceduralPoolKeys.Add(g.poolKey);
                     }
                 }
 
-                // If no pool keys found, skip initial spawning
-                if (poolKeys.Count > 0)
+                // If procedural mode is enabled, compute coverage and initial targets and spawn
+                if (m_useProceduralSpawner && m_proceduralPoolKeys.Count > 0)
                 {
-                    foreach (var center in validCenters)
+                    // set difficulty parameters
+                    switch (m_difficulty)
                     {
-                        if (center == null) continue;
-                        if (UnityEngine.Random.value > m_platformSpawnChance)
+                        case Difficulty.Easy:
+                            m_procCoverage = 0.10f;
+                            m_procRespawnThreshold = 0.5f; // spawn more when only 50% are alive
+                            break;
+                        case Difficulty.Normal:
+                            m_procCoverage = 0.15f;
+                            m_procRespawnThreshold = 0.75f;
+                            break;
+                        case Difficulty.Hard:
+                            m_procCoverage = 0.25f;
+                            m_procRespawnThreshold = 0.75f;
+                            break;
+                    }
+
+                    // filter centers to exclude those near player
+                    Vector3 playerPos = Vector3.zero;
+                    var player = m_manager?.GetPlayer();
+                    if (player != null)
+                        playerPos = player.transform.position;
+
+                    m_proceduralAvailableCenters = validCenters.Where(t => t != null && Vector3.Distance(t.position, playerPos) >= m_minDistanceFromPlayer).ToList();
+
+                    // if filtering removed too many centres, fallback to unfiltered list (still exclude start/exit already handled)
+                    if (m_proceduralAvailableCenters.Count == 0)
+                        m_proceduralAvailableCenters = new List<Transform>(validCenters);
+
+                    int total = m_proceduralAvailableCenters.Count;
+                    m_initialTargetCount = Mathf.Max(1, Mathf.RoundToInt(total * m_procCoverage));
+
+                    // Shuffle centers and pick initialTargetCount distinct centers
+                    var rnd = new System.Random();
+                    var indices = Enumerable.Range(0, total).OrderBy(x => rnd.Next()).Take(m_initialTargetCount).ToList();
+
+                    foreach (var idx in indices)
+                    {
+                        var center = m_proceduralAvailableCenters[idx];
+                        // ensure we don't spawn in occupied
+                        if (m_occupiedSpawnCenters.Contains(center))
                             continue;
 
                         // pick random pool key
-                        string key = poolKeys[UnityEngine.Random.Range(0, poolKeys.Count)];
+                        string key = m_proceduralPoolKeys[UnityEngine.Random.Range(0, m_proceduralPoolKeys.Count)];
 
-                        // attempt to spawn specifically at this center
                         bool spawned = SpawnEnemy(key, new List<Transform> { center });
                         if (spawned)
                         {
                             m_activeEnemyCount++;
+                        }
+                    }
+                }
+
+                // If procedural is not used, keep the previous platform spawn behavior
+                else
+                {
+                    // Initial randomized spawns on platforms (approx m_platformSpawnChance per center)
+                    // Collect available pool keys to use for initial spawns
+                    List<string> poolKeys = new List<string>();
+                    foreach (var wave in m_waves)
+                    {
+                        if (wave.enemies == null) continue;
+                        foreach (var g in wave.enemies)
+                        {
+                            if (!string.IsNullOrEmpty(g.poolKey) && !poolKeys.Contains(g.poolKey))
+                                poolKeys.Add(g.poolKey);
+                        }
+                    }
+
+                    // If no pool keys found, skip initial spawning
+                    if (poolKeys.Count > 0)
+                    {
+                        foreach (var center in validCenters)
+                        {
+                            if (center == null) continue;
+                            if (UnityEngine.Random.value > m_platformSpawnChance)
+                                continue;
+
+                            // pick random pool key
+                            string key = poolKeys[UnityEngine.Random.Range(0, poolKeys.Count)];
+
+                            // attempt to spawn specifically at this center
+                            bool spawned = SpawnEnemy(key, new List<Transform> { center });
+                            if (spawned)
+                            {
+                                m_activeEnemyCount++;
+                            }
                         }
                     }
                 }
@@ -166,6 +258,29 @@ public class EnemySpawner : MonoBehaviour
     {
         if (!m_running || m_state == WaveState.Idle || m_state == WaveState.Completed)
             return;
+
+        // Procedural respawn handling (independent of wave system)
+        if (m_useProceduralSpawner && m_initialTargetCount > 0)
+        {
+            // If active enemies have dropped below the respawn threshold of the initial target,
+            // start spawning more until we reach the target count.
+            int thresholdCount = Mathf.CeilToInt(m_initialTargetCount * m_procRespawnThreshold);
+
+            if (m_activeEnemyCount <= thresholdCount && m_activeEnemyCount < m_initialTargetCount)
+            {
+                m_procRespawnTimer -= Time.deltaTime;
+                if (m_procRespawnTimer <= 0f)
+                {
+                    TryProceduralRespawnOnce();
+                    m_procRespawnTimer = m_procRespawnDelay;
+                }
+            }
+            else
+            {
+                // reset timer when not respawning
+                m_procRespawnTimer = 0f;
+            }
+        }
 
         switch (m_state)
         {
@@ -342,6 +457,35 @@ public class EnemySpawner : MonoBehaviour
         }
 
         return true;
+    }
+
+    // Tries a single procedural respawn step: pick a free center (not near player) and spawn a random pool key
+    private void TryProceduralRespawnOnce()
+    {
+        if (m_proceduralAvailableCenters == null || m_proceduralAvailableCenters.Count == 0 || m_proceduralPoolKeys == null || m_proceduralPoolKeys.Count == 0)
+            return;
+
+        // build free centers list (also ensure still not too close to player)
+        Vector3 playerPos = Vector3.zero;
+        var player = m_manager?.GetPlayer();
+        if (player != null)
+            playerPos = player.transform.position;
+
+        var free = m_proceduralAvailableCenters.Where(t => t != null && !m_occupiedSpawnCenters.Contains(t) && Vector3.Distance(t.position, playerPos) >= m_minDistanceFromPlayer).ToList();
+        if (free.Count == 0)
+        {
+            // Nothing free to spawn right now
+            return;
+        }
+
+        Transform spawn = free[UnityEngine.Random.Range(0, free.Count)];
+        string key = m_proceduralPoolKeys[UnityEngine.Random.Range(0, m_proceduralPoolKeys.Count)];
+
+        bool spawned = SpawnEnemy(key, new List<Transform> { spawn });
+        if (spawned)
+        {
+            m_activeEnemyCount++;
+        }
     }
 
     public void RemoveEnemy(string key, GameObject obj)
