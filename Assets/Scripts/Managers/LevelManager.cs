@@ -28,7 +28,7 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private GunPickup m_shotgunPickup;
     [SerializeField] private GunPickup m_pistolPickup;
     [SerializeField] private GunPickup m_rocketLauncherPickup;
-    private WeaponSpawner m_weaponSpawner; // <- Objects in this scene can reference to spawn a weapon pickup.
+    [SerializeField] private WeaponSpawner m_weaponSpawner; // <- Objects in this scene can reference to spawn a weapon pickup.
 
     [Header("Weapons Pads")]
     private WeaponPad[] m_weaponPads;
@@ -39,6 +39,9 @@ public class LevelManager : MonoBehaviour
 
     [Header("UI")]
     [SerializeField] private GameplayUI m_ui;
+
+    [Header("Weapon spawn difficulty")]
+    [SerializeField] private WeaponSpawner.Difficulty m_spawnDifficulty = WeaponSpawner.Difficulty.MEDIUM;
 
     private void Start()
     {
@@ -94,7 +97,6 @@ public class LevelManager : MonoBehaviour
             enemyWave.Init(this);
         }
 
-        m_weaponSpawner = gameObject.AddComponent<WeaponSpawner>();
         m_weaponSpawner.Init();
 
         // Spawn a few initial random weapon pickups distributed across room centers
@@ -149,27 +151,8 @@ public class LevelManager : MonoBehaviour
         if (centers == null || centers.Count == 0)
             return;
 
-        // spawn roughly one pickup per 4 rooms (min 1)
-        int spawnCount = Mathf.Max(1, centers.Count / 4);
-        HashSet<int> used = new HashSet<int>();
-        for (int i = 0; i < spawnCount; i++)
-        {
-            int idx = Random.Range(0, centers.Count);
-            int tries = 0;
-            while (used.Contains(idx) && tries < 10)
-            {
-                idx = Random.Range(0, centers.Count);
-                tries++;
-            }
-            used.Add(idx);
-            Transform chosen = centers[idx];
-            chosen.position = new Vector3(chosen.position.x, chosen.position.y + 2.0f, chosen.position.z);
-            //m_weaponSpawner.SpawnWeaponRandom(chosen, null);
-
-            // TEMP: Always spawn pistol atm.
-            //m_weaponSpawner.SpawnWeapon(BaseGunController.GunType.PISTOL, chosen, null);
-            m_weaponSpawner.SpawnShotgunOrPistol(chosen, null);
-        }
+        // Use new WeaponSpawner distribution logic instead of fixed 1 per 4 rooms
+        m_weaponSpawner.TrySpawnInitialDistribution(m_spawnDifficulty);
     }
 
     public void SpawnPlayer()

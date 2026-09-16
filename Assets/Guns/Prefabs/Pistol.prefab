@@ -603,7 +603,7 @@ MonoBehaviour:
   m_strength: 0.075
   m_duration: 0.1
   m_maxAmmo: 6
-  m_inifiniteAmmo: 1
+  m_inifiniteAmmo: 0
   m_availableAmmo: 0
   m_maxAvailableAmmo: 24
   m_reloadSpeed: 1.75

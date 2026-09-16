@@ -1,9 +1,10 @@
 using StarterAssets;
-using System.Linq;
 using System.Collections;
+using System.Linq;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using TMPro;
+using static BaseGunController;
 
 // TODO: Rename this class. PlayerPickup only references other PickupItem classes, it doesn't actually do the _Pickup_
 public class PlayerPickup : MonoBehaviour
@@ -180,6 +181,25 @@ public class PlayerPickup : MonoBehaviour
         // Found a pickup with the raycast.
         if (foundPickup != null)
         {
+            // If player already has this gun type, just add ammo to the existing weapon
+            GunPickup gun = foundPickup.GetComponent<GunPickup>();
+
+            if (gun != null)
+            {
+                var guns = GetGuns();
+
+                foreach (var g in guns)
+                {
+                    if (g != null && g.GetGunType() == gun.GetGunType())
+                    {
+                        g.AddAvailableAmmo(gun.GetAmmoAmount());
+                        gun.OnGunPickup.Invoke();
+                        Destroy(foundPickup.gameObject);
+                        return;
+                    }
+                }
+            }
+
             // Immediately switch to the new pickup.
             m_currentPickup = foundPickup;
 

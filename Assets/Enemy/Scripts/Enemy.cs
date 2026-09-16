@@ -1159,6 +1159,7 @@ public class Enemy : MonoBehaviour, IPoolable
         {
             m_agent.SetDestination(m_patrolPoints[m_currentPatrolIndex]);
             m_agent.isStopped = false;
+            m_anim.SetTrigger("Walk");
         }
     }
 }

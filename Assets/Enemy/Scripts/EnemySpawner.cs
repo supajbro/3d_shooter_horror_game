@@ -152,15 +152,15 @@ public class EnemySpawner : MonoBehaviour
                     switch (m_difficulty)
                     {
                         case Difficulty.Easy:
-                            m_procCoverage = 0.10f;
+                            m_procCoverage = 0.05f;
                             m_procRespawnThreshold = 0.5f; // spawn more when only 50% are alive
                             break;
                         case Difficulty.Normal:
-                            m_procCoverage = 0.15f;
+                            m_procCoverage = 0.10f;
                             m_procRespawnThreshold = 0.75f;
                             break;
                         case Difficulty.Hard:
-                            m_procCoverage = 0.25f;
+                            m_procCoverage = 0.20f;
                             m_procRespawnThreshold = 0.75f;
                             break;
                     }

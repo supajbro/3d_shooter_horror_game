@@ -101,6 +101,7 @@ Transform:
   - {fileID: 1965457712917085962}
   - {fileID: 729411053510147709}
   - {fileID: 4458289340352016651}
+  - {fileID: 5211322691793838798}
   - {fileID: 3296317277844335991}
   - {fileID: 1978144010927591342}
   m_Father: {fileID: 0}
@@ -125,8 +126,10 @@ MonoBehaviour:
   m_shotgunPickup: {fileID: 6353214498802673558, guid: 384ec95c1cb0ea947a574820ec70aa40, type: 3}
   m_pistolPickup: {fileID: 6353214498802673558, guid: 0ceb7d8e798d4a241aadc00a37ca0c36, type: 3}
   m_rocketLauncherPickup: {fileID: 6353214498802673558, guid: 3bf4b2ade33f1994998b31decbae2c9e, type: 3}
+  m_weaponSpawner: {fileID: 6969934836935064338}
   m_damageTextSpawnerPrefab: {fileID: 2676729249389477511, guid: cc45e67cf92341641977ccebd5b39247, type: 3}
   m_ui: {fileID: 0}
+  m_spawnDifficulty: 0
 --- !u!1 &1284022344557332623
 GameObject:
   m_ObjectHideFlags: 0
@@ -212,8 +215,8 @@ MonoBehaviour:
   m_tileSize: 25
   m_seed: 0
   m_floorTilePrefab: {fileID: 5256344564332166496, guid: defaaf9be5e5ac141b5ebe28444a0a16, type: 3}
-  m_hallMinLength: 5
-  m_hallMaxLength: 50
+  m_hallMinLength: 100
+  m_hallMaxLength: 250
   m_roomSpacing: 3
   m_wallPrefab: {fileID: 5256344564332166496, guid: 0905db349c107474c81abe150d7e4b29, type: 3}
   m_wallDoorPrefab: {fileID: 5256344564332166496, guid: 6bf7f3f7b93d9c846a4b6d6ef46f6fba, type: 3}
@@ -226,6 +229,58 @@ MonoBehaviour:
   m_roofYOffset: 12.75
   m_spawnHallwayRoofs: 1
   m_autoBuildNavMesh: 1
+--- !u!1 &1440499456863819445
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5211322691793838798}
+  - component: {fileID: 6969934836935064338}
+  m_Layer: 0
+  m_Name: WeaponSpawner
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5211322691793838798
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1440499456863819445}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5246410929537568086}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6969934836935064338
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1440499456863819445}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 148ba2e047c0a0b4a8cc49437874de3e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponSpawner
+  easyPercentMin: 15
+  easyPercentMax: 20
+  mediumPercentMin: 10
+  mediumPercentMax: 15
+  hardPercentMin: 2.5
+  hardPercentMax: 7.5
+  respawnDelayMin: 10
+  respawnDelayMax: 30
 --- !u!1 &2329479698707715851
 GameObject:
   m_ObjectHideFlags: 0
@@ -399,12 +454,7 @@ MonoBehaviour:
     enemies:
     - poolKey: CHARGER_ENEMY
       count: 0
-    spawnPoints:
-    - {fileID: 9162126446631356995}
-    - {fileID: 1524119379987578101}
-    - {fileID: 4221536970564337457}
-    - {fileID: 904977164965751480}
-    - {fileID: 6084667237816975041}
+    spawnPoints: []
     spawnDelay: 0
     OnWaveCompleted:
       m_PersistentCalls:
@@ -414,7 +464,7 @@ MonoBehaviour:
   m_spawnOnLoad: 1
   m_platformSpawnChance: 0.25
   m_useProceduralSpawner: 1
-  m_difficulty: 2
+  m_difficulty: 0
   m_minDistanceFromPlayer: 8
   m_procRespawnDelay: 0.5
   OnAllWavesCompleted:
