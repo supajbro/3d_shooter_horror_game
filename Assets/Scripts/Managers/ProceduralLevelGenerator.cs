@@ -30,8 +30,14 @@ public class ProceduralLevelGenerator : MonoBehaviour
     [Header("Hallway")]
     [Tooltip("Prefab used to build the hallway/floor tiles. If empty a simple cube will be used.")]
     [SerializeField] private GameObject m_floorTilePrefab;
-    [SerializeField] private int m_hallMinLength = 8;
-    [SerializeField] private int m_hallMaxLength = 16;
+    [Tooltip("Each hallway segment is exactly one of these lengths, in tiles. For example: 10, 20, 30.")]
+    [SerializeField] private int[] m_segmentLengths = new[] { 10, 20, 30 };
+    [Tooltip("Minimum number of straight hallway segments to generate.")]
+    [Min(1)]
+    [SerializeField] private int m_minSegments = 4;
+    [Tooltip("Maximum number of straight hallway segments to generate. More segments means more turns.")]
+    [Min(1)]
+    [SerializeField] private int m_maxSegments = 6;
     [Tooltip("Number of hallway tiles between paired hotel-room placements. Rooms are placed on both sides when space permits.")]
     [Min(1)]
     [SerializeField] private int m_roomSpacing = 3;
@@ -129,84 +135,77 @@ public class ProceduralLevelGenerator : MonoBehaviour
 
     private void BuildLayout()
     {
-        // Build a hallway composed of straight segments. Each segment is a "long" straight run
-        // (length in [m_hallMinLength, m_hallMaxLength]) then optionally turns left or right and continues.
+        // Build a hallway from multiple straight segments. Every segment has an exact
+        // configured length (for example 10, 20 or 30 tiles) and every completed
+        // segment is followed by a 90-degree turn.
         m_hallCells.Clear();
         m_hallCellSet.Clear();
 
-        // Choose how many segments to attempt (1 = straight, 2 = one turn, etc.).
-        // Keep this small so we don't blow past other room limits.
-        int minSegments = 1;
-        int maxSegments = 3; // allows up to 2 turns (3 segments)
+        int minSegments = Mathf.Max(1, m_minSegments);
+        int maxSegments = Mathf.Max(minSegments, m_maxSegments);
         int segments = m_rng.Next(minSegments, maxSegments + 1);
 
         Vector2Int cur = Vector2Int.zero;
         m_hallCells.Add(cur);
         m_hallCellSet.Add(cur);
 
-        // Choose an initial forward direction (right or up)
+        // Choose an initial forward direction (right or up).
         Vector2Int dir = m_rng.Next(0, 2) == 0 ? Vector2Int.right : Vector2Int.up;
 
-        bool stopGenerating = false;
-
-        for (int seg = 0; seg < segments && !stopGenerating; seg++)
+        for (int seg = 0; seg < segments; seg++)
         {
-            int segLen = Mathf.Clamp(m_rng.Next(m_hallMinLength, m_hallMaxLength + 1), 1, 1000);
+            int segLen = GetRandomSegmentLength();
 
-            for (int i = 0; i < segLen; i++)
+            // Before adding anything, make sure the complete segment fits. This keeps
+            // the segment length exact rather than silently truncating it on collision.
+            if (!CanFitSegment(cur, dir, segLen))
             {
-                Vector2Int candidate = cur + dir;
-
-                // Avoid self intersection
-                if (m_hallCellSet.Contains(candidate))
+                // Try the other direction for this segment.
+                Vector2Int oppositeTurn = new Vector2Int(dir.y, -dir.x);
+                if (seg > 0 && CanFitSegment(cur, oppositeTurn, segLen))
                 {
-                    stopGenerating = true;
-                    break;
+                    dir = oppositeTurn;
                 }
-
-                cur = candidate;
-                m_hallCells.Add(cur);
-                m_hallCellSet.Add(cur);
-
-                // Safety guard
-                if (m_hallCells.Count > 1000)
+                else
                 {
-                    stopGenerating = true;
                     break;
                 }
             }
 
-            if (stopGenerating)
-                break;
+            // Commit the entire segment.
+            for (int i = 0; i < segLen; i++)
+            {
+                cur += dir;
+                m_hallCells.Add(cur);
+                m_hallCellSet.Add(cur);
+            }
 
-            // If this is not the last segment, choose a 90-degree turn (left or right)
+            // Turn after every segment except the final one.
             if (seg < segments - 1)
             {
-                bool turnLeft = m_rng.Next(0, 2) == 0;
                 Vector2Int leftDir = new Vector2Int(-dir.y, dir.x);
                 Vector2Int rightDir = new Vector2Int(dir.y, -dir.x);
+
+                bool turnLeft = m_rng.Next(0, 2) == 0;
                 Vector2Int newDir = turnLeft ? leftDir : rightDir;
 
-                // If chosen turn immediately collides, try the opposite turn. If both collide, stop.
+                // Prefer the selected turn, but use the opposite turn if the first
+                // tile is already occupied. The next segment itself is validated
+                // before it is committed.
                 if (m_hallCellSet.Contains(cur + newDir))
                 {
                     Vector2Int other = turnLeft ? rightDir : leftDir;
-                    if (m_hallCellSet.Contains(cur + other))
-                    {
-                        stopGenerating = true;
-                        break;
-                    }
-                    else
-                    {
+                    if (!m_hallCellSet.Contains(cur + other))
                         newDir = other;
-                    }
+                    else
+                        break;
                 }
 
                 dir = newDir;
             }
         }
 
-        // Build the list of positions starting with hallway cells
+        // Build the list of positions starting with hallway cells.
         List<Vector2Int> positions = new List<Vector2Int>(m_hallCells);
 
         // Place a matched room pair after every configured number of usable hallway tiles.
@@ -234,8 +233,6 @@ public class ProceduralLevelGenerator : MonoBehaviour
             Vector2Int roomPosA = hallCell + sideA;
             Vector2Int roomPosB = hallCell + sideB;
 
-            // Add rooms as a pair: a failed side means neither room is added at this anchor.
-            // This keeps the default hotel layout balanced on both sides of the hall.
             bool hasCapacityForPair = placedSideRooms + 2 <= m_maxRooms;
             bool canPlacePair = hasCapacityForPair
                 && !positions.Contains(roomPosA)
@@ -255,7 +252,7 @@ public class ProceduralLevelGenerator : MonoBehaviour
                 break;
         }
 
-        // If we still have fewer than m_minRooms total, grow outward from hallway ends or random hallway cells
+        // If we still have fewer than m_minRooms total, grow outward from hallway ends or random hallway cells.
         int growIdx = 0;
         Vector2Int[] dirs = new[] { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
         while (positions.Count < m_minRooms)
@@ -265,18 +262,16 @@ public class ProceduralLevelGenerator : MonoBehaviour
             Vector2Int newPos = basePos + dirGrow;
             if (!positions.Contains(newPos) && !m_hallCellSet.Contains(newPos))
                 positions.Add(newPos);
-            if (++growIdx > m_minRooms * 6) // safety
+            if (++growIdx > m_minRooms * 6)
                 break;
         }
 
         foreach (var p in positions)
             m_rooms[p] = null;
 
-        // Start is origin; exit is the far end of the hallway
         StartPosition = GridToWorld(m_hallCells.First());
         ExitPosition = GridToWorld(m_hallCells.Last());
 
-        // Compute a sensible start rotation so the player faces down the hallway when spawned.
         if (m_hallCells.Count > 1)
         {
             Vector3 a = GridToWorld(m_hallCells[0]);
@@ -292,6 +287,38 @@ public class ProceduralLevelGenerator : MonoBehaviour
         {
             StartRotation = Quaternion.identity;
         }
+    }
+
+    private int GetRandomSegmentLength()
+    {
+        if (m_segmentLengths == null || m_segmentLengths.Length == 0)
+            return 10;
+
+        List<int> validLengths = new List<int>();
+        foreach (int length in m_segmentLengths)
+        {
+            if (length > 0)
+                validLengths.Add(length);
+        }
+
+        if (validLengths.Count == 0)
+            return 10;
+
+        return validLengths[m_rng.Next(validLengths.Count)];
+    }
+
+    private bool CanFitSegment(Vector2Int start, Vector2Int direction, int length)
+    {
+        Vector2Int check = start;
+
+        for (int i = 0; i < length; i++)
+        {
+            check += direction;
+            if (m_hallCellSet.Contains(check))
+                return false;
+        }
+
+        return true;
     }
 
     // A room pair must be beside a straight, interior hallway tile. This avoids placing
