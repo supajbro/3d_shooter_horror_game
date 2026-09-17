@@ -213,6 +213,7 @@ MonoBehaviour:
   m_minRooms: 15
   m_maxRooms: 75
   m_tileSize: 25
+  m_roomSize: 1000
   m_seed: 0
   m_floorTilePrefab: {fileID: 5256344564332166496, guid: defaaf9be5e5ac141b5ebe28444a0a16, type: 3}
   m_segmentLengths: 0a000000140000001e000000

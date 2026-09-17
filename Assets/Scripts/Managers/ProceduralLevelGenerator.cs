@@ -232,13 +232,12 @@ public class ProceduralLevelGenerator : MonoBehaviour
             Vector2Int sideA = new Vector2Int(-segmentDir.y, segmentDir.x); // left
             Vector2Int sideB = new Vector2Int(segmentDir.y, -segmentDir.x); // right
 
-            // Hallway cells are still 10f apart, but rooms use their own
-            // world-space footprint. A 50f room therefore occupies 5 hallway
-            // tile widths. Position the room so its doorway is centered on the
-            // hallway wall and reserve the full footprint in the layout.
-            int roomTiles = Mathf.Max(1, Mathf.CeilToInt(m_roomSize / m_tileSize));
-            Vector2Int roomPosA = hallCell + sideA * Mathf.CeilToInt(roomTiles * 0.5f);
-            Vector2Int roomPosB = hallCell + sideB * Mathf.CeilToInt(roomTiles * 0.5f);
+            // Use a robust rounding strategy so roomTiles behaves stably at exact sizes.
+            int roomTiles = Mathf.Max(1, Mathf.RoundToInt(m_roomSize / m_tileSize));
+            int centerOffset = (roomTiles + 1) / 2; // distance (in tiles) from hallway to room center
+
+            Vector2Int roomPosA = hallCell + sideA * centerOffset;
+            Vector2Int roomPosB = hallCell + sideB * centerOffset;
 
             bool hasCapacityForPair = placedSideRooms + 2 <= m_maxRooms;
             bool canPlacePair = hasCapacityForPair
@@ -348,12 +347,13 @@ public class ProceduralLevelGenerator : MonoBehaviour
         Vector2Int anchorHallCell,
         int roomTiles)
     {
-        int half = Mathf.CeilToInt(roomTiles * 0.5f);
+        // Use floor-based half so loops are symmetric around the center.
+        int half = roomTiles / 2;
 
-        // The footprint extends from the hallway-facing edge away from the hall.
-        // Along the corridor it occupies roomTiles cells.
+        // tangent is along the hallway
         Vector2Int tangent = hallDirection;
 
+        // Occupy roomTiles along tangent, and roomTiles deep away from the hall
         for (int along = -half; along < roomTiles - half; along++)
         {
             for (int depth = 0; depth < roomTiles; depth++)
@@ -366,13 +366,13 @@ public class ProceduralLevelGenerator : MonoBehaviour
                 if (m_hallCellSet.Contains(cell))
                     return false;
 
-                if (m_rooms.ContainsKey(cell) || m_hallCellSet.Contains(cell))
+                if (m_rooms.ContainsKey(cell))
                     return false;
             }
         }
 
-        // Leave a small grid buffer around the footprint so another 50f room
-        // cannot be spawned directly beside it.
+        // Leave a small grid buffer around the footprint so another similarly-sized
+        // room cannot be spawned directly beside it. This checks outer cells along the tangent.
         for (int along = -half - 1; along <= roomTiles - half; along++)
         {
             Vector2Int outerCell = roomCenter + tangent * along;
@@ -421,9 +421,48 @@ public class ProceduralLevelGenerator : MonoBehaviour
             }
             else
             {
-                // side room or extra room
+                // side room or extra room - determine rotation so the open wall faces the hallway
+                Quaternion rot = Quaternion.identity;
+
+                // Find nearest hallway cell and derive direction from the room center to that hall cell
+                if (m_hallCells.Count > 0)
+                {
+                    int bestDist = int.MaxValue;
+                    Vector2Int bestHall = Vector2Int.zero;
+                    foreach (var h in m_hallCells)
+                    {
+                        int d = Mathf.Abs(h.x - pos.x) + Mathf.Abs(h.y - pos.y);
+                        if (d < bestDist)
+                        {
+                            bestDist = d;
+                            bestHall = h;
+                        }
+                    }
+
+                    if (bestDist < int.MaxValue)
+                    {
+                        Vector2Int delta = bestHall - pos;
+                        Vector2Int hallDir;
+
+                        if (Mathf.Abs(delta.x) > Mathf.Abs(delta.y))
+                            hallDir = new Vector2Int(Math.Sign(delta.x), 0);
+                        else
+                            hallDir = new Vector2Int(0, Math.Sign(delta.y));
+
+                        // Map hall direction to rotation so the room's local +Z faces the hallway
+                        if (hallDir == Vector2Int.up)
+                            rot = Quaternion.Euler(0f, 0f, 0f);
+                        else if (hallDir == Vector2Int.right)
+                            rot = Quaternion.Euler(0f, 90f, 0f);
+                        else if (hallDir == Vector2Int.down)
+                            rot = Quaternion.Euler(0f, 180f, 0f);
+                        else if (hallDir == Vector2Int.left)
+                            rot = Quaternion.Euler(0f, 270f, 0f);
+                    }
+                }
+
                 if (m_roomPrefabs != null && m_roomPrefabs.Length > 0)
-                    go = Instantiate(m_roomPrefabs[m_rng.Next(m_roomPrefabs.Length)], worldPos, Quaternion.identity, m_parent);
+                    go = Instantiate(m_roomPrefabs[m_rng.Next(m_roomPrefabs.Length)], worldPos, rot, m_parent);
                 else
                 {
                     go = GameObject.CreatePrimitive(PrimitiveType.Cube);
