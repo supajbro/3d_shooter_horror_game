@@ -24,6 +24,7 @@ public class ProceduralLevelGenerator : MonoBehaviour
     [Tooltip("Maximum number of non-hallway rooms. Paired hotel rooms count individually.")]
     [SerializeField] private int m_maxRooms = 12;
     [SerializeField] private float m_tileSize = 10f;
+    [SerializeField] private float m_roomSize = 50f;
     [SerializeField] private int m_seed = 0; // 0 = random
 
     // Hallway-specific settings
@@ -230,15 +231,19 @@ public class ProceduralLevelGenerator : MonoBehaviour
 
             Vector2Int sideA = new Vector2Int(-segmentDir.y, segmentDir.x); // left
             Vector2Int sideB = new Vector2Int(segmentDir.y, -segmentDir.x); // right
-            Vector2Int roomPosA = hallCell + sideA;
-            Vector2Int roomPosB = hallCell + sideB;
+
+            // Hallway cells are still 10f apart, but rooms use their own
+            // world-space footprint. A 50f room therefore occupies 5 hallway
+            // tile widths. Position the room so its doorway is centered on the
+            // hallway wall and reserve the full footprint in the layout.
+            int roomTiles = Mathf.Max(1, Mathf.CeilToInt(m_roomSize / m_tileSize));
+            Vector2Int roomPosA = hallCell + sideA * Mathf.CeilToInt(roomTiles * 0.5f);
+            Vector2Int roomPosB = hallCell + sideB * Mathf.CeilToInt(roomTiles * 0.5f);
 
             bool hasCapacityForPair = placedSideRooms + 2 <= m_maxRooms;
             bool canPlacePair = hasCapacityForPair
-                && !positions.Contains(roomPosA)
-                && !positions.Contains(roomPosB)
-                && !WouldRoomClipIntoHall(roomPosA, hallCell)
-                && !WouldRoomClipIntoHall(roomPosB, hallCell);
+                && CanPlaceRoomFootprint(roomPosA, sideA, segmentDir, hallCell, roomTiles)
+                && CanPlaceRoomFootprint(roomPosB, sideB, segmentDir, hallCell, roomTiles);
 
             if (canPlacePair)
             {
@@ -333,23 +338,49 @@ public class ProceduralLevelGenerator : MonoBehaviour
         return incomingDirection == outgoingDirection;
     }
 
-    // Check that placing a room at roomPos won't clip into other hallway cells besides anchorHallCell
-    private bool WouldRoomClipIntoHall(Vector2Int roomPos, Vector2Int anchorHallCell)
+    // Room footprints use m_roomSize rather than m_tileSize. The room's
+    // center is offset from the hallway by half its width, while its
+    // footprint is reserved on the generator grid to prevent overlaps.
+    private bool CanPlaceRoomFootprint(
+        Vector2Int roomCenter,
+        Vector2Int side,
+        Vector2Int hallDirection,
+        Vector2Int anchorHallCell,
+        int roomTiles)
     {
-        // If the position itself is a hall cell, it's invalid
-        if (m_hallCellSet.Contains(roomPos))
-            return true;
+        int half = Mathf.CeilToInt(roomTiles * 0.5f);
 
-        // If any neighbor is a hall cell other than the anchor, it would touch multiple hallway tiles -> clip
-        Vector2Int[] neighbors = new[] { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
-        foreach (var n in neighbors)
+        // The footprint extends from the hallway-facing edge away from the hall.
+        // Along the corridor it occupies roomTiles cells.
+        Vector2Int tangent = hallDirection;
+
+        for (int along = -half; along < roomTiles - half; along++)
         {
-            Vector2Int check = roomPos + n;
-            if (m_hallCellSet.Contains(check) && check != anchorHallCell)
-                return true;
+            for (int depth = 0; depth < roomTiles; depth++)
+            {
+                Vector2Int cell =
+                    roomCenter
+                    + tangent * along
+                    + side * depth;
+
+                if (m_hallCellSet.Contains(cell))
+                    return false;
+
+                if (m_rooms.ContainsKey(cell) || m_hallCellSet.Contains(cell))
+                    return false;
+            }
         }
 
-        return false;
+        // Leave a small grid buffer around the footprint so another 50f room
+        // cannot be spawned directly beside it.
+        for (int along = -half - 1; along <= roomTiles - half; along++)
+        {
+            Vector2Int outerCell = roomCenter + tangent * along;
+            if (m_hallCellSet.Contains(outerCell))
+                return false;
+        }
+
+        return true;
     }
 
     private void InstantiateRooms()
