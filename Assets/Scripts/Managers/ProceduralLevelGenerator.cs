@@ -43,6 +43,11 @@ public class ProceduralLevelGenerator : MonoBehaviour
     [Min(1)]
     [SerializeField] private int m_roomSpacing = 3;
 
+    [Header("Room Placement")]
+    [Tooltip("Number of hallway tiles excluded before and after a segment boundary to prevent rooms clipping into segments.")]
+    [Min(0)]
+    [SerializeField] private int m_roomSegmentBuffer = 5;
+
     [Header("Walls")]
     [Tooltip("Plain wall prefab (used when there is no room behind the wall).")]
     [SerializeField] private GameObject m_wallPrefab;
@@ -153,9 +158,16 @@ public class ProceduralLevelGenerator : MonoBehaviour
         // Choose an initial forward direction (right or up).
         Vector2Int dir = m_rng.Next(0, 2) == 0 ? Vector2Int.right : Vector2Int.up;
 
+        // Keep a list of where each segment starts (index in m_hallCells) so we can
+        // avoid placing rooms too close to segment boundaries.
+        List<int> segmentStartIndices = new List<int>();
+
         for (int seg = 0; seg < segments; seg++)
         {
             int segLen = GetRandomSegmentLength();
+
+            // Record the index of the first tile for this segment (next tile to be added)
+            segmentStartIndices.Add(m_hallCells.Count);
 
             // Before adding anything, make sure the complete segment fits. This keeps
             // the segment length exact rather than silently truncating it on collision.
@@ -221,6 +233,10 @@ public class ProceduralLevelGenerator : MonoBehaviour
             var hallCell = m_hallCells[idx];
 
             if (!IsUsableRoomPairAnchor(idx))
+                continue;
+
+            // Skip anchors that are too close to any segment boundary based on buffer.
+            if (IsNearSegmentBoundary(idx, segmentStartIndices, m_roomSegmentBuffer))
                 continue;
 
             tilesSinceLastRoomPair++;
@@ -291,6 +307,23 @@ public class ProceduralLevelGenerator : MonoBehaviour
         {
             StartRotation = Quaternion.identity;
         }
+    }
+
+    private bool IsNearSegmentBoundary(int idx, List<int> segmentStarts, int buffer)
+    {
+        if (segmentStarts == null || segmentStarts.Count == 0 || buffer <= 0)
+            return false;
+
+        foreach (var s in segmentStarts)
+        {
+            // Disallow anchors within buffer tiles before the segment start and buffer tiles after.
+            int start = s - buffer;
+            int end = s + buffer - 1; // inclusive
+            if (idx >= start && idx <= end)
+                return true;
+        }
+
+        return false;
     }
 
     private int GetRandomSegmentLength()
