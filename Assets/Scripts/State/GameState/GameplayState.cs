@@ -5,6 +5,9 @@ public class GameplayState : BaseGameState
 {
     public override GameStateType StateType => GameStateType.Gameplay;
 
+    // Track keys collected by the player
+    public int keyCollected = 0;
+
     public GameplayState(GameStateManager manager) : base(manager) { }
 
     public override void Enter()

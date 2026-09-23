@@ -115,6 +115,9 @@ public class ProceduralLevelGenerator : MonoBehaviour
             BuildNavMesh();
 
         OnLevelGenerated?.Invoke();
+
+        // After generation, spawn elevator at ExitPosition center
+        SpawnElevatorAtExit();
     }
 
     private void Clear()
@@ -847,5 +850,100 @@ public class ProceduralLevelGenerator : MonoBehaviour
             m_keyInstance.transform.localPosition = Vector3.zero;
             m_keyInstance.transform.localRotation = Quaternion.identity;
         }
+    }
+
+    /// <summary>
+    /// Generate a level while preserving a specified "preserved" transform (endpoint). The preserved transform
+    /// will remain as the start/anchor for the next generation. All other children are cleared.
+    /// </summary>
+    public void GenerateFromPreservedEndpoint(Transform preserved)
+    {
+        if (preserved == null)
+        {
+            Generate();
+            return;
+        }
+
+        // Clear all children except preserved
+        if (m_parent == null)
+        {
+            GameObject go = new GameObject("ProceduralLevel");
+            m_parent = go.transform;
+        }
+
+        for (int i = m_parent.childCount - 1; i >= 0; i--)
+        {
+            var child = m_parent.GetChild(i);
+            if (child == preserved)
+                continue;
+
+            if (Application.isPlaying)
+                Destroy(child.gameObject);
+            else
+                DestroyImmediate(child.gameObject);
+        }
+
+        m_rooms.Clear();
+        RoomCenters.Clear();
+        m_hallCells.Clear();
+        m_hallCellSet.Clear();
+
+        // Temporarily move generator root so that GridToWorld aligns preserved endpoint to grid origin
+        Vector3 originalPos = transform.position;
+        transform.position = preserved.position;
+
+        // Rebuild layout and instantiate under the same parent
+        int s = m_seed;
+        if (s == 0) s = Environment.TickCount;
+        m_rng = new System.Random(s);
+
+        BuildLayout();
+        InstantiateRooms();
+
+        if (m_autoBuildNavMesh)
+            BuildNavMesh();
+
+        // restore original position
+        transform.position = originalPos;
+
+        OnLevelGenerated?.Invoke();
+
+        // After generation, spawn elevator at ExitPosition
+        SpawnElevatorAtExit();
+    }
+
+    private void SpawnElevatorAtExit()
+    {
+        if (m_parent == null)
+            return;
+
+        // Remove existing elevator(s)
+        var existing = m_parent.GetComponentsInChildren<Elevator>(true);
+        foreach (var e in existing)
+        {
+            if (e != null)
+                Destroy(e.gameObject);
+        }
+
+        GameObject exitGO = new GameObject("Exit");
+        exitGO.transform.SetParent(m_parent, false);
+        exitGO.transform.position = ExitPosition + Vector3.up * 0.5f;
+
+        SphereCollider sc = exitGO.AddComponent<SphereCollider>();
+        sc.isTrigger = true;
+        sc.radius = 1.25f;
+
+        // Add Elevator behaviour
+        var elev = exitGO.AddComponent<Elevator>();
+
+        // Visual marker optional
+        GameObject marker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        marker.name = "ExitMarker";
+        marker.transform.SetParent(exitGO.transform, false);
+        marker.transform.localPosition = Vector3.zero;
+        marker.transform.localScale = new Vector3(1f, 0.15f, 1f);
+        Collider markerCol = marker.GetComponent<Collider>();
+        if (markerCol != null)
+            Destroy(markerCol);
     }
 }
