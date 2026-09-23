@@ -19,6 +19,10 @@ public class ProceduralLevelGenerator : MonoBehaviour
     [SerializeField] private GameObject m_exitRoomPrefab;
     [SerializeField] private Transform m_parent;
 
+    [Header("Items")]
+    [Tooltip("Optional prefab for a key item to spawn in exactly one generated room (one per generation).")]
+    [SerializeField] private GameObject m_keyPrefab;
+
     [Header("Generation")]
     [SerializeField] private int m_minRooms = 7;
     [Tooltip("Maximum number of non-hallway rooms. Paired hotel rooms count individually.")]
@@ -91,6 +95,9 @@ public class ProceduralLevelGenerator : MonoBehaviour
     // Expose the rotation the player should face when spawned at StartPosition.
     public Quaternion StartRotation { get; private set; } = Quaternion.identity;
 
+    // Track spawned key instance so we ensure only one per generation and can clear it.
+    private GameObject m_keyInstance;
+
     /// <summary>
     /// Generate a level. If seed is null, uses the inspector seed (0 = random) or system tick.
     /// </summary>
@@ -137,6 +144,9 @@ public class ProceduralLevelGenerator : MonoBehaviour
         m_hallCellSet.Clear();
 
         StartRotation = Quaternion.identity;
+
+        // Clear key instance reference (actual GameObject children were destroyed above)
+        m_keyInstance = null;
     }
 
     private void BuildLayout()
@@ -524,6 +534,9 @@ public class ProceduralLevelGenerator : MonoBehaviour
         // After placing floors and rooms, spawn walls and roofs
         SpawnHallwayWalls();
         SpawnHallwayRoofs();
+
+        // Spawn a single key into a random non-hall room if a prefab is assigned.
+        SpawnKeyInRandomRoom();
     }
 
     private void SpawnHallwayWalls()
@@ -794,6 +807,45 @@ public class ProceduralLevelGenerator : MonoBehaviour
         catch (Exception ex)
         {
             Debug.LogError($"ProceduralLevelGenerator: NavMesh build failed. Ensure NavMeshComponents package is installed. Exception: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Spawn exactly one key into a random non-hall room. If no key prefab is assigned or
+    /// no valid rooms exist, nothing will be spawned. This ensures a single key per generation.
+    /// </summary>
+    private void SpawnKeyInRandomRoom()
+    {
+        if (m_keyPrefab == null)
+            return;
+
+        // Collect candidate room GameObjects (exclude hallway tiles)
+        var candidates = m_rooms.Where(kv => !IsHallwayCell(kv.Key) && kv.Value != null)
+                                .Select(kv => kv.Value)
+                                .ToList();
+
+        if (candidates.Count == 0)
+            return;
+
+        int idx = m_rng.Next(candidates.Count);
+        var chosenRoom = candidates[idx];
+
+        // Prefer a child transform named "Center" if it exists so the key is placed at the intended marker.
+        Transform center = chosenRoom.transform.Find("Center");
+
+        // Instantiate and parent to the chosen room so it gets cleaned up with the level.
+        m_keyInstance = Instantiate(m_keyPrefab, chosenRoom.transform);
+        m_keyInstance.name = "Key";
+
+        if (center != null)
+        {
+            m_keyInstance.transform.localPosition = center.localPosition;
+            m_keyInstance.transform.localRotation = Quaternion.identity;
+        }
+        else
+        {
+            m_keyInstance.transform.localPosition = Vector3.zero;
+            m_keyInstance.transform.localRotation = Quaternion.identity;
         }
     }
 }

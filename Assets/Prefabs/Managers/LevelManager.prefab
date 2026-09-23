@@ -210,6 +210,7 @@ MonoBehaviour:
   m_startRoomPrefab: {fileID: 0}
   m_exitRoomPrefab: {fileID: 5256344564332166496, guid: 372e928ab08e14a469f332403454e26b, type: 3}
   m_parent: {fileID: 0}
+  m_keyPrefab: {fileID: 3212597178357493347, guid: 93bbf9e24cceb6447aa95b85e87f1ec4, type: 3}
   m_minRooms: 15
   m_maxRooms: 75
   m_tileSize: 25
@@ -220,6 +221,7 @@ MonoBehaviour:
   m_minSegments: 4
   m_maxSegments: 6
   m_roomSpacing: 3
+  m_roomSegmentBuffer: 5
   m_wallPrefab: {fileID: 5256344564332166496, guid: 0905db349c107474c81abe150d7e4b29, type: 3}
   m_wallDoorPrefab: {fileID: 5256344564332166496, guid: 6bf7f3f7b93d9c846a4b6d6ef46f6fba, type: 3}
   m_wallHeight: 3
