@@ -117,6 +117,24 @@ public class LevelManager : MonoBehaviour
         if (m_levelGenerator == null)
             return;
 
+        // If the generator already created an Exit or Elevator, skip creating a duplicate.
+        if (m_levelGenerator.LevelRoot != null)
+        {
+            // check for child named "Exit"
+            for (int i = 0; i < m_levelGenerator.LevelRoot.childCount; i++)
+            {
+                var child = m_levelGenerator.LevelRoot.GetChild(i);
+                if (child == null)
+                    continue;
+
+                if (child.name == "Exit" || child.GetComponentInChildren<Elevator>() != null)
+                {
+                    Debug.Log("LevelManager: Skipping CreateExitAt because generator created exit/elevator.");
+                    return;
+                }
+            }
+        }
+
         // create exit root
         GameObject exitGO = new GameObject("Exit");
         exitGO.transform.SetParent(m_levelGenerator.LevelRoot, false);

@@ -84,6 +84,9 @@ public class ProceduralLevelGenerator : MonoBehaviour
     private List<Vector2Int> m_hallCells = new List<Vector2Int>();
     private HashSet<Vector2Int> m_hallCellSet = new HashSet<Vector2Int>();
 
+    // Optional world-space offset applied to GridToWorld during a "generate from preserved endpoint" operation.
+    private Vector3 m_generationOffset = Vector3.zero;
+
     public Action OnLevelGenerated;
     public Vector3 StartPosition { get; private set; }
     public Vector3 ExitPosition { get; private set; }
@@ -98,6 +101,9 @@ public class ProceduralLevelGenerator : MonoBehaviour
     // Track spawned key instance so we ensure only one per generation and can clear it.
     private GameObject m_keyInstance;
 
+    // Temporary preserved endpoint used when generating from an existing endpoint transform
+    private Transform m_preservedEndpoint = null;
+
     /// <summary>
     /// Generate a level. If seed is null, uses the inspector seed (0 = random) or system tick.
     /// </summary>
@@ -109,6 +115,39 @@ public class ProceduralLevelGenerator : MonoBehaviour
 
         Clear();
         BuildLayout();
+
+        Debug.Log($"ProceduralLevelGenerator.Generate: hallCells count {m_hallCells.Count}");
+        if (m_hallCells.Count > 0)
+        {
+            Debug.Log($"ProceduralLevelGenerator.Generate: first {m_hallCells.First()} last {m_hallCells.Last()}");
+        }
+
+        // Compute Start/Exit positions and rotation for the normal generation (no offset)
+        if (m_hallCells != null && m_hallCells.Count > 0)
+        {
+            m_generationOffset = Vector3.zero;
+            StartPosition = GridToWorld(m_hallCells.First());
+            ExitPosition = GridToWorld(m_hallCells.Last());
+
+            Debug.Log($"ProceduralLevelGenerator.Generate: StartPosition {StartPosition} ExitPosition {ExitPosition}");
+
+            if (m_hallCells.Count > 1)
+            {
+                Vector3 a = GridToWorld(m_hallCells[0]);
+                Vector3 b = GridToWorld(m_hallCells[1]);
+                Vector3 forward = (b - a);
+                forward.y = 0f;
+                if (forward.sqrMagnitude > 0.0001f)
+                    StartRotation = Quaternion.LookRotation(forward.normalized);
+                else
+                    StartRotation = Quaternion.identity;
+            }
+            else
+            {
+                StartRotation = Quaternion.identity;
+            }
+        }
+
         InstantiateRooms();
 
         if (m_autoBuildNavMesh)
@@ -150,6 +189,9 @@ public class ProceduralLevelGenerator : MonoBehaviour
 
         // Clear key instance reference (actual GameObject children were destroyed above)
         m_keyInstance = null;
+
+        // Reset any generation offset
+        m_generationOffset = Vector3.zero;
     }
 
     private void BuildLayout()
@@ -302,24 +344,7 @@ public class ProceduralLevelGenerator : MonoBehaviour
         foreach (var p in positions)
             m_rooms[p] = null;
 
-        StartPosition = GridToWorld(m_hallCells.First());
-        ExitPosition = GridToWorld(m_hallCells.Last());
-
-        if (m_hallCells.Count > 1)
-        {
-            Vector3 a = GridToWorld(m_hallCells[0]);
-            Vector3 b = GridToWorld(m_hallCells[1]);
-            Vector3 forward = (b - a);
-            forward.y = 0f;
-            if (forward.sqrMagnitude > 0.0001f)
-                StartRotation = Quaternion.LookRotation(forward.normalized);
-            else
-                StartRotation = Quaternion.identity;
-        }
-        else
-        {
-            StartRotation = Quaternion.identity;
-        }
+        // Note: StartPosition/ExitPosition will be recalculated after any generation offset is applied.
     }
 
     private bool IsNearSegmentBoundary(int idx, List<int> segmentStarts, int buffer)
@@ -441,80 +466,91 @@ public class ProceduralLevelGenerator : MonoBehaviour
 
             GameObject go = null;
 
-            // Start room override
-            if (pos == Vector2Int.zero && m_startRoomPrefab != null)
+            // If we have a preserved endpoint and this is the start cell, reuse the preserved GameObject
+            if (pos == Vector2Int.zero && m_preservedEndpoint != null)
             {
-                go = Instantiate(m_startRoomPrefab, worldPos, Quaternion.identity, m_parent);
-            }
-            else if (pos == m_hallCells.Last() && m_exitRoomPrefab != null)
-            {
-                go = Instantiate(m_exitRoomPrefab, worldPos, Quaternion.identity, m_parent);
-            }
-            else if (IsHallwayCell(pos))
-            {
-                if (m_floorTilePrefab != null)
-                {
-                    go = Instantiate(m_floorTilePrefab, worldPos, Quaternion.identity, m_parent);
-                }
-                else
-                {
-                    // fallback thin cube as floor tile
-                    go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    go.transform.SetParent(m_parent, false);
-                    go.transform.position = worldPos;
-                    go.transform.localScale = new Vector3(m_tileSize, 0.2f, m_tileSize);
-                }
+                go = m_preservedEndpoint.gameObject;
+                // Ensure it's parented under m_parent and positioned correctly
+                go.transform.SetParent(m_parent, true);
+                go.transform.position = worldPos;
             }
             else
             {
-                // side room or extra room - determine rotation so the open wall faces the hallway
-                Quaternion rot = Quaternion.identity;
-
-                // Find nearest hallway cell and derive direction from the room center to that hall cell
-                if (m_hallCells.Count > 0)
+                // Start room override
+                if (pos == Vector2Int.zero && m_startRoomPrefab != null)
                 {
-                    int bestDist = int.MaxValue;
-                    Vector2Int bestHall = Vector2Int.zero;
-                    foreach (var h in m_hallCells)
+                    go = Instantiate(m_startRoomPrefab, worldPos, Quaternion.identity, m_parent);
+                }
+                else if (pos == m_hallCells.Last() && m_exitRoomPrefab != null)
+                {
+                    go = Instantiate(m_exitRoomPrefab, worldPos, Quaternion.identity, m_parent);
+                }
+                else if (IsHallwayCell(pos))
+                {
+                    if (m_floorTilePrefab != null)
                     {
-                        int d = Mathf.Abs(h.x - pos.x) + Mathf.Abs(h.y - pos.y);
-                        if (d < bestDist)
+                        go = Instantiate(m_floorTilePrefab, worldPos, Quaternion.identity, m_parent);
+                    }
+                    else
+                    {
+                        // fallback thin cube as floor tile
+                        go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        go.transform.SetParent(m_parent, false);
+                        go.transform.position = worldPos;
+                        go.transform.localScale = new Vector3(m_tileSize, 0.2f, m_tileSize);
+                    }
+                }
+                else
+                {
+                    // side room or extra room - determine rotation so the open wall faces the hallway
+                    Quaternion rot = Quaternion.identity;
+
+                    // Find nearest hallway cell and derive direction from the room center to that hall cell
+                    if (m_hallCells.Count > 0)
+                    {
+                        int bestDist = int.MaxValue;
+                        Vector2Int bestHall = Vector2Int.zero;
+                        foreach (var h in m_hallCells)
                         {
-                            bestDist = d;
-                            bestHall = h;
+                            int d = Mathf.Abs(h.x - pos.x) + Mathf.Abs(h.y - pos.y);
+                            if (d < bestDist)
+                            {
+                                bestDist = d;
+                                bestHall = h;
+                            }
+                        }
+
+                        if (bestDist < int.MaxValue)
+                        {
+                            Vector2Int delta = bestHall - pos;
+                            Vector2Int hallDir;
+
+                            if (Mathf.Abs(delta.x) > Mathf.Abs(delta.y))
+                                hallDir = new Vector2Int(Math.Sign(delta.x), 0);
+                            else
+                                hallDir = new Vector2Int(0, Math.Sign(delta.y));
+
+                            // Map hall direction to rotation so the room's local +Z faces the hallway
+                            if (hallDir == Vector2Int.up)
+                                rot = Quaternion.Euler(0f, 0f, 0f);
+                            else if (hallDir == Vector2Int.right)
+                                rot = Quaternion.Euler(0f, 90f, 0f);
+                            else if (hallDir == Vector2Int.down)
+                                rot = Quaternion.Euler(0f, 180f, 0f);
+                            else if (hallDir == Vector2Int.left)
+                                rot = Quaternion.Euler(0f, 270f, 0f);
                         }
                     }
 
-                    if (bestDist < int.MaxValue)
+                    if (m_roomPrefabs != null && m_roomPrefabs.Length > 0)
+                        go = Instantiate(m_roomPrefabs[m_rng.Next(m_roomPrefabs.Length)], worldPos, rot, m_parent);
+                    else
                     {
-                        Vector2Int delta = bestHall - pos;
-                        Vector2Int hallDir;
-
-                        if (Mathf.Abs(delta.x) > Mathf.Abs(delta.y))
-                            hallDir = new Vector2Int(Math.Sign(delta.x), 0);
-                        else
-                            hallDir = new Vector2Int(0, Math.Sign(delta.y));
-
-                        // Map hall direction to rotation so the room's local +Z faces the hallway
-                        if (hallDir == Vector2Int.up)
-                            rot = Quaternion.Euler(0f, 0f, 0f);
-                        else if (hallDir == Vector2Int.right)
-                            rot = Quaternion.Euler(0f, 90f, 0f);
-                        else if (hallDir == Vector2Int.down)
-                            rot = Quaternion.Euler(0f, 180f, 0f);
-                        else if (hallDir == Vector2Int.left)
-                            rot = Quaternion.Euler(0f, 270f, 0f);
+                        go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        go.transform.SetParent(m_parent, false);
+                        go.transform.position = worldPos;
+                        go.transform.localScale = new Vector3(m_tileSize, 2f, m_tileSize);
                     }
-                }
-
-                if (m_roomPrefabs != null && m_roomPrefabs.Length > 0)
-                    go = Instantiate(m_roomPrefabs[m_rng.Next(m_roomPrefabs.Length)], worldPos, rot, m_parent);
-                else
-                {
-                    go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    go.transform.SetParent(m_parent, false);
-                    go.transform.position = worldPos;
-                    go.transform.localScale = new Vector3(m_tileSize, 2f, m_tileSize);
                 }
             }
 
@@ -540,6 +576,9 @@ public class ProceduralLevelGenerator : MonoBehaviour
 
         // Spawn a single key into a random non-hall room if a prefab is assigned.
         SpawnKeyInRandomRoom();
+
+        // Clear preserved endpoint reference after instantiation
+        m_preservedEndpoint = null;
     }
 
     private void SpawnHallwayWalls()
@@ -780,7 +819,7 @@ public class ProceduralLevelGenerator : MonoBehaviour
         return m_hallCellSet.Contains(pos);
     }
 
-    private Vector3 GridToWorld(Vector2Int grid) => new Vector3(grid.x * m_tileSize, 0f, grid.y * m_tileSize);
+    private Vector3 GridToWorld(Vector2Int grid) => new Vector3(grid.x * m_tileSize, 0f, grid.y * m_tileSize) + m_generationOffset;
 
     /// <summary>
     /// Ensures a NavMeshSurface is present on the level root and builds the NavMesh.
@@ -853,8 +892,9 @@ public class ProceduralLevelGenerator : MonoBehaviour
     }
 
     /// <summary>
-    /// Generate a level while preserving a specified "preserved" transform (endpoint). The preserved transform
-    /// will remain as the start/anchor for the next generation. All other children are cleared.
+    /// Generate a level while preserving a specified "preserved" transform (endpoint).
+    /// The preserved transform will remain as the start/anchor for the next generation.
+    /// All other children are cleared.
     /// </summary>
     public void GenerateFromPreservedEndpoint(Transform preserved)
     {
@@ -863,6 +903,8 @@ public class ProceduralLevelGenerator : MonoBehaviour
             Generate();
             return;
         }
+
+        Debug.Log($"ProceduralLevelGenerator.GenerateFromPreservedEndpoint: preserved at {preserved.position}");
 
         // Clear all children except preserved
         if (m_parent == null)
@@ -883,28 +925,58 @@ public class ProceduralLevelGenerator : MonoBehaviour
                 DestroyImmediate(child.gameObject);
         }
 
+        // Reset generator state containers
         m_rooms.Clear();
         RoomCenters.Clear();
         m_hallCells.Clear();
         m_hallCellSet.Clear();
 
-        // Temporarily move generator root so that GridToWorld aligns preserved endpoint to grid origin
-        Vector3 originalPos = transform.position;
-        transform.position = preserved.position;
-
-        // Rebuild layout and instantiate under the same parent
+        // Prepare RNG
         int s = m_seed;
         if (s == 0) s = Environment.TickCount;
         m_rng = new System.Random(s);
 
+        // Build layout (uses grid coords, no world offset yet)
         BuildLayout();
+
+        Debug.Log($"ProceduralLevelGenerator.GenerateFromPreservedEndpoint: new hallCells count {m_hallCells.Count} first {m_hallCells.First()} last {m_hallCells.Last()}");
+
+        // Compute generation offset so the computed StartPosition aligns with the preserved transform world position
+        Vector3 computedStart = new Vector3(m_hallCells.First().x * m_tileSize, 0f, m_hallCells.First().y * m_tileSize);
+        m_generationOffset = preserved.position - computedStart;
+
+        Debug.Log($"ProceduralLevelGenerator.GenerateFromPreservedEndpoint: computedStart {computedStart} generationOffset {m_generationOffset}");
+
+        // Now recompute world Start/Exit positions using offset-aware GridToWorld
+        StartPosition = GridToWorld(m_hallCells.First());
+        ExitPosition = GridToWorld(m_hallCells.Last());
+
+        Debug.Log($"ProceduralLevelGenerator.GenerateFromPreservedEndpoint: StartPosition {StartPosition} ExitPosition {ExitPosition}");
+
+        if (m_hallCells.Count > 1)
+        {
+            Vector3 a = GridToWorld(m_hallCells[0]);
+            Vector3 b = GridToWorld(m_hallCells[1]);
+            Vector3 forward = (b - a);
+            forward.y = 0f;
+            if (forward.sqrMagnitude > 0.0001f)
+                StartRotation = Quaternion.LookRotation(forward.normalized);
+            else
+                StartRotation = Quaternion.identity;
+        }
+        else
+        {
+            StartRotation = Quaternion.identity;
+        }
+
+        // Preserve the endpoint transform for reuse during instantiation
+        m_preservedEndpoint = preserved;
+
+        // Instantiate rooms with the offset applied
         InstantiateRooms();
 
         if (m_autoBuildNavMesh)
             BuildNavMesh();
-
-        // restore original position
-        transform.position = originalPos;
 
         OnLevelGenerated?.Invoke();
 
@@ -925,13 +997,41 @@ public class ProceduralLevelGenerator : MonoBehaviour
                 Destroy(e.gameObject);
         }
 
+        Debug.Log($"ProceduralLevelGenerator: Spawning elevator at ExitPosition {ExitPosition}");
+
+        // Create exit root object for elevator
         GameObject exitGO = new GameObject("Exit");
-        exitGO.transform.SetParent(m_parent, false);
+
+        // Attempt to find a child room at ExitPosition to parent the elevator under so it can be preserved
+        Transform anchor = null;
+        float tolerance = m_tileSize * 0.6f; // allow up to ~half tile distance
+        for (int i = 0; i < m_parent.childCount; i++)
+        {
+            var child = m_parent.GetChild(i);
+            float d = Vector3.Distance(child.position, ExitPosition);
+            Debug.Log($"ProceduralLevelGenerator: child {child.name} at {child.position}, distance to exit {d}");
+            if (d <= tolerance)
+            {
+                anchor = child;
+                Debug.Log($"ProceduralLevelGenerator: selected anchor {child.name} for elevator");
+                break;
+            }
+        }
+
+        // Place and parent
         exitGO.transform.position = ExitPosition + Vector3.up * 0.5f;
+        if (anchor != null)
+        {
+            exitGO.transform.SetParent(anchor, true); // keep world position
+        }
+        else
+        {
+            exitGO.transform.SetParent(m_parent, false);
+        }
 
         SphereCollider sc = exitGO.AddComponent<SphereCollider>();
         sc.isTrigger = true;
-        sc.radius = 1.25f;
+        sc.radius = 15f;
 
         // Add Elevator behaviour
         var elev = exitGO.AddComponent<Elevator>();

@@ -1,4 +1,5 @@
 using UnityEngine;
+using StarterAssets;
 
 [RequireComponent(typeof(Collider))]
 public class Elevator : MonoBehaviour
@@ -26,6 +27,12 @@ public class Elevator : MonoBehaviour
         if (col == null)
             col = gameObject.AddComponent<SphereCollider>();
         col.isTrigger = true;
+
+        // Ensure radius is large as requested
+        if (col is SphereCollider sc)
+        {
+            sc.radius = 15f;
+        }
     }
 
     private void Start()
@@ -39,6 +46,7 @@ public class Elevator : MonoBehaviour
         // Interaction key is E
         if (m_playerInside && !m_transitionInProgress && Input.GetKeyDown(KeyCode.E))
         {
+            Debug.Log("Elevator: E pressed while inside");
             var gsm = GameStateManager.Instance;
             if (gsm == null)
                 return;
@@ -47,10 +55,14 @@ public class Elevator : MonoBehaviour
             if (!(current is GameplayState gameplay))
                 return;
 
-/*            if (gameplay.keyCollected <= 0)
-                return;*/
+            if (gameplay.keyCollected <= 0)
+            {
+                Debug.Log("Elevator: no keys collected, cannot use");
+                return;
+            }
 
             // begin transition
+            Debug.Log("Elevator: starting transition");
             StartTransition();
         }
 
@@ -98,6 +110,8 @@ public class Elevator : MonoBehaviour
         m_transitionInProgress = true;
         m_timer = 0f;
         m_step = 1;
+
+        Debug.Log("Elevator: StartTransition called - state set to Transitioning");
     }
 
     private void CleanupOldTerrainPreserveEndpoint()
@@ -112,14 +126,26 @@ public class Elevator : MonoBehaviour
         if (root == null)
             return;
 
-        // Determine which child contains this elevator (we expect elevator parented under generator's LevelRoot)
+        // Determine which child contains this elevator (we expect elevator parented under the exit room)
         Transform preserved = null;
-        foreach (Transform child in root)
+
+        // If elevator is parented to the exit room, transform.parent will be that room and will be among root children
+        if (transform.parent != null && transform.parent.parent == root)
         {
-            if (child == transform.parent)
+            preserved = transform.parent;
+        }
+        else
+        {
+            // Fallback: pick the child closest to this elevator's position (in case parenting isn't as expected)
+            float best = float.MaxValue;
+            foreach (Transform child in root)
             {
-                preserved = child;
-                break;
+                float d = Vector3.Distance(child.position, transform.position);
+                if (d < best)
+                {
+                    best = d;
+                    preserved = child;
+                }
             }
         }
 
@@ -135,6 +161,8 @@ public class Elevator : MonoBehaviour
             else
                 DestroyImmediate(child.gameObject);
         }
+
+        Debug.Log("Elevator: CleanupOldTerrainPreserveEndpoint completed");
     }
 
     private void GenerateNextSectionFromEndpoint()
@@ -144,44 +172,38 @@ public class Elevator : MonoBehaviour
         if (m_generator == null)
             return;
 
-        // Set the generator start position to this preserved endpoint's world position
+        // Use the elevator's parent (the exit room) as the preserved endpoint
         var preservedParent = transform.parent;
         if (preservedParent != null)
         {
-            var gen = m_generator;
-            // Move the generator's parent to preserved endpoint so new children are created under it
-            // But to preserve API we will set a temporary parent and reposition grid so StartPosition aligns.
-            // Simplest approach: set StartPosition and StartRotation via reflection-like assignment if available
-
-            // The generator exposes public StartPosition and StartRotation only as getters. We'll mimic behavior by
-            // moving the generator's parent to the preserved position and calling Generate().
-            Vector3 oldParentPos = gen.LevelRoot != null ? gen.LevelRoot.position : Vector3.zero;
-
-            // Move generator root to preservedParent position so generated GridToWorld aligns with preserved endpoint
-            gen.transform.position = preservedParent.position;
-
-            gen.Generate();
-
-            // Re-parent elevator under new exit position: find new exit and move elevator there
-            var newExit = gen.ExitPosition;
-            transform.SetParent(gen.LevelRoot, true);
-            transform.position = newExit + Vector3.up * 0.5f;
+            m_state = State.Generating;
+            Debug.Log("Elevator: Calling GenerateFromPreservedEndpoint");
+            m_generator.GenerateFromPreservedEndpoint(preservedParent);
+            // After calling the generator, the generator will spawn a new elevator and remove existing ones.
+            // This GameObject may be destroyed by the generator; do not attempt to reposition it here.
         }
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!other.CompareTag("Player"))
-            return;
+        Debug.Log($"Elevator: OnTriggerEnter with {other.gameObject.name} tag={other.gameObject.tag}");
 
-        m_playerInside = true;
+        // Detect player by tag or by player controller/component
+        if (other.CompareTag("Player") || other.GetComponentInParent<FirstPersonController>() != null || other.GetComponent<CharacterController>() != null)
+        {
+            m_playerInside = true;
+            Debug.Log("Elevator: Player entered elevator trigger");
+        }
     }
 
     private void OnTriggerExit(Collider other)
     {
-        if (!other.CompareTag("Player"))
-            return;
+        Debug.Log($"Elevator: OnTriggerExit with {other.gameObject.name} tag={other.gameObject.tag}");
 
-        m_playerInside = false;
+        if (other.CompareTag("Player") || other.GetComponentInParent<FirstPersonController>() != null || other.GetComponent<CharacterController>() != null)
+        {
+            m_playerInside = false;
+            Debug.Log("Elevator: Player exited elevator trigger");
+        }
     }
 }
