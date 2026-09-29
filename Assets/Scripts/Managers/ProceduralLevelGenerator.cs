@@ -619,6 +619,15 @@ public class ProceduralLevelGenerator : MonoBehaviour
                     sides
                 );
 
+            // Ensure the start cell has a wall behind it so the player cannot fall off the map.
+            // This is a minimal special-case and does not modify the existing wall-generation logic.
+            if (idx == 0 && m_hallCells.Count > 1)
+            {
+                Vector2Int outgoing = m_hallCells[1] - m_hallCells[0];
+                Vector2Int backSide = new Vector2Int(-outgoing.x, -outgoing.y);
+                sides.Add(backSide);
+            }
+
             if (sides.Count == 0)
                 AddPerpendicularSides(Vector2Int.right, sides);
 
