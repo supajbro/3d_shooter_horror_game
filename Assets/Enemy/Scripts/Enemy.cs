@@ -1078,6 +1078,12 @@ public class Enemy : MonoBehaviour, IPoolable
         m_poolKey = key;
     }
 
+    // Expose pool key so external managers (eg. spawner) can return this object to the pool.
+    public string GetPoolKey()
+    {
+        return m_poolKey;
+    }
+    
     protected void SpawnWeapon()
     {
         foreach (IDropable drop in m_drops)

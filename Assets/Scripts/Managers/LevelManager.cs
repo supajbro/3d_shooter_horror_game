@@ -145,6 +145,16 @@ public class LevelManager : MonoBehaviour
 
         if (m_enemySpawner != null)
         {
+            // Clear any previously active enemies first so old actors are returned to the pool
+            try
+            {
+                m_enemySpawner.ClearActiveEnemies();
+            }
+            catch (System.Exception)
+            {
+                // ignore
+            }
+
             // Reset internal occupancy/state then re-init
             try
             {
@@ -197,6 +207,62 @@ public class LevelManager : MonoBehaviour
             {
                 Debug.Log("LevelManager: UIStateHandler not ready yet, deferring UI initialization.");
             }
+        }
+    }
+
+    private void Update()
+    {
+        // Debug: press Num 9 (either keypad or top-row) to teleport player to elevator and start transition
+        if (Input.GetKeyDown(KeyCode.Keypad9) || Input.GetKeyDown(KeyCode.Alpha9))
+        {
+            Debug.Log("LevelManager: Debug teleport to elevator requested");
+
+            if (m_levelGenerator == null)
+                m_levelGenerator = FindObjectOfType<ProceduralLevelGenerator>();
+
+            Elevator elev = null;
+            if (m_levelGenerator != null && m_levelGenerator.LevelRoot != null)
+                elev = m_levelGenerator.LevelRoot.GetComponentInChildren<Elevator>(true);
+
+            if (elev == null)
+                elev = FindObjectOfType<Elevator>();
+
+            if (elev == null)
+            {
+                Debug.LogWarning("LevelManager: No elevator found to teleport to.");
+                return;
+            }
+
+            GameObject player = m_currentPlayer != null ? m_currentPlayer : GameObject.FindGameObjectWithTag("Player");
+            if (player == null)
+            {
+                Debug.LogWarning("LevelManager: No player object found to teleport.");
+                return;
+            }
+
+            // Teleport player into elevator
+            var cc = player.GetComponent<CharacterController>();
+            if (cc != null)
+            {
+                // disable to allow immediate repositioning without physics interference
+                cc.enabled = false;
+            }
+
+            player.transform.position = elev.transform.position + Vector3.up * 1.0f;
+            player.transform.rotation = Quaternion.identity;
+
+            if (cc != null)
+            {
+                cc.enabled = true;
+            }
+
+            // Clear active enemies immediately
+            if (m_enemySpawner == null)
+                m_enemySpawner = GetComponentInChildren<EnemySpawner>();
+            m_enemySpawner?.ClearActiveEnemies();
+
+            // Start elevator transition (debug)
+            elev.UseElevatorDebug();
         }
     }
 

@@ -178,9 +178,38 @@ public class Elevator : MonoBehaviour
         {
             m_state = State.Generating;
             Debug.Log("Elevator: Calling GenerateFromPreservedEndpoint");
+
+            // Ensure any active enemies from the previous level are returned to the pool
+            if (m_levelManager == null)
+                m_levelManager = FindObjectOfType<LevelManager>();
+
+            try
+            {
+                var spawner = m_levelManager?.GetEnemySpawner();
+                spawner?.ClearActiveEnemies();
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"Elevator: failed to clear enemies before generation: {ex.Message}");
+            }
+
             m_generator.GenerateFromPreservedEndpoint(preservedParent);
             // After calling the generator, the generator will spawn a new elevator and remove existing ones.
             // This GameObject may be destroyed by the generator; do not attempt to reposition it here.
+        }
+    }
+
+    /// <summary>
+    /// Debug helper: force-uses the elevator and begins the transition sequence immediately.
+    /// </summary>
+    public void UseElevatorDebug()
+    {
+        // Mark player as inside and start transition if available
+        m_playerInside = true;
+        if (!m_transitionInProgress && m_state == State.Available)
+        {
+            Debug.Log("Elevator: Debug use invoked");
+            StartTransition();
         }
     }
 

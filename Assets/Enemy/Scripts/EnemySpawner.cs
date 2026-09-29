@@ -553,6 +553,53 @@ public class EnemySpawner : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Return all currently tracked active enemies to the pool and clear occupancy.
+    /// Safe to call when generating a new level to ensure no old active enemies remain.
+    /// </summary>
+    public void ClearActiveEnemies()
+    {
+        try
+        {
+            var active = m_enemyToSpawnCenter.Keys.ToList();
+            foreach (var obj in active)
+            {
+                if (obj == null) continue;
+
+                string key = null;
+                if (obj.TryGetComponent<Enemy>(out var enemy))
+                {
+                    key = enemy.GetPoolKey();
+                }
+
+                if (!string.IsNullOrEmpty(key))
+                {
+                    // Use RemoveEnemy to ensure occupancy mapping is freed and enemy is deactivated
+                    RemoveEnemy(key, obj);
+                }
+                else
+                {
+                    // Fallback: manually free mappings and deactivate
+                    if (m_enemyToSpawnCenter.TryGetValue(obj, out var center))
+                    {
+                        m_enemyToSpawnCenter.Remove(obj);
+                        if (center != null)
+                            m_occupiedSpawnCenters.Remove(center);
+                    }
+
+                    try { obj.SetActive(false); } catch { }
+                }
+            }
+
+            // Ensure counts are reset
+            m_activeEnemyCount = 0;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"EnemySpawner.ClearActiveEnemies: exception while clearing enemies: {ex.Message}");
+        }
+    }
+
     #endregion
 
     #region --- EVENTS ---
