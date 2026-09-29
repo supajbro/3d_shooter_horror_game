@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -153,10 +154,11 @@ public class ProceduralLevelGenerator : MonoBehaviour
         if (m_autoBuildNavMesh)
             BuildNavMesh();
 
-        OnLevelGenerated?.Invoke();
-
-        // After generation, spawn elevator at ExitPosition center
+        // After generation, spawn elevator at ExitPosition center before notifying subscribers
         SpawnElevatorAtExit();
+
+        // Invoke subscribers on the next frame so Start() on other objects has completed
+        StartCoroutine(InvokeOnLevelGeneratedDeferred());
     }
 
     private void Clear()
@@ -579,6 +581,20 @@ public class ProceduralLevelGenerator : MonoBehaviour
 
         // Clear preserved endpoint reference after instantiation
         m_preservedEndpoint = null;
+    }
+
+    // Invoke OnLevelGenerated on the next frame to ensure other objects have completed Start()
+    private IEnumerator InvokeOnLevelGeneratedDeferred()
+    {
+        yield return null;
+        try
+        {
+            OnLevelGenerated?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"ProceduralLevelGenerator: exception while invoking OnLevelGenerated: {ex.Message}");
+        }
     }
 
     private void SpawnHallwayWalls()

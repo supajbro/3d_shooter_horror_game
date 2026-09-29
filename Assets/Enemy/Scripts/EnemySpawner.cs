@@ -624,6 +624,27 @@ public class EnemySpawner : MonoBehaviour
         // (If callers truly need the Enemy reference they can still GetComponent<Enemy>().)
     }
 
+    /// <summary>
+    /// Resets internal state so the spawner can be safely reinitialized after the procedural level has been regenerated.
+    /// Clears occupied spawn centers, mappings, procedural lists and counters.
+    /// </summary>
+    public void ResetForNewLevel()
+    {
+        m_occupiedSpawnCenters.Clear();
+        m_enemyToSpawnCenter.Clear();
+        m_proceduralAvailableCenters.Clear();
+        m_proceduralPoolKeys.Clear();
+
+        m_activeEnemyCount = 0;
+        m_initialTargetCount = 0;
+        m_procRespawnTimer = 0f;
+
+        m_state = WaveState.Idle;
+        m_running = false;
+        m_currentWaveIndex = 0;
+        m_waitingForNextWave = false;
+    }
+
     #endregion
 }
 

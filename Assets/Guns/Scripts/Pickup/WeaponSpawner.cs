@@ -32,6 +32,10 @@ public class WeaponSpawner : MonoBehaviour
     {
         m_manager = Object.FindFirstObjectByType<LevelManager>();
 
+        // Reset any previous state so re-init after level regeneration doesn't accumulate
+        m_spawnLocations.Clear();
+        m_spawnedPickups.Clear();
+
         // Gather candidate spawn locations from level generator room centers
         var gen = m_manager.GetLevelGenerator();
         if (gen != null)

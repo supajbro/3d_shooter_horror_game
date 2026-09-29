@@ -56,6 +56,9 @@ public class LevelManager : MonoBehaviour
 
         if (m_levelGenerator != null)
         {
+            // Subscribe to level generated so we can reinitialize systems when the generator runs during gameplay
+            m_levelGenerator.OnLevelGenerated += HandleLevelGenerated;
+
             // Generate synchronously (keeps code simple). You can pass a seed if desired.
             m_levelGenerator.Generate();
 
@@ -108,8 +111,93 @@ public class LevelManager : MonoBehaviour
             pad.Init(this);
         }
 
-        m_ui = GameStateManager.Instance.GetUIStateHandler().m_gameplayUI;
-        m_ui.Init(this);
+        m_ui = GameStateManager.Instance.GetUIStateHandler()?.m_gameplayUI;
+        if (m_ui != null)
+            m_ui.Init(this);
+    }
+
+    private void OnDestroy()
+    {
+        if (m_levelGenerator != null)
+            m_levelGenerator.OnLevelGenerated -= HandleLevelGenerated;
+    }
+
+    private void HandleLevelGenerated()
+    {
+        // Called whenever the procedural generator finishes generating a level (including preserved-endpoint regeneration).
+        Debug.Log("LevelManager: HandleLevelGenerated called - reinitializing systems for new level");
+
+        if (m_levelGenerator == null)
+            m_levelGenerator = FindObjectOfType<ProceduralLevelGenerator>();
+
+        // Update spawn point to new generator start
+        if (m_spawnPoint != null && m_levelGenerator != null)
+        {
+            Vector3 start = m_levelGenerator.StartPosition;
+            start.y = m_spawnPoint.position.y;
+            m_spawnPoint.position = start;
+            m_spawnPoint.rotation = m_levelGenerator.StartRotation;
+        }
+
+        // Reinitialize enemy spawner so it picks up new room centers and spawn points
+        if (m_enemySpawner == null)
+            m_enemySpawner = GetComponentInChildren<EnemySpawner>();
+
+        if (m_enemySpawner != null)
+        {
+            // Reset internal occupancy/state then re-init
+            try
+            {
+                m_enemySpawner.ResetForNewLevel();
+            }
+            catch (System.Exception)
+            {
+                // If ResetForNewLevel isn't present for some reason, ignore
+            }
+
+            m_enemySpawner.Init(this);
+        }
+
+        // Reinitialize weapon spawner and respawn pickups distribution
+        if (m_weaponSpawner == null)
+            m_weaponSpawner = FindObjectOfType<WeaponSpawner>();
+
+        if (m_weaponSpawner != null)
+        {
+            m_weaponSpawner.Init();
+            // Spawn initial pickups using the same difficulty as before
+            m_weaponSpawner.TrySpawnInitialDistribution(m_spawnDifficulty);
+        }
+
+        // Reinit weapon pads (they may have been destroyed/recreated as part of level generation)
+        m_weaponPads = FindObjectsByType<WeaponPad>(FindObjectsSortMode.None);
+        foreach (var pad in m_weaponPads)
+        {
+            pad.Init(this);
+        }
+
+        // Rebind collision-based enemy wave triggers
+        m_collisionStartsNextEnemyWave = FindObjectsByType<CollisionStartsNextEnemyWave>(FindObjectsSortMode.None);
+        foreach (var enemyWave in m_collisionStartsNextEnemyWave)
+        {
+            enemyWave.Init(this);
+        }
+
+        // Update UI reference from manager if ready. GameStateManager may not have created its UI handler yet
+        var gsm = GameStateManager.Instance;
+        if (gsm != null)
+        {
+            var uiHandler = gsm.GetUIStateHandler();
+            if (uiHandler != null && uiHandler.m_gameplayUI != null)
+            {
+                m_ui = uiHandler.m_gameplayUI;
+                m_ui.Init(this);
+            }
+            else
+            {
+                Debug.Log("LevelManager: UIStateHandler not ready yet, deferring UI initialization.");
+            }
+        }
     }
 
     private void CreateExitAt(Vector3 exitPosition)
@@ -241,7 +329,7 @@ public class LevelManager : MonoBehaviour
         if (m_weaponSpawner == null)
         {
             Debug.LogError("Missing weapon spawner reference.");
-            return null;
+            return m_weaponSpawner;
         }
         return m_weaponSpawner;
     }
