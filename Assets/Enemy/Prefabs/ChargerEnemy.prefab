@@ -144,7 +144,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ChargerEnemy
   m_anim: {fileID: 6103010485499339278}
-  m_testAnim: {fileID: 0}
   m_chaseRange: 50
   m_attackRange: 2
   m_attackCooldown: 1
@@ -177,6 +176,9 @@ MonoBehaviour:
   m_memoryMin: 3
   m_memoryMax: 20
   m_idleRotateSpeed: 20
+  m_patrolRadius: 3
+  m_patrolPointCount: 4
+  m_patrolPointSampleMaxDistance: 2
 --- !u!195 &7557257208540048715
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -233,9 +235,9 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.5
-  m_Height: 2.6546881
+  m_Height: 1.511831
   m_Direction: 1
-  m_Center: {x: 0, y: 1, z: 0}
+  m_Center: {x: 0, y: 0.71428573, z: 0}
 --- !u!114 &3409527581407681409
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3179,15 +3181,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 400062, guid: f227b5017a7c0184a96c2c26f1e4408d, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.78
+      value: 0.65
       objectReference: {fileID: 0}
     - target: {fileID: 400062, guid: f227b5017a7c0184a96c2c26f1e4408d, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.78
+      value: 0.65
       objectReference: {fileID: 0}
     - target: {fileID: 400062, guid: f227b5017a7c0184a96c2c26f1e4408d, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.78
+      value: 0.65
       objectReference: {fileID: 0}
     - target: {fileID: 400062, guid: f227b5017a7c0184a96c2c26f1e4408d, type: 3}
       propertyPath: m_LocalPosition.x

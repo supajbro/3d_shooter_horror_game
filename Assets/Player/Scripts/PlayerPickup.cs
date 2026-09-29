@@ -482,6 +482,12 @@ public class PlayerPickup : MonoBehaviour
     {
         float scroll = context.ReadValue<float>();
 
+        // Prevent switching while active weapon is reloading
+        var activeGun = m_guns[m_activeIndex];
+        if (activeGun != null && activeGun.GetIsReloading())
+            return;
+        
+
         if (scroll > 0)
             SwitchWeapon(1);
         else if (scroll < 0)
@@ -490,6 +496,12 @@ public class PlayerPickup : MonoBehaviour
 
     private void SwitchWeapon(int direction)
     {
+        // Prevent switching while active weapon is reloading
+        var activeGun = m_guns[m_activeIndex];
+        if (activeGun != null && activeGun.GetIsReloading())
+            return;
+        
+
         if (m_guns[0] == null && m_guns[1] == null)
         {
             var ui = m_manager.GetGameplayUI();

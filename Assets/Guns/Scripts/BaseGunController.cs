@@ -594,6 +594,12 @@ public abstract class BaseGunController : MonoBehaviour
         int added = m_availableAmmo - before;
         return added;
     }
+
+    // Public accessor to allow external systems to check if this gun is reloading.
+    public bool GetIsReloading()
+    {
+        return IsReloading();
+    }
     #endregion
 
     protected virtual void DrawDebug()
