@@ -69,6 +69,9 @@ public class PlayerPickup : MonoBehaviour
     [SerializeField] private string m_throwAnimationTrigger = "Attack01";
     private bool m_isThrowing;
 
+    [Header("Ammo")]
+    [SerializeField] private GameObject m_3dAmmoText;
+
     public System.Action<int> OnWeaponChanged;
 
     public void Init(LevelManager manager)
@@ -192,9 +195,27 @@ public class PlayerPickup : MonoBehaviour
                 {
                     if (g != null && g.GetGunType() == gun.GetGunType())
                     {
-                        g.AddAvailableAmmo(gun.GetAmmoAmount());
-                        gun.OnGunPickup.Invoke();
-                        Destroy(foundPickup.gameObject);
+                        // Try to add available ammo, but only collect if there is space.
+                        int added = g.AddAvailableAmmo(gun.GetAmmoAmount());
+
+                        if (added > 0)
+                        {
+                            // Trigger pickup event and animate ammo text towards UI. Only destroy pickup when ammo was actually added.
+                            gun.OnGunPickup.Invoke();
+
+                            // Capture pickup world position before destroying pickup
+                            Vector3 pickupPos = foundPickup.transform.position;
+
+                            // Spawn floating ammo text that moves to the UI and updates it when complete.
+                            StartCoroutine(SpawnAmmoTextRoutine(added, g, pickupPos));
+
+                            Destroy(foundPickup.gameObject);
+                        }
+                        else
+                        {
+                            // Ammo was full, ignore pickup and leave it in the world.
+                        }
+
                         return;
                     }
                 }
@@ -225,6 +246,120 @@ public class PlayerPickup : MonoBehaviour
         }
 
         HidePickupPrompt();
+    }
+
+    private IEnumerator SpawnAmmoTextRoutine(int amount, BaseGunController gun, Vector3 pickupWorldPos)
+    {
+        // World-space 3D text starting at the pickup's world position and moving to the UI.
+        Camera cam = m_camera != null ? m_camera : Camera.main;
+        if (cam == null)
+            yield break;
+
+        GameObject textGO = Instantiate(m_3dAmmoText);
+        TextMeshPro tmp = textGO.GetComponent<TextMeshPro>();
+        tmp.text = "+" + amount.ToString();
+
+        // Place the text in world space at the pickup position (slightly above)
+        Vector3 startWorld = pickupWorldPos + Vector3.up * 0.5f;
+        textGO.transform.SetParent(null);
+        textGO.transform.position = startWorld;
+        // Face the camera initially
+        textGO.transform.rotation = Quaternion.LookRotation(cam.transform.forward, cam.transform.up);
+        // Scale to a reasonable world-size
+        textGO.transform.localScale = Vector3.one * 0.02f;
+
+        // Determine target world position for the UI ammo count by projecting the UI rect into world space
+        var ui = m_manager != null ? m_manager.GetGameplayUI() : null;
+        Vector3 targetWorld = cam.transform.position + cam.transform.forward * 0.5f; // fallback
+
+        if (ui != null)
+        {
+            var ammoText = ui.GetAmmoText();
+            if (ammoText != null)
+            {
+                RectTransform ammoRect = ammoText.rectTransform;
+
+                // Determine screen point for the UI element. If the canvas is ScreenSpace-Overlay, use null camera.
+                Canvas parentCanvas = ammoRect.GetComponentInParent<Canvas>();
+                Vector2 screenPoint;
+                if (parentCanvas != null && parentCanvas.renderMode == RenderMode.ScreenSpaceOverlay)
+                {
+                    // For overlay canvases, RectTransform position is in screen space already.
+                    screenPoint = RectTransformUtility.WorldToScreenPoint(null, ammoRect.position);
+                }
+                else
+                {
+                    // For ScreenSpace-Camera or World Space, use the camera that renders the UI (our game camera)
+                    screenPoint = RectTransformUtility.WorldToScreenPoint(cam, ammoRect.position);
+                }
+
+                // Choose a reasonable distance in front of the camera for the floating text to land.
+                // Using a fixed depth keeps the movement from projecting to odd world depths that send it straight up.
+                float targetDepth = 1.0f; // meters in front of camera
+
+                Vector3 screenPointWithZ = new Vector3(screenPoint.x, screenPoint.y, targetDepth);
+                targetWorld = cam.ScreenToWorldPoint(screenPointWithZ);
+            }
+        }
+
+        float duration = 0.8f;
+        float t = 0f;
+        Vector3 startPos = textGO.transform.position;
+        Vector3 startScale = textGO.transform.localScale;
+        Vector3 endScale = startScale * 0.25f;
+
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            float lerp = t / duration;
+
+            // Smooth easing
+            float eased = Mathf.SmoothStep(0f, 1f, lerp);
+
+            Vector3 worldPos = Vector3.Lerp(startPos, targetWorld, eased);
+            textGO.transform.position = worldPos;
+
+            textGO.transform.localScale = Vector3.Lerp(startScale, endScale, eased);
+
+            // Always face the camera
+            if (cam != null)
+                textGO.transform.rotation = Quaternion.LookRotation(cam.transform.forward, cam.transform.up);
+
+            yield return null;
+        }
+
+        // Ensure final position and scale
+        textGO.transform.position = targetWorld;
+        textGO.transform.localScale = endScale;
+
+        // Update the UI now that the animation has arrived
+        if (ui != null && gun != null)
+        {
+            ui.SetAmmoText(gun.GetCurrentAmmo() + "/" + gun.GetAvailableAmmo());
+
+            // Animate the ammo UI to indicate increase
+            var ammoUIText = ui.GetAmmoText();
+            if (ammoUIText != null)
+            {
+                GameObject ammoGO = ammoUIText.gameObject;
+
+                // Cancel any existing tweens on the ammo UI
+                LeanTween.cancel(ammoGO);
+
+                // Scale up then back to original size
+                Vector3 upScale = Vector3.one * 1.35f;
+                float upDuration = 0.12f;
+                float downDuration = 0.18f;
+
+                LeanTween.scale(ammoGO, upScale, upDuration).setEaseOutBack().setOnComplete(() =>
+                {
+                    LeanTween.scale(ammoGO, Vector3.one, downDuration).setEaseInOutQuad();
+                });
+            }
+        }
+
+        // Cleanup
+        Destroy(textGO);
     }
 
     public void InitPickupPrompt()

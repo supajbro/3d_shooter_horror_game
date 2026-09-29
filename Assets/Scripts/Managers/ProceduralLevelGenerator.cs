@@ -1025,11 +1025,9 @@ public class ProceduralLevelGenerator : MonoBehaviour
         {
             var child = m_parent.GetChild(i);
             float d = Vector3.Distance(child.position, ExitPosition);
-            Debug.Log($"ProceduralLevelGenerator: child {child.name} at {child.position}, distance to exit {d}");
             if (d <= tolerance)
             {
                 anchor = child;
-                Debug.Log($"ProceduralLevelGenerator: selected anchor {child.name} for elevator");
                 break;
             }
         }

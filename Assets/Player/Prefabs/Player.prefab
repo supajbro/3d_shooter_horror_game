@@ -407,6 +407,7 @@ MonoBehaviour:
   m_throwSpawnDelay: 0.35
   m_throwSpawnDistance: 1.25
   m_throwAnimationTrigger: Attack01
+  m_3dAmmoText: {fileID: 5892595990807507327, guid: 5ddcc11468c139443af7c2030778a37b, type: 3}
 --- !u!114 &8953194335352935583
 MonoBehaviour:
   m_ObjectHideFlags: 0

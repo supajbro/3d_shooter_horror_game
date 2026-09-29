@@ -58,7 +58,7 @@ public class Elevator : MonoBehaviour
             if (gameplay.keyCollected <= 0)
             {
                 Debug.Log("Elevator: no keys collected, cannot use");
-                //return;
+                return;
             }
 
             // begin transition

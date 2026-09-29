@@ -584,19 +584,15 @@ public abstract class BaseGunController : MonoBehaviour
     }
 
     // Add available ammo to this gun (used when picking up ammo from world pickups)
-    public void AddAvailableAmmo(int amount)
+    public int AddAvailableAmmo(int amount)
     {
         if (m_inifiniteAmmo)
-            return;
+            return 0;
 
+        int before = m_availableAmmo;
         m_availableAmmo = Mathf.Clamp(m_availableAmmo + amount, 0, m_maxAvailableAmmo);
-
-        // If this gun is currently active, update the UI
-        if (m_manager != null && m_manager.GetGameplayUI() != null)
-        {
-            // only update if current weapon displayed this weapon (manager's UI shows active weapon ammo elsewhere)
-            m_manager.GetGameplayUI().SetAmmoText(m_currentAmmo + "/" + GetAvailableAmmo());
-        }
+        int added = m_availableAmmo - before;
+        return added;
     }
     #endregion
 
